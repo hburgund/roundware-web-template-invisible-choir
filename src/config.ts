@@ -49,8 +49,8 @@ let config: IConfig = {
 		},
 
 		zoom: {
-			high: 17,
-			low: 11,
+			high: 18,
+			low: 17,
 			walking: 22,
 		},
 		speakerDisplay: 'polygons',

@@ -21,6 +21,7 @@ const useStyles = makeStyles((theme) => {
 		},
 		circle: {
 			borderRadius: '50%',
+			opacity: 0,
 			width: 500,
 			height: 500,
 			margin: 'auto',
