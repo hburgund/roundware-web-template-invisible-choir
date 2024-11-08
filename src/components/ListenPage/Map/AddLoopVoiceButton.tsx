@@ -52,7 +52,7 @@ const AddLoopVoiceButton = () => {
 				startIcon={<Mic />}
 				onClick={handleClick}
 			>
-				Add your voice here
+				Join This Choir
 			</Button>
 
 			<Dialog open={showNoSpeakerMessage} onClose={() => setShowNoSpeakerMessage(false)}>

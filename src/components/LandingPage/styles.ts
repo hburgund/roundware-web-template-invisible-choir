@@ -32,6 +32,7 @@ const useStyles = makeStyles((theme) => {
 		},
 		landingTagline: {
 			textAlign: 'center',
+			fontSize: '3em',
 			height: '15vh',
 			paddingTop: 15,
 			[theme.breakpoints.down('sm')]: {

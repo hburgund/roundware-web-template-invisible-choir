@@ -203,7 +203,7 @@ const LoopingRecordingForm = () => {
 								Amazing! You are about to add your voice to the choir of voices that exist in this location.
 							</Typography>
 							<Typography variant='h6' textAlign={'center'}>
-								Tap the START button and you will hear a loop of the base music for this choir. When you are ready to record, tap the RECORD button and you will see a countdown indicator that displays how much time remains until the recording will start. Then sing along however you want.
+								Tap the START button and you will hear a loop of the seed music for this choir. When you are ready to record, tap the RECORD button and you will see a countdown indicator that displays how much time remains until the recording will start. Then sing along however you want.
 							</Typography>
 
 							<Stack direction={'row'} spacing={2} justifyContent={'center'}>
