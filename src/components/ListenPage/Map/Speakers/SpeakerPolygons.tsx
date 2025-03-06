@@ -1,22 +1,61 @@
-import { Polygon, PolygonProps } from '@react-google-maps/api';
-import React, { useMemo, useState } from 'react';
+import { Polygon, PolygonProps, Marker } from '@react-google-maps/api';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRoundware } from '@/hooks';
 import { speakerPolygonColors as colors, speakerPolygonOptions } from '@/styles/speaker';
 import { polygonToGoogleMapPaths } from '@/utils';
 import CustomMapControl from '../CustomControl';
 import config from '@/config';
 import { ISpeakerData } from 'roundware-web-framework';
+
 interface Props {}
 
 const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
+
+const getRandomPulseDuration = () => Math.random() * (8000 - 3000) + 3000;
+
 const SpeakerPolygons = (props: Props) => {
 	const { roundware, hideSpeakerPolygons } = useRoundware();
-
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
+	const [fillOpacities, setFillOpacities] = useState<{ [key: number]: number }>({});
+	const polygonPulseDurations = useRef<{ [key: number]: number }>({});
 
-	const googleMapPolygonProps: PolygonProps[] = useMemo(() => {
+	useEffect(() => {
+		const newDurations: { [key: number]: number } = {};
+		roundware
+			.speakers()
+			?.filter((s) => !hideSpeakerPolygons.includes(s.id))
+			.forEach((s) => {
+				newDurations[s.id] = getRandomPulseDuration();
+			});
+		polygonPulseDurations.current = newDurations;
+	}, [roundware.project, hideSpeakerPolygons]);
+
+	useEffect(() => {
+		let startTimes: { [key: number]: number } = {};
+		let animationFrame: number;
+
+		const pulse = (timestamp: number) => {
+			const newOpacities: { [key: number]: number } = {};
+			roundware
+				.speakers()
+				?.filter((s) => !hideSpeakerPolygons.includes(s.id))
+				.forEach((s) => {
+					if (!startTimes[s.id]) startTimes[s.id] = timestamp;
+					const progress = ((timestamp - startTimes[s.id]) / polygonPulseDurations.current[s.id]) % 1;
+					newOpacities[s.id] = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(progress * Math.PI * 2));
+				});
+
+			setFillOpacities(newOpacities);
+			animationFrame = requestAnimationFrame(pulse);
+		};
+
+		animationFrame = requestAnimationFrame(pulse);
+		return () => cancelAnimationFrame(animationFrame);
+	}, [roundware.project, hideSpeakerPolygons]);
+
+	const googleMapPolygonProps = useMemo(() => {
 		if (!Array.isArray(roundware.speakers())) return [];
 		return roundware
 			.speakers()
@@ -24,19 +63,22 @@ const SpeakerPolygons = (props: Props) => {
 			?.filter((speaker): speaker is ISpeakerData & Required<Pick<ISpeakerData, 'shape'>> => !!speaker.shape)
 			?.filter((s) => !hideSpeakerPolygons.includes(s.id))
 			.flatMap((s, index) => {
+				const path = polygonToGoogleMapPaths(s.shape);
 				const prop: PolygonProps = {
-					path: polygonToGoogleMapPaths(s.shape),
+					path: path,
 					options: {
 						...options,
 						fillColor: getColorForIndex(index),
 						strokeColor: getColorForIndex(index),
+						fillOpacity: fillOpacities[s.id] || 0.6,
 					},
-					// @ts-ignore
 					key: s?.id,
 				};
-				return [prop];
+				return [
+					<Polygon {...prop} key={`polygon-${s.id}`} />,
+				];
 			});
-	}, [roundware.project, options, hideSpeakerPolygons]);
+	}, [roundware.project, options, hideSpeakerPolygons, fillOpacities]);
 
 	return (
 		<div>
@@ -46,19 +88,9 @@ const SpeakerPolygons = (props: Props) => {
 						<p>fillOpacity</p>
 						<input type='number' value={options?.fillOpacity?.toString()} onChange={(e) => setOptions((prev) => ({ ...prev, fillOpacity: Number(e.target.value) }))} />
 					</div>
-
-					<div>
-						<p>strokeOpacity</p>
-						<input type='number' value={options?.strokeOpacity?.toString()} onChange={(e) => setOptions((prev) => ({ ...prev, strokeOpacity: Number(e.target.value) }))} />
-					</div>
-
-					<div>
-						<p>strokeWeight</p>
-						<input type='number' value={options?.strokeWeight?.toString()} onChange={(e) => setOptions((prev) => ({ ...prev, strokeWeight: Number(e.target.value) }))} />
-					</div>
 				</CustomMapControl>
 			)}
-			{Array.isArray(googleMapPolygonProps) && googleMapPolygonProps.map((p) => <Polygon {...p} />)}
+			{googleMapPolygonProps.map((p, index) => <React.Fragment key={index}>{p}</React.Fragment>)}
 		</div>
 	);
 };
