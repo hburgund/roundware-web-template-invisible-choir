@@ -9,10 +9,12 @@ const PolygonGenerator = () => {
   const [map, setMap] = useState(null);
   const [polygons, setPolygons] = useState([]);
   const [centerMarkers, setCenterMarkers] = useState([]);
+  const [centerLines, setCenterLines] = useState([]);
   const [minSize, setMinSize] = useState(100);
   const [maxSize, setMaxSize] = useState(300);
   const [keepPolygons, setKeepPolygons] = useState(false);
   const [generatorMode, setGeneratorMode] = useState('random'); // 'random' or 'beechLeaf'
+  const [lastCenterMarker, setLastCenterMarker] = useState(null);
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -63,6 +65,9 @@ const PolygonGenerator = () => {
       if (centerMarkers.length > 0) {
         clearAllCenterMarkers();
       }
+      if (centerLines.length > 0) {
+        clearAllCenterLines();
+      }
     };
   }, []);
 
@@ -112,6 +117,31 @@ const PolygonGenerator = () => {
     };
   };
 
+  // Clear all center lines from the map
+  const clearAllCenterLines = () => {
+    centerLines.forEach(line => {
+      line.setMap(null);
+    });
+    setCenterLines([]);
+  };
+
+  // Draw a line between two center markers
+  const drawLineBetweenCenters = (center1, center2) => {
+    if (!map || !center1 || !center2) return;
+
+    const line = new window.google.maps.Polyline({
+      path: [center1, center2],
+      geodesic: true,
+      strokeColor: '#FFFFFF',
+      strokeOpacity: 0.7,
+      strokeWeight: 1,
+      map: map
+    });
+
+    setCenterLines(prev => [...prev, line]);
+    return line;
+  };
+
   // Add a center marker to the polygon
   const addCenterMarker = (vertices) => {
     const center = calculateCentroid(vertices);
@@ -129,6 +159,13 @@ const PolygonGenerator = () => {
       }
     });
 
+    // If there's a previous center marker, draw a line connecting them
+    if (lastCenterMarker) {
+      drawLineBetweenCenters(lastCenterMarker.position, center);
+    }
+
+    // Update the last center marker
+    setLastCenterMarker(marker);
     setCenterMarkers(prev => [...prev, marker]);
     return marker;
   };
@@ -141,6 +178,8 @@ const PolygonGenerator = () => {
     if (!keepPolygons) {
       clearAllPolygons();
       clearAllCenterMarkers();
+      clearAllCenterLines();
+      setLastCenterMarker(null);
     }
 
     // Create a random center point near Bedford
@@ -233,6 +272,8 @@ const PolygonGenerator = () => {
     if (!keepPolygons) {
       clearAllPolygons();
       clearAllCenterMarkers();
+      clearAllCenterLines();
+      setLastCenterMarker(null);
     }
 
     // Random number of sides between 3 and 8
@@ -300,6 +341,7 @@ const PolygonGenerator = () => {
       marker.setMap(null);
     });
     setCenterMarkers([]);
+    setLastCenterMarker(null);
   };
 
   // Clear all polygons from the map
@@ -412,6 +454,7 @@ const PolygonGenerator = () => {
               onClick={() => {
                 clearAllPolygons();
                 clearAllCenterMarkers();
+                clearAllCenterLines();
               }}
               className="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             >
