@@ -12,8 +12,8 @@ const PolygonGenerator = () => {
   const [centerLines, setCenterLines] = useState([]);
   const [minSize, setMinSize] = useState(100);
   const [maxSize, setMaxSize] = useState(300);
-  const [keepPolygons, setKeepPolygons] = useState(false);
-  const [generatorMode, setGeneratorMode] = useState('random'); // 'random' or 'beechLeaf'
+  const [keepPolygons, setKeepPolygons] = useState(true); // Changed default to true
+  const [generatorMode, setGeneratorMode] = useState('beechLeaf'); // Changed default to beechLeaf
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
 
   const mapRef = useRef(null);
@@ -77,6 +77,10 @@ const PolygonGenerator = () => {
         center: BEDFORD_CENTER,
         zoom: 14,
         mapTypeId: 'roadmap',
+        zoomControl: true, // Added zoom control
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_CENTER
+        }
       });
       googleMapRef.current = newMap;
       setMap(newMap);
