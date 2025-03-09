@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import * as turf from '@turf/turf';
 
 // Bedford, MA coordinates
 const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
@@ -7,6 +8,7 @@ const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
 const PolygonGenerator = () => {
   const [map, setMap] = useState(null);
   const [polygons, setPolygons] = useState([]);
+  const [centerMarkers, setCenterMarkers] = useState([]);
   const [minSize, setMinSize] = useState(100);
   const [maxSize, setMaxSize] = useState(300);
   const [keepPolygons, setKeepPolygons] = useState(false);
@@ -24,20 +26,42 @@ const PolygonGenerator = () => {
       script.async = true;
       script.defer = true;
       script.id = 'google-maps-script';
-      script.onload = initMap;
+      script.onload = () => {
+        // Load Turf.js after Google Maps is loaded
+        const turfScript = document.createElement('script');
+        turfScript.src = 'https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js';
+        turfScript.onload = initMap;
+        document.head.appendChild(turfScript);
+      };
       document.head.appendChild(script);
     } else if (window.google) {
-      initMap();
+      if (window.turf) {
+        initMap();
+      } else {
+        // Load Turf.js if Google Maps is already loaded
+        const turfScript = document.createElement('script');
+        turfScript.src = 'https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js';
+        turfScript.onload = initMap;
+        document.head.appendChild(turfScript);
+      }
     } else {
       // Script is loading but not ready yet, wait for it
       const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api"]');
-      existingScript.addEventListener('load', initMap);
+      existingScript.addEventListener('load', () => {
+        const turfScript = document.createElement('script');
+        turfScript.src = 'https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js';
+        turfScript.onload = initMap;
+        document.head.appendChild(turfScript);
+      });
     }
 
     // Cleanup function
     return () => {
       if (polygons.length > 0) {
         clearAllPolygons();
+      }
+      if (centerMarkers.length > 0) {
+        clearAllCenterMarkers();
       }
     };
   }, []);
@@ -68,6 +92,47 @@ const PolygonGenerator = () => {
     return meters / 111320;
   };
 
+  // Calculate the centroid of a polygon
+  const calculateCentroid = (vertices) => {
+    // Convert Google Maps LatLng array to GeoJSON format for turf.js
+    const coordinates = vertices.map(vertex => [vertex.lng, vertex.lat]);
+    // Close the polygon by adding the first vertex at the end
+    coordinates.push(coordinates[0]);
+
+    // Create a GeoJSON polygon
+    const polygon = turf.polygon([coordinates]);
+
+    // Calculate the centroid
+    const centroid = turf.centroid(polygon);
+
+    // Return the centroid as a Google Maps LatLng object
+    return {
+      lat: centroid.geometry.coordinates[1],
+      lng: centroid.geometry.coordinates[0]
+    };
+  };
+
+  // Add a center marker to the polygon
+  const addCenterMarker = (vertices) => {
+    const center = calculateCentroid(vertices);
+
+    const marker = new window.google.maps.Marker({
+      position: center,
+      map: map,
+      icon: {
+        path: window.google.maps.SymbolPath.CIRCLE,
+        fillColor: '#FFFFFF',
+        fillOpacity: 1,
+        strokeColor: '#000000',
+        strokeWeight: 0,
+        scale: 3
+      }
+    });
+
+    setCenterMarkers(prev => [...prev, marker]);
+    return marker;
+  };
+
   // Generate a beech leaf-shaped polygon
   const generateBeechLeafPolygon = () => {
     if (!map) return;
@@ -75,6 +140,7 @@ const PolygonGenerator = () => {
     // Clear existing polygons if not keeping them
     if (!keepPolygons) {
       clearAllPolygons();
+      clearAllCenterMarkers();
     }
 
     // Create a random center point near Bedford
@@ -141,12 +207,15 @@ const PolygonGenerator = () => {
     const newPolygon = new window.google.maps.Polygon({
       paths: vertices,
       strokeColor: '#2E2E2E',
-      strokeOpacity: 0.8,
-      strokeWeight: 1.5,
+      strokeOpacity: 0.1,
+      strokeWeight: 1.0,
       fillColor: color,
-      fillOpacity: 0.7,
+      fillOpacity: 0.4,
       map: map
     });
+
+    // Add center marker
+    const centerMarker = addCenterMarker(vertices);
 
     setPolygons(prev => [...prev, newPolygon]);
 
@@ -163,6 +232,7 @@ const PolygonGenerator = () => {
     // Clear existing polygons if not keeping them
     if (!keepPolygons) {
       clearAllPolygons();
+      clearAllCenterMarkers();
     }
 
     // Random number of sides between 3 and 8
@@ -204,6 +274,9 @@ const PolygonGenerator = () => {
       map: map
     });
 
+    // Add center marker
+    const centerMarker = addCenterMarker(vertices);
+
     setPolygons(prev => [...prev, newPolygon]);
 
     // Fit the map to the polygon bounds
@@ -219,6 +292,14 @@ const PolygonGenerator = () => {
     } else {
       generateRandomPolygon();
     }
+  };
+
+  // Clear all center markers from the map
+  const clearAllCenterMarkers = () => {
+    centerMarkers.forEach(marker => {
+      marker.setMap(null);
+    });
+    setCenterMarkers([]);
   };
 
   // Clear all polygons from the map
@@ -328,7 +409,10 @@ const PolygonGenerator = () => {
               Generate {generatorMode === 'beechLeaf' ? 'Leaf' : 'Polygon'}
             </button>
             <button
-              onClick={clearAllPolygons}
+              onClick={() => {
+                clearAllPolygons();
+                clearAllCenterMarkers();
+              }}
               className="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             >
               Clear All Shapes
