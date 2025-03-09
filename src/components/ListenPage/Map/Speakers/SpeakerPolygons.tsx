@@ -1,4 +1,4 @@
-import { Polygon, PolygonProps, Marker } from '@react-google-maps/api';
+import { Polygon, PolygonProps, Marker, Polyline } from '@react-google-maps/api';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRoundware } from '@/hooks';
 import { speakerPolygonColors as colors, speakerPolygonOptions } from '@/styles/speaker';
@@ -111,58 +111,105 @@ const SpeakerPolygons = (props: Props) => {
     const googleMapPolygonProps = useMemo(() => {
         if (!Array.isArray(roundware.speakers())) return [];
 
-        return roundware
-            .speakers()
+        const speakers = roundware.speakers()
             ?.sort((a, b) => (a?.id > b?.id ? -1 : 1))
             ?.filter((speaker): speaker is ISpeakerData & Required<Pick<ISpeakerData, 'shape'>> => !!speaker.shape)
-            ?.filter((s) => !hideSpeakerPolygons.includes(s.id))
-            .flatMap((s, index) => {
-                const path = polygonToGoogleMapPaths(s.shape);
-                const center = calculatePolygonCenter(s.shape);
+            ?.filter((s) => !hideSpeakerPolygons.includes(s.id));
 
-                // Skip creating markers with invalid centers
-                if (center.lat === 0 && center.lng === 0) {
-                    return [
-                        <Polygon
-                            path={path}
-                            options={{
-                                ...options,
-                                fillColor: getColorForIndex(index),
-                                strokeColor: getColorForIndex(index),
-                                fillOpacity: fillOpacities[s.id] || 0.6,
-                            }}
-                            key={`polygon-${s.id}`}
-                        />
-                    ];
-                }
+        // Create a map of speaker IDs to their center positions for easy lookup
+        const speakerCenters: { [key: number]: google.maps.LatLngLiteral } = {};
+        speakers.forEach((s) => {
+            speakerCenters[s.id] = calculatePolygonCenter(s.shape);
+        });
 
-                const prop: PolygonProps = {
-                    path: path,
-                    options: {
-                        ...options,
-                        fillColor: getColorForIndex(index),
-                        strokeColor: getColorForIndex(index),
-                        fillOpacity: fillOpacities[s.id] || 0.6,
-                    },
-                    key: s?.id,
-                };
+        // First pass: create polygons and markers
+        const polygonsAndMarkers = speakers.flatMap((s, index) => {
+            const path = polygonToGoogleMapPaths(s.shape);
+            const center = speakerCenters[s.id];
 
+            // Skip creating markers with invalid centers
+            if (center.lat === 0 && center.lng === 0) {
                 return [
-                    <Polygon {...prop} key={`polygon-${s.id}`} />,
-                    <Marker
-                        key={`center-${s.id}`}
-                        position={center}
-                        icon={{
-                            path: window.google.maps.SymbolPath.CIRCLE,
-                            scale: 3,
-                            fillColor: "#FFFFFF",
-                            fillOpacity: 1,
-                            strokeWeight: 0,
-                            strokeColor: "#000000"
+                    <Polygon
+                        path={path}
+                        options={{
+                            ...options,
+                            fillColor: getColorForIndex(index),
+                            strokeColor: getColorForIndex(index),
+                            fillOpacity: fillOpacities[s.id] || 0.6,
                         }}
+                        key={`polygon-${s.id}`}
                     />
                 ];
-            });
+            }
+
+            const prop: PolygonProps = {
+                path: path,
+                options: {
+                    ...options,
+                    fillColor: getColorForIndex(index),
+                    strokeColor: getColorForIndex(index),
+                    fillOpacity: fillOpacities[s.id] || 0.6,
+                },
+                key: s?.id,
+            };
+
+            return [
+                <Polygon {...prop} key={`polygon-${s.id}`} />,
+                <Marker
+                    key={`center-${s.id}`}
+                    position={center}
+                    icon={{
+                        path: window.google.maps.SymbolPath.CIRCLE,
+                        scale: 3,
+                        fillColor: "#FFFFFF",
+                        fillOpacity: 1,
+                        strokeWeight: 0,
+                        strokeColor: "#000000"
+                    }}
+                />
+            ];
+        });
+
+        // Second pass: create lines connecting child speakers to their parents
+        const connectionLines = speakers.flatMap((s) => {
+            const childCenter = speakerCenters[s.id];
+
+            // Skip speakers with invalid centers or no parents
+            if (childCenter.lat === 0 && childCenter.lng === 0 || !s.parents || s.parents.length === 0) {
+                return [];
+            }
+
+            return s.parents.map((parentId) => {
+                // Skip if parent is hidden or doesn't exist in our center map
+                if (hideSpeakerPolygons.includes(parentId) || !speakerCenters[parentId]) {
+                    return null;
+                }
+
+                const parentCenter = speakerCenters[parentId];
+
+                // Skip if parent has invalid center
+                if (parentCenter.lat === 0 && parentCenter.lng === 0) {
+                    return null;
+                }
+
+                return (
+                    <Polyline
+                        key={`connection-${s.id}-${parentId}`}
+                        path={[childCenter, parentCenter]}
+                        options={{
+                            strokeColor: "#FFFFFF",
+                            strokeOpacity: 0.7,
+                            strokeWeight: 1,
+                            strokeDasharray: [2, 2] // Dashed line
+                        }}
+                    />
+                );
+            }).filter(Boolean); // Filter out null connections
+        });
+
+        // Combine all elements
+        return [...polygonsAndMarkers, ...connectionLines];
     }, [roundware.project, options, hideSpeakerPolygons, fillOpacities]);
 
     return (
