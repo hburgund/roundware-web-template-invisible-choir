@@ -12,9 +12,10 @@ const PolygonGenerator = () => {
   const [centerLines, setCenterLines] = useState([]);
   const [minSize, setMinSize] = useState(100);
   const [maxSize, setMaxSize] = useState(300);
-  const [keepPolygons, setKeepPolygons] = useState(true); // Changed default to true
-  const [generatorMode, setGeneratorMode] = useState('beechLeaf'); // Changed default to beechLeaf
+  const [keepPolygons, setKeepPolygons] = useState(true);
+  const [generatorMode, setGeneratorMode] = useState('beechLeaf');
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
+  const [clickListener, setClickListener] = useState(null);
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -68,8 +69,36 @@ const PolygonGenerator = () => {
       if (centerLines.length > 0) {
         clearAllCenterLines();
       }
+      if (clickListener) {
+        window.google.maps.event.removeListener(clickListener);
+      }
     };
   }, []);
+
+  // Set up map click listener when map is ready
+  useEffect(() => {
+    if (map) {
+      // Remove any existing click listener
+      if (clickListener) {
+        window.google.maps.event.removeListener(clickListener);
+      }
+
+      // Add new click listener
+      const listener = map.addListener('click', (event) => {
+        const clickedLocation = {
+          lat: event.latLng.lat(),
+          lng: event.latLng.lng()
+        };
+        generatePolygonAtLocation(clickedLocation);
+      });
+
+      setClickListener(listener);
+
+      return () => {
+        window.google.maps.event.removeListener(listener);
+      };
+    }
+  }, [map, minSize, maxSize, generatorMode, keepPolygons]); // Re-add listener when these params change
 
   const initMap = () => {
     if (!googleMapRef.current) {
@@ -77,7 +106,7 @@ const PolygonGenerator = () => {
         center: BEDFORD_CENTER,
         zoom: 14,
         mapTypeId: 'roadmap',
-        zoomControl: true, // Added zoom control
+        zoomControl: true,
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_CENTER
         }
@@ -174,8 +203,8 @@ const PolygonGenerator = () => {
     return marker;
   };
 
-  // Generate a beech leaf-shaped polygon
-  const generateBeechLeafPolygon = () => {
+  // Generate a beech leaf-shaped polygon at a specific location
+  const generateBeechLeafPolygonAtLocation = (centerLocation) => {
     if (!map) return;
 
     // Clear existing polygons if not keeping them
@@ -186,9 +215,8 @@ const PolygonGenerator = () => {
       setLastCenterMarker(null);
     }
 
-    // Create a random center point near Bedford
-    const centerLat = BEDFORD_CENTER.lat + getRandomInRange(-0.005, 0.005);
-    const centerLng = BEDFORD_CENTER.lng + getRandomInRange(-0.005, 0.005);
+    const centerLat = centerLocation.lat;
+    const centerLng = centerLocation.lng;
 
     // Random scale factor based on size range - directly use the slider values
     const scale = getRandomInRange(minSize, maxSize);
@@ -261,15 +289,10 @@ const PolygonGenerator = () => {
     const centerMarker = addCenterMarker(vertices);
 
     setPolygons(prev => [...prev, newPolygon]);
-
-    // Fit the map to the polygon bounds
-    const bounds = new window.google.maps.LatLngBounds();
-    vertices.forEach(vertex => bounds.extend(vertex));
-    map.fitBounds(bounds);
   };
 
-  // Generate a random polygon (original function)
-  const generateRandomPolygon = () => {
+  // Generate a random polygon at a specific location
+  const generateRandomPolygonAtLocation = (centerLocation) => {
     if (!map) return;
 
     // Clear existing polygons if not keeping them
@@ -283,9 +306,8 @@ const PolygonGenerator = () => {
     // Random number of sides between 3 and 8
     const sides = Math.floor(getRandomInRange(3, 9));
 
-    // Create a random center point near Bedford
-    const centerLat = BEDFORD_CENTER.lat + getRandomInRange(-0.01, 0.01);
-    const centerLng = BEDFORD_CENTER.lng + getRandomInRange(-0.01, 0.01);
+    const centerLat = centerLocation.lat;
+    const centerLng = centerLocation.lng;
 
     // Generate vertices for the polygon
     const vertices = [];
@@ -323,20 +345,26 @@ const PolygonGenerator = () => {
     const centerMarker = addCenterMarker(vertices);
 
     setPolygons(prev => [...prev, newPolygon]);
-
-    // Fit the map to the polygon bounds
-    const bounds = new window.google.maps.LatLngBounds();
-    vertices.forEach(vertex => bounds.extend(vertex));
-    map.fitBounds(bounds);
   };
 
-  // Generate polygon based on selected mode
-  const generatePolygon = () => {
+  // Generate polygon at clicked location based on selected mode
+  const generatePolygonAtLocation = (location) => {
     if (generatorMode === 'beechLeaf') {
-      generateBeechLeafPolygon();
+      generateBeechLeafPolygonAtLocation(location);
     } else {
-      generateRandomPolygon();
+      generateRandomPolygonAtLocation(location);
     }
+  };
+
+  // Generate polygon with random location based on selected mode
+  const generatePolygon = () => {
+    // Create a random center point near Bedford
+    const randomLocation = {
+      lat: BEDFORD_CENTER.lat + getRandomInRange(-0.005, 0.005),
+      lng: BEDFORD_CENTER.lng + getRandomInRange(-0.005, 0.005)
+    };
+
+    generatePolygonAtLocation(randomLocation);
   };
 
   // Clear all center markers from the map
@@ -464,6 +492,10 @@ const PolygonGenerator = () => {
             >
               Clear All Shapes
             </button>
+          </div>
+
+          <div className="mt-4 text-sm text-gray-600">
+            <p>Click anywhere on the map to create a shape at that location.</p>
           </div>
         </CardContent>
       </Card>
