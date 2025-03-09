@@ -6,41 +6,42 @@ const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
 
 const PolygonGenerator = () => {
   const [map, setMap] = useState(null);
-  const [polygon, setPolygon] = useState(null);
+  const [polygons, setPolygons] = useState([]);
   const [minSides, setMinSides] = useState(3);
   const [maxSides, setMaxSides] = useState(8);
   const [minLength, setMinLength] = useState(100);
   const [maxLength, setMaxLength] = useState(500);
+  const [keepPolygons, setKeepPolygons] = useState(false);
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
 
   // Initialize Google Maps
-    useEffect(() => {
-      // Check if the script is already loaded or loading
-      if (!window.google && !document.querySelector('script[src*="maps.googleapis.com/maps/api"]')) {
-        const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCmYUeVE8rq7no5-uWa1Js1JCY154WM8Is&libraries=geometry';
-        script.async = true;
-        script.defer = true;
-        script.id = 'google-maps-script'; // Add an ID to easily identify it
-        script.onload = initMap;
-        document.head.appendChild(script);
-      } else if (window.google) {
-        initMap();
-      } else {
-        // Script is loading but not ready yet, wait for it
-        const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api"]');
-        existingScript.addEventListener('load', initMap);
-      }
+  useEffect(() => {
+    // Check if the script is already loaded or loading
+    if (!window.google && !document.querySelector('script[src*="maps.googleapis.com/maps/api"]')) {
+      const script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=geometry';
+      script.async = true;
+      script.defer = true;
+      script.id = 'google-maps-script';
+      script.onload = initMap;
+      document.head.appendChild(script);
+    } else if (window.google) {
+      initMap();
+    } else {
+      // Script is loading but not ready yet, wait for it
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api"]');
+      existingScript.addEventListener('load', initMap);
+    }
 
-      // Cleanup function to handle component unmounting
-      return () => {
-        if (googleMapRef.current && map) {
-          // Clean up any event listeners or resources if needed
-        }
-      };
-    }, []);
+    // Cleanup function
+    return () => {
+      if (polygons.length > 0) {
+        clearAllPolygons();
+      }
+    };
+  }, []);
 
   const initMap = () => {
     if (!googleMapRef.current) {
@@ -72,9 +73,9 @@ const PolygonGenerator = () => {
   const generatePolygon = () => {
     if (!map) return;
 
-    // Clear existing polygon
-    if (polygon) {
-      polygon.setMap(null);
+    // Clear existing polygons if not keeping them
+    if (!keepPolygons) {
+      clearAllPolygons();
     }
 
     // Random number of sides within range
@@ -101,23 +102,36 @@ const PolygonGenerator = () => {
       });
     }
 
-    // Create and display the polygon
+    // Create and display the polygon with a random color
+    const r = Math.floor(Math.random() * 255);
+    const g = Math.floor(Math.random() * 255);
+    const b = Math.floor(Math.random() * 255);
+    const color = `rgb(${r}, ${g}, ${b})`;
+
     const newPolygon = new window.google.maps.Polygon({
       paths: vertices,
-      strokeColor: '#FF0000',
+      strokeColor: color,
       strokeOpacity: 0.8,
       strokeWeight: 2,
-      fillColor: '#FF0000',
+      fillColor: color,
       fillOpacity: 0.35,
       map: map
     });
 
-    setPolygon(newPolygon);
+    setPolygons(prev => [...prev, newPolygon]);
 
     // Fit the map to the polygon bounds
     const bounds = new window.google.maps.LatLngBounds();
     vertices.forEach(vertex => bounds.extend(vertex));
     map.fitBounds(bounds);
+  };
+
+  // Clear all polygons from the map
+  const clearAllPolygons = () => {
+    polygons.forEach(polygon => {
+      polygon.setMap(null);
+    });
+    setPolygons([]);
   };
 
   const handleInputChange = (setter) => (e) => {
@@ -200,15 +214,37 @@ const PolygonGenerator = () => {
               />
             </div>
           </div>
-          <button
-            onClick={generatePolygon}
-            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Generate New Polygon
-          </button>
+
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="keepPolygons"
+              checked={keepPolygons}
+              onChange={(e) => setKeepPolygons(e.target.checked)}
+              className="mr-2"
+            />
+            <label htmlFor="keepPolygons" className="text-sm font-medium">
+              Keep previous polygons when generating new ones
+            </label>
+          </div>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={generatePolygon}
+              className="flex-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Generate New Polygon
+            </button>
+            <button
+              onClick={clearAllPolygons}
+              className="flex-1 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Clear All Polygons
+            </button>
+          </div>
         </CardContent>
       </Card>
-      <div ref={mapRef} className="flex-grow" />
+      <div ref={mapRef} className="flex-grow w-full" />
     </div>
   );
 };
