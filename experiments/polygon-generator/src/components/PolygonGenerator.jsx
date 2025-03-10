@@ -16,6 +16,7 @@ const PolygonGenerator = () => {
   const [generatorMode, setGeneratorMode] = useState('beechLeaf');
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
   const [clickListener, setClickListener] = useState(null);
+  const [polygonClickListeners, setPolygonClickListeners] = useState([]);
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -70,7 +71,13 @@ const PolygonGenerator = () => {
         clearAllCenterLines();
       }
       if (clickListener) {
-        window.google.maps.event.removeListener(clickListener);
+        window.google?.maps.event.removeListener(clickListener);
+      }
+      // Clean up polygon click listeners
+      if (polygonClickListeners.length > 0) {
+        polygonClickListeners.forEach(listener => {
+          window.google?.maps.event.removeListener(listener);
+        });
       }
     };
   }, []);
@@ -285,6 +292,21 @@ const PolygonGenerator = () => {
       map: map
     });
 
+    // Add click listener to the polygon
+    const polygonClickListener = newPolygon.addListener('click', (event) => {
+      const clickedLocation = {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng()
+      };
+      // Prevent event from propagating to the map
+      event.stop();
+      // Generate a new polygon at the clicked location
+      generatePolygonAtLocation(clickedLocation);
+    });
+
+    // Add to polygon click listeners array for cleanup
+    setPolygonClickListeners(prev => [...prev, polygonClickListener]);
+
     // Add center marker
     const centerMarker = addCenterMarker(vertices);
 
@@ -341,6 +363,21 @@ const PolygonGenerator = () => {
       map: map
     });
 
+    // Add click listener to the polygon
+    const polygonClickListener = newPolygon.addListener('click', (event) => {
+      const clickedLocation = {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng()
+      };
+      // Prevent event from propagating to the map
+      event.stop();
+      // Generate a new polygon at the clicked location
+      generatePolygonAtLocation(clickedLocation);
+    });
+
+    // Add to polygon click listeners array for cleanup
+    setPolygonClickListeners(prev => [...prev, polygonClickListener]);
+
     // Add center marker
     const centerMarker = addCenterMarker(vertices);
 
@@ -378,6 +415,13 @@ const PolygonGenerator = () => {
 
   // Clear all polygons from the map
   const clearAllPolygons = () => {
+    // Remove click listeners first
+    polygonClickListeners.forEach(listener => {
+      window.google.maps.event.removeListener(listener);
+    });
+    setPolygonClickListeners([]);
+
+    // Then remove the polygons
     polygons.forEach(polygon => {
       polygon.setMap(null);
     });
@@ -495,7 +539,7 @@ const PolygonGenerator = () => {
           </div>
 
           <div className="mt-4 text-sm text-gray-600">
-            <p>Click anywhere on the map to create a shape at that location.</p>
+            <p>Click anywhere on the map or on existing shapes to create a new shape at that location.</p>
           </div>
         </CardContent>
       </Card>
