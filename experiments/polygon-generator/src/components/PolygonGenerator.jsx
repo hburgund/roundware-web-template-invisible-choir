@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import * as turf from '@turf/turf';
+import { createShapeGenerator, calculateCentroid } from './shape-generators';
 
 // Bedford, MA coordinates
 const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
@@ -17,11 +18,12 @@ const PolygonGenerator = () => {
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
   const [clickListener, setClickListener] = useState(null);
   const [polygonClickListeners, setPolygonClickListeners] = useState([]);
-  const [curveIntensity, setCurveIntensity] = useState(0.5); // New state for curve intensity
-  const [curveType, setCurveType] = useState('bezier'); // New state for curve type
+  const [curveIntensity, setCurveIntensity] = useState(0.5);
+  const [curveType, setCurveType] = useState('bezier');
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
+  const shapeGeneratorRef = useRef(null);
 
   // Initialize Google Maps
   useEffect(() => {
@@ -103,6 +105,9 @@ const PolygonGenerator = () => {
 
       setClickListener(listener);
 
+      // Initialize shape generator
+      shapeGeneratorRef.current = createShapeGenerator(generatorMode, window.google, map);
+
       return () => {
         window.google.maps.event.removeListener(listener);
       };
@@ -115,6 +120,13 @@ const PolygonGenerator = () => {
       redrawAllCurves();
     }
   }, [curveIntensity, curveType]);
+
+  // Update shape generator when mode changes
+  useEffect(() => {
+    if (map && window.google) {
+      shapeGeneratorRef.current = createShapeGenerator(generatorMode, window.google, map);
+    }
+  }, [generatorMode, map]);
 
   const initMap = () => {
     if (!googleMapRef.current) {
@@ -130,40 +142,6 @@ const PolygonGenerator = () => {
       googleMapRef.current = newMap;
       setMap(newMap);
     }
-  };
-
-  // Generate a random number within a range
-  const getRandomInRange = (min, max) => {
-    return Math.random() * (max - min) + min;
-  };
-
-  // Convert meters to degrees at a specific latitude
-  const metersToLngDegrees = (meters, latitude) => {
-    return meters / (111320 * Math.cos(latitude * Math.PI / 180));
-  };
-
-  const metersToLatDegrees = (meters) => {
-    return meters / 111320;
-  };
-
-  // Calculate the centroid of a polygon
-  const calculateCentroid = (vertices) => {
-    // Convert Google Maps LatLng array to GeoJSON format for turf.js
-    const coordinates = vertices.map(vertex => [vertex.lng, vertex.lat]);
-    // Close the polygon by adding the first vertex at the end
-    coordinates.push(coordinates[0]);
-
-    // Create a GeoJSON polygon
-    const polygon = turf.polygon([coordinates]);
-
-    // Calculate the centroid
-    const centroid = turf.centroid(polygon);
-
-    // Return the centroid as a Google Maps LatLng object
-    return {
-      lat: centroid.geometry.coordinates[1],
-      lng: centroid.geometry.coordinates[0]
-    };
   };
 
   // Clear all center lines from the map
@@ -309,187 +287,51 @@ const PolygonGenerator = () => {
     return marker;
   };
 
-  // Generate a beech leaf-shaped polygon at a specific location
-  const generateBeechLeafPolygonAtLocation = (centerLocation) => {
-    if (!map) return;
-
-    // Clear existing polygons if not keeping them
-    if (!keepPolygons) {
-      clearAllPolygons();
-      clearAllCenterMarkers();
-      clearAllCenterLines();
-      setLastCenterMarker(null);
-    }
-
-    const centerLat = centerLocation.lat;
-    const centerLng = centerLocation.lng;
-
-    // Random scale factor based on size range - directly use the slider values
-    const scale = getRandomInRange(minSize, maxSize);
-
-    // Random rotation angle in radians
-    const rotation = getRandomInRange(0, Math.PI * 2);
-
-    // Base points for a beech leaf shape (normalized)
-    // These points define the characteristic elliptical shape with serrated edges
-    const basePoints = [
-      {x: 0, y: -1},      // Tip of leaf
-      {x: 0.1, y: -0.95}, // First serration on right
-      {x: 0.2, y: -0.85},
-      {x: 0.3, y: -0.7},
-      {x: 0.4, y: -0.5},
-      {x: 0.5, y: -0.25},
-      {x: 0.55, y: 0},
-      {x: 0.5, y: 0.25},
-      {x: 0.4, y: 0.5},
-      {x: 0.25, y: 0.75},
-      {x: 0, y: 1},       // Base of leaf
-      {x: -0.25, y: 0.75},
-      {x: -0.4, y: 0.5},
-      {x: -0.5, y: 0.25},
-      {x: -0.55, y: 0},
-      {x: -0.5, y: -0.25},
-      {x: -0.4, y: -0.5},
-      {x: -0.3, y: -0.7},
-      {x: -0.2, y: -0.85},
-      {x: -0.1, y: -0.95}
-    ];
-
-    // Add some randomness to make each leaf slightly different
-    const vertices = basePoints.map(point => {
-      // Add slight randomness to each point (up to 10% variation)
-      const randomX = point.x + getRandomInRange(-0.05, 0.05);
-      const randomY = point.y + getRandomInRange(-0.05, 0.05);
-
-      // Apply rotation
-      const rotatedX = randomX * Math.cos(rotation) - randomY * Math.sin(rotation);
-      const rotatedY = randomX * Math.sin(rotation) + randomY * Math.cos(rotation);
-
-      // Scale and convert to lat/lng - multiply by scale directly
-      const latOffset = metersToLatDegrees(rotatedY * scale);
-      const lngOffset = metersToLngDegrees(rotatedX * scale, centerLat);
-
-      return {
-        lat: centerLat + latOffset,
-        lng: centerLng + lngOffset
-      };
-    });
-
-    // Generate a green-yellow color within a natural leaf color range
-    const g = Math.floor(getRandomInRange(100, 180)); // Green component
-    const r = Math.floor(getRandomInRange(50, 120)); // Red component (less than green for green tint)
-    const b = Math.floor(getRandomInRange(0, 50));  // Low blue for natural look
-    const color = `rgb(${r}, ${g}, ${b})`;
-
-    const newPolygon = new window.google.maps.Polygon({
-      paths: vertices,
-      strokeColor: '#2E2E2E',
-      strokeOpacity: 0.1,
-      strokeWeight: 1.0,
-      fillColor: color,
-      fillOpacity: 0.4,
-      map: map
-    });
-
-    // Add click listener to the polygon
-    const polygonClickListener = newPolygon.addListener('click', (event) => {
-      const clickedLocation = {
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
-      };
-      // Prevent event from propagating to the map
-      event.stop();
-      // Generate a new polygon at the clicked location
-      generatePolygonAtLocation(clickedLocation);
-    });
-
-    // Add to polygon click listeners array for cleanup
-    setPolygonClickListeners(prev => [...prev, polygonClickListener]);
-
-    // Add center marker
-    const centerMarker = addCenterMarker(vertices);
-
-    setPolygons(prev => [...prev, newPolygon]);
-  };
-
-  // Generate a random polygon at a specific location
-  const generateRandomPolygonAtLocation = (centerLocation) => {
-    if (!map) return;
-
-    // Clear existing polygons if not keeping them
-    if (!keepPolygons) {
-      clearAllPolygons();
-      clearAllCenterMarkers();
-      clearAllCenterLines();
-      setLastCenterMarker(null);
-    }
-
-    // Random number of sides between 3 and 8
-    const sides = Math.floor(getRandomInRange(3, 9));
-
-    const centerLat = centerLocation.lat;
-    const centerLng = centerLocation.lng;
-
-    // Generate vertices for the polygon
-    const vertices = [];
-    for (let i = 0; i < sides; i++) {
-      const angle = (i * 2 * Math.PI / sides);
-      const length = getRandomInRange(minSize, maxSize);
-
-      // Convert meters to degrees for lat/lng
-      const latOffset = metersToLatDegrees(length * Math.sin(angle));
-      const lngOffset = metersToLngDegrees(length * Math.cos(angle), centerLat);
-
-      vertices.push({
-        lat: centerLat + latOffset,
-        lng: centerLng + lngOffset
-      });
-    }
-
-    // Random color for the polygon
-    const r = Math.floor(Math.random() * 255);
-    const g = Math.floor(Math.random() * 255);
-    const b = Math.floor(Math.random() * 255);
-    const color = `rgb(${r}, ${g}, ${b})`;
-
-    const newPolygon = new window.google.maps.Polygon({
-      paths: vertices,
-      strokeColor: color,
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: color,
-      fillOpacity: 0.35,
-      map: map
-    });
-
-    // Add click listener to the polygon
-    const polygonClickListener = newPolygon.addListener('click', (event) => {
-      const clickedLocation = {
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng()
-      };
-      // Prevent event from propagating to the map
-      event.stop();
-      // Generate a new polygon at the clicked location
-      generatePolygonAtLocation(clickedLocation);
-    });
-
-    // Add to polygon click listeners array for cleanup
-    setPolygonClickListeners(prev => [...prev, polygonClickListener]);
-
-    // Add center marker
-    const centerMarker = addCenterMarker(vertices);
-
-    setPolygons(prev => [...prev, newPolygon]);
-  };
-
   // Generate polygon at clicked location based on selected mode
   const generatePolygonAtLocation = (location) => {
-    if (generatorMode === 'beechLeaf') {
-      generateBeechLeafPolygonAtLocation(location);
-    } else {
-      generateRandomPolygonAtLocation(location);
+    if (!map || !shapeGeneratorRef.current) return;
+
+    // Clear existing polygons if not keeping them
+    if (!keepPolygons) {
+      clearAllPolygons();
+      clearAllCenterMarkers();
+      clearAllCenterLines();
+      setLastCenterMarker(null);
     }
+
+    // Generate shape using the appropriate generator
+    const shapeInfo = shapeGeneratorRef.current.generateShape(location, { minSize, maxSize });
+
+    // Create the polygon
+    const newPolygon = new window.google.maps.Polygon({
+      paths: shapeInfo.vertices,
+      strokeColor: shapeInfo.color.stroke,
+      strokeOpacity: shapeInfo.opacity?.stroke || 0.8,
+      strokeWeight: shapeInfo.weight || 2,
+      fillColor: shapeInfo.color.fill,
+      fillOpacity: shapeInfo.opacity?.fill || 0.35,
+      map: map
+    });
+
+    // Add click listener to the polygon
+    const polygonClickListener = newPolygon.addListener('click', (event) => {
+      const clickedLocation = {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng()
+      };
+      // Prevent event from propagating to the map
+      event.stop();
+      // Generate a new polygon at the clicked location
+      generatePolygonAtLocation(clickedLocation);
+    });
+
+    // Add to polygon click listeners array for cleanup
+    setPolygonClickListeners(prev => [...prev, polygonClickListener]);
+
+    // Add center marker
+    const centerMarker = addCenterMarker(shapeInfo.vertices);
+
+    setPolygons(prev => [...prev, newPolygon]);
   };
 
   // Generate polygon with random location based on selected mode
@@ -501,6 +343,11 @@ const PolygonGenerator = () => {
     };
 
     generatePolygonAtLocation(randomLocation);
+  };
+
+  // Get random number in range
+  const getRandomInRange = (min, max) => {
+    return Math.random() * (max - min) + min;
   };
 
   // Clear all center markers from the map
