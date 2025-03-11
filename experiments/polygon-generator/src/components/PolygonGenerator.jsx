@@ -129,6 +129,21 @@ const PolygonGenerator = () => {
     }
   }, [generatorMode, map]);
 
+  // Reset map size on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (map) {
+        window.google.maps.event.trigger(map, 'resize');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
+
   const initMap = () => {
     if (!googleMapRef.current) {
       const newMap = new window.google.maps.Map(mapRef.current, {
@@ -142,6 +157,11 @@ const PolygonGenerator = () => {
       });
       googleMapRef.current = newMap;
       setMap(newMap);
+
+      // Small delay to ensure map resizes correctly after initial render
+      setTimeout(() => {
+        window.google.maps.event.trigger(newMap, 'resize');
+      }, 100);
     }
   };
 
@@ -383,32 +403,40 @@ const PolygonGenerator = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <Card className="m-4">
-        <CardHeader>
-          <CardTitle>Polygon Generator - Bedford, MA</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PolygonControls
-            minSize={minSize}
-            setMinSize={setMinSize}
-            maxSize={maxSize}
-            setMaxSize={setMaxSize}
-            keepPolygons={keepPolygons}
-            setKeepPolygons={setKeepPolygons}
-            generatorMode={generatorMode}
-            setGeneratorMode={setGeneratorMode}
-            curveType={curveType}
-            setCurveType={setCurveType}
-            curveIntensity={curveIntensity}
-            setCurveIntensity={setCurveIntensity}
-            onGeneratePolygon={generatePolygon}
-            onClearShapes={handleClearShapes}
-            onApplyCurveChanges={redrawAllCurves}
-          />
-        </CardContent>
-      </Card>
-      <div ref={mapRef} className="flex-grow w-full" />
+    <div className="flex h-screen">
+      {/* Left Column for Controls - 25% width */}
+      <div className="w-1/4 h-full overflow-y-auto bg-gray-50 border-r border-gray-200">
+        <Card className="h-full rounded-none">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl">Polygon Generator</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">Bedford, MA</p>
+            <PolygonControls
+              minSize={minSize}
+              setMinSize={setMinSize}
+              maxSize={maxSize}
+              setMaxSize={setMaxSize}
+              keepPolygons={keepPolygons}
+              setKeepPolygons={setKeepPolygons}
+              generatorMode={generatorMode}
+              setGeneratorMode={setGeneratorMode}
+              curveType={curveType}
+              setCurveType={setCurveType}
+              curveIntensity={curveIntensity}
+              setCurveIntensity={setCurveIntensity}
+              onGeneratePolygon={generatePolygon}
+              onClearShapes={handleClearShapes}
+              onApplyCurveChanges={redrawAllCurves}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Right Column for Map - 75% width */}
+      <div className="w-3/4 h-full">
+        <div ref={mapRef} className="w-full h-full" />
+      </div>
     </div>
   );
 };
