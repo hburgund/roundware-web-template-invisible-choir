@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import * as turf from '@turf/turf';
-import { createShapeGenerator, calculateCentroid } from './shape-generators';
+import { createShapeGenerator, calculateCentroid, expandPolygon } from './shape-generators';
 import PolygonControls from './PolygonControls';
 
 // Bedford, MA coordinates
@@ -355,6 +355,41 @@ const PolygonGenerator = () => {
     setPolygons(prev => [...prev, newPolygon]);
   };
 
+  // Handle expanding the last polygon
+  const handleExpandPolygon = (expansionMeters) => {
+    if (polygons.length === 0) {
+      alert("No polygon to expand. Please create a polygon first.");
+      return;
+    }
+
+    // Get the last polygon
+    const lastPolygon = polygons[polygons.length - 1];
+
+    // Get the vertices of the last polygon
+    const vertices = lastPolygon.getPath().getArray().map(vertex => ({
+      lat: vertex.lat(),
+      lng: vertex.lng()
+    }));
+
+    // Expand the vertices
+    const expandedVertices = expandPolygon(vertices, expansionMeters);
+
+    // Update the polygon path
+    lastPolygon.setPath(expandedVertices);
+
+    // Update the center marker position
+    if (centerMarkers.length > 0) {
+      const lastCenterMarkerIndex = centerMarkers.length - 1;
+      const newCenter = calculateCentroid(expandedVertices);
+      centerMarkers[lastCenterMarkerIndex].setPosition(newCenter);
+
+      // Redraw connection curves if there are multiple markers
+      if (centerMarkers.length > 1) {
+        redrawAllCurves();
+      }
+    }
+  };
+
   // Generate polygon with random location based on selected mode
   const generatePolygon = () => {
     // Create a random center point near Bedford
@@ -428,6 +463,7 @@ const PolygonGenerator = () => {
               onGeneratePolygon={generatePolygon}
               onClearShapes={handleClearShapes}
               onApplyCurveChanges={redrawAllCurves}
+              onExpandPolygon={handleExpandPolygon}
             />
           </CardContent>
         </Card>

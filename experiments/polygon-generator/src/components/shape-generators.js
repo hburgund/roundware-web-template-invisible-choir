@@ -266,6 +266,58 @@ class RandomPolygonGenerator extends ShapeGenerator {
   }
 }
 
+/**
+ * Expands a polygon outward from its centroid by a specified distance in meters
+ * @param {Array} vertices - Array of {lat, lng} objects representing polygon vertices
+ * @param {number} expansionMeters - Distance in meters to expand the polygon
+ * @param {Object} [options] - Optional configuration
+ * @param {boolean} [options.preserveShape=true] - If true, expansion maintains the original shape's character
+ * @returns {Array} - New array of vertices representing the expanded polygon
+ */
+const expandPolygon = (vertices, expansionMeters, options = {}) => {
+  const { preserveShape = true } = options;
+
+  // Calculate the centroid of the polygon
+  const centroid = calculateCentroid(vertices);
+
+  // Expand each vertex outward from the centroid
+  const expandedVertices = vertices.map(vertex => {
+    // Vector from centroid to vertex (in lat/lng space)
+    const vectorLat = vertex.lat - centroid.lat;
+    const vectorLng = vertex.lng - centroid.lng;
+
+    // Calculate the current distance from centroid to vertex in meters
+    // Convert lat/lng differences to approximate meters
+    const latMeters = vectorLat * 111320; // approx meters per degree latitude
+    const lngMeters = vectorLng * 111320 * Math.cos(centroid.lat * Math.PI / 180); // adjusting for longitude
+
+    // Euclidean distance in meters
+    const currentDistanceMeters = Math.sqrt(latMeters * latMeters + lngMeters * lngMeters);
+
+    // Calculate the expansion factor
+    let expansionFactor;
+
+    if (preserveShape) {
+      // Add the expansion amount to the current distance
+      expansionFactor = (currentDistanceMeters + expansionMeters) / currentDistanceMeters;
+    } else {
+      // Fixed expansion amount (less accurate for shape preservation)
+      expansionFactor = 1 + (expansionMeters / currentDistanceMeters);
+    }
+
+    // Apply the expansion factor to get new lat/lng
+    const newLat = centroid.lat + (vectorLat * expansionFactor);
+    const newLng = centroid.lng + (vectorLng * expansionFactor);
+
+    return {
+      lat: newLat,
+      lng: newLng
+    };
+  });
+
+  return expandedVertices;
+};
+
 // Factory function to get the appropriate generator
 const createShapeGenerator = (type, google, map) => {
   switch (type) {
@@ -284,5 +336,6 @@ export {
   calculateCentroid,
   getRandomInRange,
   metersToLngDegrees,
-  metersToLatDegrees
+  metersToLatDegrees,
+  expandPolygon
 };

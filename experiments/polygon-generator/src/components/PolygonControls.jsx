@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const PolygonControls = ({
   minSize,
@@ -15,8 +15,11 @@ const PolygonControls = ({
   setCurveIntensity,
   onGeneratePolygon,
   onClearShapes,
-  onApplyCurveChanges
+  onApplyCurveChanges,
+  onExpandPolygon
 }) => {
+  const [expansionAmount, setExpansionAmount] = useState(10);
+
   const handleInputChange = (setter) => (e) => {
     let value = parseInt(e.target.value);
     if (!isNaN(value) && value > 0) {
@@ -31,6 +34,13 @@ const PolygonControls = ({
       case 'orbicularLeaf': return 'Orbicular Leaf';
       case 'random': return 'Polygon';
       default: return 'Shape';
+    }
+  };
+
+  const handleExpansionAmountChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value) && value > 0) {
+      setExpansionAmount(value);
     }
   };
 
@@ -113,6 +123,30 @@ const PolygonControls = ({
               className="w-full"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Expansion Controls */}
+      <div>
+        <h3 className="text-sm font-medium mb-2">Polygon Expansion:</h3>
+        <div className="space-y-2">
+          <div className="flex space-x-2">
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={expansionAmount}
+              onChange={handleExpansionAmountChange}
+              className="w-20 p-2 border rounded"
+            />
+            <span className="p-2">meters</span>
+          </div>
+          <button
+            onClick={() => onExpandPolygon(expansionAmount)}
+            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+          >
+            Expand Last Polygon
+          </button>
         </div>
       </div>
 
