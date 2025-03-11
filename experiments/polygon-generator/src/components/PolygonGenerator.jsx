@@ -17,6 +17,8 @@ const PolygonGenerator = () => {
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
   const [clickListener, setClickListener] = useState(null);
   const [polygonClickListeners, setPolygonClickListeners] = useState([]);
+  const [curveIntensity, setCurveIntensity] = useState(0.5); // New state for curve intensity
+  const [curveType, setCurveType] = useState('bezier'); // New state for curve type
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -107,6 +109,13 @@ const PolygonGenerator = () => {
     }
   }, [map, minSize, maxSize, generatorMode, keepPolygons]); // Re-add listener when these params change
 
+  // Update curves when curve intensity changes
+  useEffect(() => {
+    if (map && centerMarkers.length > 1) {
+      redrawAllCurves();
+    }
+  }, [curveIntensity, curveType]);
+
   const initMap = () => {
     if (!googleMapRef.current) {
       const newMap = new window.google.maps.Map(mapRef.current, {
@@ -165,12 +174,83 @@ const PolygonGenerator = () => {
     setCenterLines([]);
   };
 
-  // Draw a line between two center markers
-  const drawLineBetweenCenters = (center1, center2) => {
+  // Calculate bezier curve points
+  const calculateBezierPoints = (start, end) => {
+    const points = [];
+    const numPoints = 50; // Number of points to create a smooth curve
+
+    // Calculate midpoint for control point positioning
+    const midLat = (start.lat + end.lat) / 2;
+    const midLng = (start.lng + end.lng) / 2;
+
+    // Calculate distance for determining control point offset
+    const latDiff = end.lat - start.lat;
+    const lngDiff = end.lng - start.lng;
+    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+
+    // Perpendicular offset direction (rotate 90 degrees)
+    const offsetLat = -lngDiff;
+    const offsetLng = latDiff;
+
+    // Normalize the offset vector and scale by distance and curve intensity
+    const offsetLength = Math.sqrt(offsetLat * offsetLat + offsetLng * offsetLng);
+    const normalizedOffsetLat = offsetLat / offsetLength;
+    const normalizedOffsetLng = offsetLng / offsetLength;
+
+    // Control point - perpendicular to the middle of the line
+    // The curve intensity controls how far away the control point is
+    const controlLat = midLat + normalizedOffsetLat * distance * curveIntensity;
+    const controlLng = midLng + normalizedOffsetLng * distance * curveIntensity;
+
+    // For quadratic Bezier curve
+    for (let i = 0; i <= numPoints; i++) {
+      const t = i / numPoints;
+
+      // Quadratic Bezier curve formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+      const oneMinusT = 1 - t;
+      const oneMinusTSquared = oneMinusT * oneMinusT;
+      const tSquared = t * t;
+
+      if (curveType === 'bezier') {
+        // Quadratic Bezier curve with one control point
+        const lat = oneMinusTSquared * start.lat + 2 * oneMinusT * t * controlLat + tSquared * end.lat;
+        const lng = oneMinusTSquared * start.lng + 2 * oneMinusT * t * controlLng + tSquared * end.lng;
+        points.push({ lat, lng });
+      } else if (curveType === 'arcuate') {
+        // Simple arc using sine function for height
+        const baseLat = start.lat + t * (end.lat - start.lat);
+        const baseLng = start.lng + t * (end.lng - start.lng);
+
+        // Apply a sine wave transformation for height
+        const height = Math.sin(Math.PI * t) * curveIntensity * distance * 0.5;
+        const lat = baseLat + normalizedOffsetLat * height;
+        const lng = baseLng + normalizedOffsetLng * height;
+        points.push({ lat, lng });
+      } else if (curveType === 'wave') {
+        // Wavy line with multiple oscillations
+        const baseLat = start.lat + t * (end.lat - start.lat);
+        const baseLng = start.lng + t * (end.lng - start.lng);
+
+        // Multiple oscillations (3 waves)
+        const oscillations = 3;
+        const height = Math.sin(Math.PI * t * oscillations) * curveIntensity * distance * 0.3;
+        const lat = baseLat + normalizedOffsetLat * height;
+        const lng = baseLng + normalizedOffsetLng * height;
+        points.push({ lat, lng });
+      }
+    }
+
+    return points;
+  };
+
+  // Draw a curved line between two center markers
+  const drawCurveBetweenCenters = (center1, center2) => {
     if (!map || !center1 || !center2) return;
 
+    const curvePoints = calculateBezierPoints(center1, center2);
+
     const line = new window.google.maps.Polyline({
-      path: [center1, center2],
+      path: curvePoints,
       geodesic: true,
       strokeColor: '#FFFFFF',
       strokeOpacity: 0.7,
@@ -180,6 +260,23 @@ const PolygonGenerator = () => {
 
     setCenterLines(prev => [...prev, line]);
     return line;
+  };
+
+  // Redraw all curves with current curve intensity
+  const redrawAllCurves = () => {
+    // Clear existing lines
+    clearAllCenterLines();
+
+    // Redraw lines between adjacent markers
+    for (let i = 0; i < centerMarkers.length - 1; i++) {
+      const current = centerMarkers[i].getPosition();
+      const next = centerMarkers[i + 1].getPosition();
+
+      const currentLatLng = { lat: current.lat(), lng: current.lng() };
+      const nextLatLng = { lat: next.lat(), lng: next.lng() };
+
+      drawCurveBetweenCenters(currentLatLng, nextLatLng);
+    }
   };
 
   // Add a center marker to the polygon
@@ -199,9 +296,11 @@ const PolygonGenerator = () => {
       }
     });
 
-    // If there's a previous center marker, draw a line connecting them
+    // If there's a previous center marker, draw a curve connecting them
     if (lastCenterMarker) {
-      drawLineBetweenCenters(lastCenterMarker.position, center);
+      const lastPosition = lastCenterMarker.getPosition();
+      const lastLatLng = { lat: lastPosition.lat(), lng: lastPosition.lng() };
+      drawCurveBetweenCenters(lastLatLng, center);
     }
 
     // Update the last center marker
@@ -442,84 +541,128 @@ const PolygonGenerator = () => {
           <CardTitle>Polygon Generator - Bedford, MA</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Polygon Type:</label>
-            <div className="flex space-x-4">
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="polygonType"
-                  value="random"
-                  checked={generatorMode === 'random'}
-                  onChange={() => setGeneratorMode('random')}
-                />
-                <span className="ml-2">Random Polygons</span>
-              </label>
-              <label className="inline-flex items-center">
-                <input
-                  type="radio"
-                  className="form-radio"
-                  name="polygonType"
-                  value="beechLeaf"
-                  checked={generatorMode === 'beechLeaf'}
-                  onChange={() => setGeneratorMode('beechLeaf')}
-                />
-                <span className="ml-2">Beech Leaf Shapes</span>
-              </label>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Min Size (meters): {minSize}
-              </label>
-              <input
-                type="range"
-                min="50"
-                max="500"
-                step="10"
-                value={minSize}
-                onChange={handleInputChange(setMinSize)}
-                className="w-full"
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Polygon Type:</label>
+                <div className="flex space-x-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="form-radio"
+                      name="polygonType"
+                      value="random"
+                      checked={generatorMode === 'random'}
+                      onChange={() => setGeneratorMode('random')}
+                    />
+                    <span className="ml-2">Random Polygons</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="form-radio"
+                      name="polygonType"
+                      value="beechLeaf"
+                      checked={generatorMode === 'beechLeaf'}
+                      onChange={() => setGeneratorMode('beechLeaf')}
+                    />
+                    <span className="ml-2">Beech Leaf Shapes</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Min Size (meters): {minSize}
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="500"
+                  step="10"
+                  value={minSize}
+                  onChange={handleInputChange(setMinSize)}
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Max Size (meters): {maxSize}
+                </label>
+                <input
+                  type="range"
+                  min="50"
+                  max="500"
+                  step="10"
+                  value={maxSize}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value >= minSize) {
+                      setMaxSize(value);
+                    }
+                  }}
+                  className="w-full"
+                />
+              </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium mb-1">
-                Max Size (meters): {maxSize}
-              </label>
-              <input
-                type="range"
-                min="50"
-                max="500"
-                step="10"
-                value={maxSize}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (value >= minSize) {
-                    setMaxSize(value);
-                  }
-                }}
-                className="w-full"
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Connection Curve Settings:</label>
+                <div className="mb-2">
+                  <label className="block text-sm font-medium mb-1">
+                    Curve Type:
+                  </label>
+                  <select
+                    value={curveType}
+                    onChange={(e) => setCurveType(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="bezier">Bezier Curve</option>
+                    <option value="arcuate">Simple Arc</option>
+                    <option value="wave">Wavy Line</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Curve Intensity: {curveIntensity.toFixed(1)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value={curveIntensity}
+                    onChange={(e) => setCurveIntensity(parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
+                <div className="mt-2">
+                  <button
+                    onClick={redrawAllCurves}
+                    className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded w-full"
+                  >
+                    Apply Curve Changes
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="keepPolygons"
+                  checked={keepPolygons}
+                  onChange={(e) => setKeepPolygons(e.target.checked)}
+                  className="mr-2"
+                />
+                <label htmlFor="keepPolygons" className="text-sm font-medium">
+                  Keep previous polygons when generating new ones
+                </label>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center mb-4">
-            <input
-              type="checkbox"
-              id="keepPolygons"
-              checked={keepPolygons}
-              onChange={(e) => setKeepPolygons(e.target.checked)}
-              className="mr-2"
-            />
-            <label htmlFor="keepPolygons" className="text-sm font-medium">
-              Keep previous polygons when generating new ones
-            </label>
-          </div>
-
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 mt-4">
             <button
               onClick={generatePolygon}
               className="flex-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
