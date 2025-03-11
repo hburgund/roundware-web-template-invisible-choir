@@ -381,6 +381,16 @@ const PolygonGenerator = () => {
     }
   };
 
+  // Get display text for the current generator mode
+  const getShapeDisplayName = () => {
+    switch (generatorMode) {
+      case 'beechLeaf': return 'Beech Leaf';
+      case 'orbicularLeaf': return 'Orbicular Leaf';
+      case 'random': return 'Polygon';
+      default: return 'Shape';
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <Card className="m-4">
@@ -391,8 +401,8 @@ const PolygonGenerator = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">Polygon Type:</label>
-                <div className="flex space-x-4">
+                <label className="block text-sm font-medium mb-2">Shape Type:</label>
+                <div className="grid grid-cols-3 gap-2">
                   <label className="inline-flex items-center">
                     <input
                       type="radio"
@@ -413,7 +423,18 @@ const PolygonGenerator = () => {
                       checked={generatorMode === 'beechLeaf'}
                       onChange={() => setGeneratorMode('beechLeaf')}
                     />
-                    <span className="ml-2">Beech Leaf Shapes</span>
+                    <span className="ml-2">Beech Leaf</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      className="form-radio"
+                      name="polygonType"
+                      value="orbicularLeaf"
+                      checked={generatorMode === 'orbicularLeaf'}
+                      onChange={() => setGeneratorMode('orbicularLeaf')}
+                    />
+                    <span className="ml-2">Orbicular Leaf</span>
                   </label>
                 </div>
               </div>

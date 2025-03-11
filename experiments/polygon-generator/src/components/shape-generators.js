@@ -145,6 +145,91 @@ class BeechLeafGenerator extends ShapeGenerator {
   }
 }
 
+// Orbicular Leaf shape generator
+class OrbicularLeafGenerator extends ShapeGenerator {
+  generateShape(centerLocation, options = {}) {
+    const { minSize = 100, maxSize = 300 } = options;
+
+    const centerLat = centerLocation.lat;
+    const centerLng = centerLocation.lng;
+
+    // Random scale factor based on size range
+    const scale = getRandomInRange(minSize, maxSize);
+
+    // Random rotation angle in radians
+    const rotation = getRandomInRange(0, Math.PI * 2);
+
+    // Number of points to create the rounded outline
+    const numPoints = 28;
+
+    // Base points for an orbicular (round) leaf shape
+    const basePoints = [];
+
+    // Generate a more circular leaf shape with slight sinusoidal variation for natural edges
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i * 2 * Math.PI / numPoints);
+
+      // Create the basic circle
+      let radius = 0.8;
+
+      // Add small scalloped edges for a natural leaf look
+      // Less pronounced serrations than beech leaf
+      const edgeVariation = 0.08;
+      const variationFrequency = 6; // Number of scallops around the edge
+      radius += Math.sin(angle * variationFrequency) * edgeVariation;
+
+      // Add slight bulge at the base for leaf stem attachment point
+      if (angle > Math.PI * 0.8 && angle < Math.PI * 1.2) {
+        radius += 0.15 * Math.sin((angle - Math.PI) * 2.5);
+      }
+
+      // Add point
+      basePoints.push({
+        x: radius * Math.cos(angle),
+        y: radius * Math.sin(angle)
+      });
+    }
+
+    // Add some randomness to make each leaf slightly different
+    const vertices = basePoints.map(point => {
+      // Add slight randomness to each point (up to 5% variation)
+      const randomX = point.x + getRandomInRange(-0.03, 0.03);
+      const randomY = point.y + getRandomInRange(-0.03, 0.03);
+
+      // Apply rotation
+      const rotatedX = randomX * Math.cos(rotation) - randomY * Math.sin(rotation);
+      const rotatedY = randomX * Math.sin(rotation) + randomY * Math.cos(rotation);
+
+      // Scale and convert to lat/lng
+      const latOffset = metersToLatDegrees(rotatedY * scale);
+      const lngOffset = metersToLngDegrees(rotatedX * scale, centerLat);
+
+      return {
+        lat: centerLat + latOffset,
+        lng: centerLng + lngOffset
+      };
+    });
+
+    // Generate a green color within a natural leaf color range
+    // Orbicular leaves often have a deeper green color
+    const g = Math.floor(getRandomInRange(120, 180)); // Green component
+    const r = Math.floor(getRandomInRange(30, 100)); // Red component (less than green for green tint)
+    const b = Math.floor(getRandomInRange(20, 80));  // Slightly more blue than beech leaves
+
+    const color = {
+      fill: `rgb(${r}, ${g}, ${b})`,
+      stroke: '#2E2E2E'
+    };
+
+    return {
+      vertices,
+      color,
+      opacity: { stroke: 0.1, fill: 0.4 },
+      weight: 1.0
+    };
+  }
+}
+
 // Random polygon generator
 class RandomPolygonGenerator extends ShapeGenerator {
   generateShape(centerLocation, options = {}) {
@@ -186,6 +271,8 @@ const createShapeGenerator = (type, google, map) => {
   switch (type) {
     case 'beechLeaf':
       return new BeechLeafGenerator(google, map);
+    case 'orbicularLeaf':
+      return new OrbicularLeafGenerator(google, map);
     case 'random':
     default:
       return new RandomPolygonGenerator(google, map);
