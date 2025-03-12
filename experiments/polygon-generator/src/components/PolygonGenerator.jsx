@@ -356,7 +356,7 @@ const PolygonGenerator = () => {
   };
 
   // Handle expanding the last polygon
-  const handleExpandPolygon = (expansionMeters) => {
+  const handleExpandPolygon = (expansionValue, expansionUnit = 'meters') => {
     if (polygons.length === 0) {
       alert("No polygon to expand. Please create a polygon first.");
       return;
@@ -371,8 +371,31 @@ const PolygonGenerator = () => {
       lng: vertex.lng()
     }));
 
-    // Expand the vertices
-    const expandedVertices = expandPolygon(vertices, expansionMeters);
+    let expandedVertices;
+
+    if (expansionUnit === 'percent') {
+      // Calculate centroid for percentage-based expansion
+      const centroid = calculateCentroid(vertices);
+
+      // Apply percentage-based expansion
+      expandedVertices = vertices.map(vertex => {
+        // Vector from centroid to vertex
+        const vectorLat = vertex.lat - centroid.lat;
+        const vectorLng = vertex.lng - centroid.lng;
+
+        // Scale factor (e.g., 10% = 1.1, 50% = 1.5)
+        const scaleFactor = 1 + (expansionValue / 100);
+
+        // Apply scaling
+        return {
+          lat: centroid.lat + (vectorLat * scaleFactor),
+          lng: centroid.lng + (vectorLng * scaleFactor)
+        };
+      });
+    } else {
+      // Use the existing expandPolygon function for fixed-meter expansion
+      expandedVertices = expandPolygon(vertices, expansionValue);
+    }
 
     // Update the polygon path
     lastPolygon.setPath(expandedVertices);

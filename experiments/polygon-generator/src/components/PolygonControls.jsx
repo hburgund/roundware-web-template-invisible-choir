@@ -19,6 +19,7 @@ const PolygonControls = ({
   onExpandPolygon
 }) => {
   const [expansionAmount, setExpansionAmount] = useState(10);
+  const [expansionUnit, setExpansionUnit] = useState('meters'); // 'meters' or 'percent'
 
   const handleInputChange = (setter) => (e) => {
     let value = parseInt(e.target.value);
@@ -129,20 +130,27 @@ const PolygonControls = ({
       {/* Expansion Controls */}
       <div>
         <h3 className="text-sm font-medium mb-2">Polygon Expansion:</h3>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex space-x-2">
             <input
               type="number"
               min="1"
-              max="100"
+              max={expansionUnit === 'percent' ? 200 : 100}
               value={expansionAmount}
               onChange={handleExpansionAmountChange}
               className="w-20 p-2 border rounded"
             />
-            <span className="p-2">meters</span>
+            <select
+              value={expansionUnit}
+              onChange={(e) => setExpansionUnit(e.target.value)}
+              className="p-2 border rounded"
+            >
+              <option value="meters">meters</option>
+              <option value="percent">percent</option>
+            </select>
           </div>
           <button
-            onClick={() => onExpandPolygon(expansionAmount)}
+            onClick={() => onExpandPolygon(expansionAmount, expansionUnit)}
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
           >
             Expand Last Polygon
