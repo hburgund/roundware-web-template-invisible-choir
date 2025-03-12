@@ -13,10 +13,19 @@ const PolygonControls = ({
   setCurveType,
   curveIntensity,
   setCurveIntensity,
+  animateOpacity,
+  setAnimateOpacity,
+  minOpacity,
+  setMinOpacity,
+  maxOpacity,
+  setMaxOpacity,
+  animationPeriodRange,
+  setAnimationPeriodRange,
   onGeneratePolygon,
   onClearShapes,
   onApplyCurveChanges,
-  onExpandPolygon
+  onExpandPolygon,
+  onToggleAnimations
 }) => {
   const [expansionAmount, setExpansionAmount] = useState(10);
   const [expansionUnit, setExpansionUnit] = useState('meters'); // 'meters' or 'percent'
@@ -196,6 +205,105 @@ const PolygonControls = ({
           >
             Apply Curve Changes
           </button>
+        </div>
+      </div>
+
+      {/* Animation Controls */}
+      <div>
+        <h3 className="text-sm font-medium mb-2">Opacity Animation:</h3>
+        <div className="space-y-3">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              id="animateOpacity"
+              checked={animateOpacity}
+              onChange={(e) => setAnimateOpacity(e.target.checked)}
+              className="mr-2"
+            />
+            <span className="text-sm">
+              Animate opacity
+            </span>
+          </label>
+
+          <div className={animateOpacity ? "" : "opacity-50 pointer-events-none"}>
+            <div>
+              <label className="block text-sm mb-1">
+                Min Opacity: {minOpacity.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={minOpacity}
+                onChange={(e) => setMinOpacity(parseFloat(e.target.value))}
+                className="w-full"
+                disabled={!animateOpacity}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1">
+                Max Opacity: {maxOpacity.toFixed(1)}
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={maxOpacity}
+                onChange={(e) => setMaxOpacity(parseFloat(e.target.value))}
+                className="w-full"
+                disabled={!animateOpacity}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-1">
+                Animation Period Range: {animationPeriodRange[0]}-{animationPeriodRange[1]}s
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  min="1"
+                  max={animationPeriodRange[1]}
+                  value={animationPeriodRange[0]}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value > 0 && value < animationPeriodRange[1]) {
+                      setAnimationPeriodRange([value, animationPeriodRange[1]]);
+                    }
+                  }}
+                  className="w-16 p-1 border rounded text-sm"
+                  disabled={!animateOpacity}
+                />
+                <span>to</span>
+                <input
+                  type="number"
+                  min={animationPeriodRange[0]}
+                  max="50"
+                  value={animationPeriodRange[1]}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value > animationPeriodRange[0] && value <= 50) {
+                      setAnimationPeriodRange([animationPeriodRange[0], value]);
+                    }
+                  }}
+                  className="w-16 p-1 border rounded text-sm"
+                  disabled={!animateOpacity}
+                />
+                <span>sec</span>
+              </div>
+            </div>
+
+            <button
+              onClick={onToggleAnimations}
+              className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-1 px-4 rounded w-full mt-2"
+              disabled={!animateOpacity}
+            >
+              Apply Animation Settings
+            </button>
+          </div>
         </div>
       </div>
 

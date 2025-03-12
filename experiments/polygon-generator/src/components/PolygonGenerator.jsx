@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import * as turf from '@turf/turf';
 import { createShapeGenerator, calculateCentroid, expandPolygon } from './shape-generators';
@@ -6,6 +6,9 @@ import PolygonControls from './PolygonControls';
 
 // Bedford, MA coordinates
 const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
+
+// Animation utility functions
+const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
 
 const PolygonGenerator = () => {
   const [map, setMap] = useState(null);
@@ -21,6 +24,16 @@ const PolygonGenerator = () => {
   const [polygonClickListeners, setPolygonClickListeners] = useState([]);
   const [curveIntensity, setCurveIntensity] = useState(0.5);
   const [curveType, setCurveType] = useState('bezier');
+
+  // Animation states
+  const [animateOpacity, setAnimateOpacity] = useState(false);
+  const [minOpacity, setMinOpacity] = useState(0.2);
+  const [maxOpacity, setMaxOpacity] = useState(0.8);
+  const [animationPeriodRange, setAnimationPeriodRange] = useState([5, 15]);
+
+  // Animation refs
+  const animationRef = useRef(null);
+  const polygonAnimationData = useRef({});
 
   const mapRef = useRef(null);
   const googleMapRef = useRef(null);
@@ -143,6 +156,73 @@ const PolygonGenerator = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, [map]);
+
+  // Animation system
+  const animatePolygons = useCallback((timestamp) => {
+    let isAnyActive = false;
+
+    // Go through each polygon and update its opacity
+    Object.entries(polygonAnimationData.current).forEach(([id, data]) => {
+      if (!data.active) return;
+
+      isAnyActive = true;
+
+      // Calculate current opacity based on elapsed time
+      const elapsedTime = timestamp - data.startTime;
+
+      // Use sine wave for smooth continuous oscillation (0 to 1 to 0)
+      // sin oscillates between -1 and 1, so we add 1 and divide by 2 to get 0 to 1
+      const sineProgress = (Math.sin(2 * Math.PI * elapsedTime / data.period) + 1) / 2;
+
+      // Calculate opacity value between min and max
+      const opacity = data.minOpacity + (data.maxOpacity - data.minOpacity) * sineProgress;
+
+      // Apply opacity to the polygon
+      if (data.polygon) {
+        data.polygon.setOptions({ fillOpacity: opacity });
+      }
+    });
+
+    // Continue animation loop if there are active animations
+    if (isAnyActive) {
+      animationRef.current = requestAnimationFrame(animatePolygons);
+    } else {
+      animationRef.current = null;
+    }
+  }, []);
+
+  // Start/stop animation system
+  useEffect(() => {
+    if (animateOpacity) {
+      // Start animation if not already running
+      if (!animationRef.current) {
+        animationRef.current = requestAnimationFrame(animatePolygons);
+      }
+    } else {
+      // Stop animation
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+
+        // Reset all opacities to default
+        Object.entries(polygonAnimationData.current).forEach(([id, data]) => {
+          if (data.polygon) {
+            data.polygon.setOptions({ fillOpacity: 0.35 });
+          }
+        });
+
+        // Clear animation data
+        polygonAnimationData.current = {};
+      }
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [animateOpacity, animatePolygons]);
 
   const initMap = () => {
     if (!googleMapRef.current) {
@@ -352,6 +432,31 @@ const PolygonGenerator = () => {
     // Add center marker
     const centerMarker = addCenterMarker(shapeInfo.vertices);
 
+    // Set up animation for this polygon if animations are enabled
+    if (animateOpacity) {
+      const polygonId = `polygon-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Generate a random period within the configured range
+      const minPeriod = animationPeriodRange[0] * 1000; // Convert to ms
+      const maxPeriod = animationPeriodRange[1] * 1000; // Convert to ms
+      const period = Math.random() * (maxPeriod - minPeriod) + minPeriod;
+
+      // Store animation data for this polygon
+      polygonAnimationData.current[polygonId] = {
+        polygon: newPolygon,
+        active: true,
+        startTime: performance.now(),
+        period: period,
+        minOpacity: minOpacity,
+        maxOpacity: maxOpacity
+      };
+
+      // Start animation if not already running
+      if (!animationRef.current) {
+        animationRef.current = requestAnimationFrame(animatePolygons);
+      }
+    }
+
     setPolygons(prev => [...prev, newPolygon]);
   };
 
@@ -451,6 +556,52 @@ const PolygonGenerator = () => {
       polygon.setMap(null);
     });
     setPolygons([]);
+
+    // Clear animation data
+    polygonAnimationData.current = {};
+  };
+
+  // Toggle animations or update animation settings
+  const handleToggleAnimations = () => {
+    if (!animateOpacity) {
+      return; // No need to do anything if animations are disabled
+    }
+
+    // Update all existing animations with new settings
+    Object.keys(polygonAnimationData.current).forEach(id => {
+      polygonAnimationData.current[id].minOpacity = minOpacity;
+      polygonAnimationData.current[id].maxOpacity = maxOpacity;
+
+      // Optionally update periods if desired, or leave them as is for variety
+      // For now, we'll leave the periods as they were originally assigned
+    });
+
+    // If there are polygons but no animation data, initialize them
+    if (polygons.length > 0 && Object.keys(polygonAnimationData.current).length === 0) {
+      polygons.forEach((polygon, index) => {
+        const polygonId = `polygon-${Date.now()}-${index}`;
+
+        // Generate a random period within the configured range
+        const minPeriod = animationPeriodRange[0] * 1000; // Convert to ms
+        const maxPeriod = animationPeriodRange[1] * 1000; // Convert to ms
+        const period = Math.random() * (maxPeriod - minPeriod) + minPeriod;
+
+        // Store animation data for this polygon
+        polygonAnimationData.current[polygonId] = {
+          polygon: polygon,
+          active: true,
+          startTime: performance.now(),
+          period: period,
+          minOpacity: minOpacity,
+          maxOpacity: maxOpacity
+        };
+      });
+    }
+
+    // Start animation if not already running
+    if (!animationRef.current && Object.keys(polygonAnimationData.current).length > 0) {
+      animationRef.current = requestAnimationFrame(animatePolygons);
+    }
   };
 
   // Handler for clearing all shapes
@@ -483,10 +634,19 @@ const PolygonGenerator = () => {
               setCurveType={setCurveType}
               curveIntensity={curveIntensity}
               setCurveIntensity={setCurveIntensity}
+              animateOpacity={animateOpacity}
+              setAnimateOpacity={setAnimateOpacity}
+              minOpacity={minOpacity}
+              setMinOpacity={setMinOpacity}
+              maxOpacity={maxOpacity}
+              setMaxOpacity={setMaxOpacity}
+              animationPeriodRange={animationPeriodRange}
+              setAnimationPeriodRange={setAnimationPeriodRange}
               onGeneratePolygon={generatePolygon}
               onClearShapes={handleClearShapes}
               onApplyCurveChanges={redrawAllCurves}
               onExpandPolygon={handleExpandPolygon}
+              onToggleAnimations={handleToggleAnimations}
             />
           </CardContent>
         </Card>
