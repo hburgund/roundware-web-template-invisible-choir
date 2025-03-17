@@ -16,6 +16,7 @@ class FloorplanOverlay extends google.maps.OverlayView {
    * @param {number} options.maxZoom - Maximum zoom level to show the overlay (default: 21)
    * @param {number} options.opacity - Opacity of the overlay (default: 0.8)
    * @param {boolean} options.interactive - Whether the overlay should respond to mouse events (default: false)
+   * @param {Object} options.offset - Offset for fine positioning {x: number, y: number} in pixels
    */
   constructor(bounds, svgUrl, map, options = {}) {
     super();
@@ -26,6 +27,7 @@ class FloorplanOverlay extends google.maps.OverlayView {
     this.maxZoom_ = options.maxZoom !== undefined ? options.maxZoom : 21;
     this.opacity_ = options.opacity !== undefined ? options.opacity : 0.8;
     this.interactive_ = options.interactive !== undefined ? options.interactive : false;
+    this.offset_ = options.offset || { x: 0, y: 0 };
     this.div_ = null;
     this.svg_ = null;
     this.loaded_ = false;
@@ -85,10 +87,10 @@ class FloorplanOverlay extends google.maps.OverlayView {
     const sw = overlayProjection.fromLatLngToDivPixel(this.bounds_.getSouthWest());
     const ne = overlayProjection.fromLatLngToDivPixel(this.bounds_.getNorthEast());
 
-    // Position the div
+    // Position the div with offset adjustment
     const div = this.div_;
-    div.style.left = sw.x + 'px';
-    div.style.top = ne.y + 'px';
+    div.style.left = (sw.x + this.offset_.x) + 'px';
+    div.style.top = (ne.y + this.offset_.y) + 'px';
     div.style.width = (ne.x - sw.x) + 'px';
     div.style.height = (sw.y - ne.y) + 'px';
 
@@ -140,30 +142,42 @@ class FloorplanOverlay extends google.maps.OverlayView {
         return response.text();
       })
       .then(svgContent => {
-        // Create a temporary div to parse the SVG
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const svgElement = svgDoc.documentElement;
+        try {
+          // Create a temporary div to parse the SVG
+          const parser = new DOMParser();
+          const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
 
-        // Store original dimensions
-        this.svgWidth_ = parseFloat(svgElement.getAttribute('width') ||
-                                   svgElement.viewBox?.baseVal?.width || 0);
-        this.svgHeight_ = parseFloat(svgElement.getAttribute('height') ||
-                                    svgElement.viewBox?.baseVal?.height || 0);
+          // Check for parsing errors
+          const parseError = svgDoc.querySelector('parsererror');
+          if (parseError) {
+            throw new Error('SVG parsing error: ' + parseError.textContent);
+          }
 
-        // Make SVG responsive
-        svgElement.setAttribute('width', '100%');
-        svgElement.setAttribute('height', '100%');
-        svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          const svgElement = svgDoc.documentElement;
 
-        // Add the SVG to the container
-        this.svgContainer_.innerHTML = '';
-        this.svgContainer_.appendChild(svgElement);
-        this.svg_ = svgElement;
-        this.loaded_ = true;
+          // Store original dimensions
+          this.svgWidth_ = parseFloat(svgElement.getAttribute('width') ||
+                                     svgElement.viewBox?.baseVal?.width || 0);
+          this.svgHeight_ = parseFloat(svgElement.getAttribute('height') ||
+                                      svgElement.viewBox?.baseVal?.height || 0);
 
-        // Force a redraw
-        this.draw();
+          // Make SVG responsive
+          svgElement.setAttribute('width', '100%');
+          svgElement.setAttribute('height', '100%');
+          svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+          // Add the SVG to the container
+          this.svgContainer_.innerHTML = '';
+          this.svgContainer_.appendChild(svgElement);
+          this.svg_ = svgElement;
+          this.loaded_ = true;
+
+          // Force a redraw
+          this.draw();
+        } catch (parseError) {
+          console.error('Error parsing SVG:', parseError);
+          this.svgContainer_.innerHTML = `<div style="color: red; padding: 10px;">Failed to parse SVG: ${parseError.message}</div>`;
+        }
       })
       .catch(error => {
         console.error('Error loading SVG:', error);
@@ -200,7 +214,9 @@ class FloorplanOverlay extends google.maps.OverlayView {
    */
   setOpacity(opacity) {
     this.opacity_ = opacity;
-    if (this.svgContainer_) {
+
+    // Only change the opacity if the container exists
+    if (this.svgContainer_ && this.getMap()) {
       this.svgContainer_.style.opacity = opacity;
     }
   }
@@ -213,7 +229,24 @@ class FloorplanOverlay extends google.maps.OverlayView {
   setZoomRange(minZoom, maxZoom) {
     this.minZoom_ = minZoom;
     this.maxZoom_ = maxZoom;
-    this.updateVisibility();
+
+    // Check if the overlay is already initialized before updating visibility
+    if (this.getMap()) {
+      this.updateVisibility();
+    }
+  }
+
+  /**
+   * Sets the offset for fine-tuning the position of the overlay.
+   * @param {Object} offset - The offset {x, y} in pixels
+   */
+  setOffset(offset) {
+    this.offset_ = offset;
+
+    // Redraw the overlay with the new offset
+    if (this.getMap()) {
+      this.draw();
+    }
   }
 }
 

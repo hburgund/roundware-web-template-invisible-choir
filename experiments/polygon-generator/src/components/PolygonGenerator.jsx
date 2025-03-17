@@ -6,7 +6,7 @@ import PolygonControls from './PolygonControls';
 import FloorplanControls from './FloorplanControls';
 
 // Bedford, MA coordinates
-const BEDFORD_CENTER = { lat: 45.45206769343375, lng: 9.162952783177321 }; 
+const BEDFORD_CENTER = { lat: 45.45206769343375, lng: 9.162952783177321 };
 
 // Animation utility functions
 const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
@@ -249,6 +249,8 @@ const PolygonGenerator = () => {
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_CENTER
         },
+        // Disable tilt capability
+        tilt: 0,
         // Add this option to enable smooth zooming
         gestureHandling: 'greedy',
         // Add max/min zoom constraints if needed
