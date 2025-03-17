@@ -2,13 +2,22 @@
 import React, { useState, useEffect } from 'react';
 
 const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => {
-  console.log("ConnectionLinesManager rendered with",
-    map ? "map" : "no map",
-    markers ? markers.length : 0, "markers",
-    "curveType:", curveType,
-    "curveIntensity:", curveIntensity
-  );
   const [centerLines, setCenterLines] = useState([]);
+
+  // More detailed logging for debugging
+  useEffect(() => {
+    console.log("ConnectionLinesManager received updates:", {
+      hasMap: !!map,
+      markerCount: markers?.length || 0,
+      curveType,
+      curveIntensity
+    });
+
+    if (markers && markers.length > 0) {
+      console.log("First marker position:",
+        markers[0]?.getPosition ? markers[0].getPosition().toString() : "No getPosition method");
+    }
+  }, [map, markers, curveType, curveIntensity]);
 
   // Clean up lines when component unmounts
   useEffect(() => {
@@ -20,18 +29,21 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
   // Redraw lines when markers, curveType or intensity changes
   useEffect(() => {
     if (map && markers && markers.length > 1) {
+      console.log("Redrawing curves with", markers.length, "markers");
       redrawAllCurves();
-    }
-  }, [markers, curveType, curveIntensity]);
+    } else {
+      console.log("Not enough data to draw curves:", {
+        hasMap: !!map,
+        markerCount: markers?.length || 0
+      });
 
-  useEffect(() => {
-    if (map && markers && markers.length > 1) {
-      console.log("Attempting to draw curves between", markers.length, "markers");
-      console.log("First marker position:", markers[0].getPosition().toString());
-      console.log("Curve type:", curveType, "Curve intensity:", curveIntensity);
-      redrawAllCurves();
+      // Clear existing lines if markers are removed or reduced to less than 2
+      if (centerLines.length > 0) {
+        console.log("Clearing all connection lines due to insufficient markers");
+        clearAllCenterLines();
+      }
     }
-  }, [markers, curveType, curveIntensity]);
+  }, [map, markers, curveType, curveIntensity]);
 
   // Calculate bezier curve points
   const calculateCurvePoints = (start, end) => {
@@ -97,21 +109,29 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
 
   // Draw a curved line between two center markers
   const drawCurveBetweenCenters = (center1, center2) => {
-    if (!map || !center1 || !center2 || !window.google) return null;
+    if (!map || !center1 || !center2 || !window.google) {
+      console.warn("Cannot draw curve: missing required parameters");
+      return null;
+    }
 
-    const curvePoints = calculateCurvePoints(center1, center2);
+    try {
+      const curvePoints = calculateCurvePoints(center1, center2);
 
-    const line = new window.google.maps.Polyline({
-      path: curvePoints,
-      geodesic: true,
-      strokeColor: '#FFFFFF',  // Make sure this is visible against your map
-      strokeOpacity: 0.7,
-      strokeWeight: 1,  // Consider increasing this to 2 or 3 for better visibility
-      map: map
-    });
+      const line = new window.google.maps.Polyline({
+        path: curvePoints,
+        geodesic: true,
+        strokeColor: '#FFFFFF',  // Make sure this is visible against your map
+        strokeOpacity: 0.7,
+        strokeWeight: 2,  // Increased for better visibility
+        map: map
+      });
 
-    setCenterLines(prev => [...prev, line]);
-    return line;
+      setCenterLines(prev => [...prev, line]);
+      return line;
+    } catch (error) {
+      console.error("Error drawing curve:", error);
+      return null;
+    }
   };
 
   // Redraw all curves with current curve intensity
@@ -134,18 +154,18 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
         const next = markers[i + 1].getPosition();
 
         if (!current || !next) {
-          console.log("Invalid marker position at index", i);
+          console.error("Invalid marker position at index", i);
           continue;
         }
 
         const currentLatLng = { lat: current.lat(), lng: current.lng() };
         const nextLatLng = { lat: next.lat(), lng: next.lng() };
 
-        console.log(`Drawing curve from (${currentLatLng.lat}, ${currentLatLng.lng}) to (${nextLatLng.lat}, ${nextLatLng.lng})`);
+        console.log(`Drawing curve from (${currentLatLng.lat.toFixed(6)}, ${currentLatLng.lng.toFixed(6)}) to (${nextLatLng.lat.toFixed(6)}, ${nextLatLng.lng.toFixed(6)})`);
 
         const line = drawCurveBetweenCenters(currentLatLng, nextLatLng);
         if (!line) {
-          console.log("Failed to draw curve between centers");
+          console.warn("Failed to draw curve between centers");
         }
       } catch (error) {
         console.error("Error drawing curve at index", i, error);
@@ -156,7 +176,11 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
   // Clear all center lines from the map
   const clearAllCenterLines = () => {
     centerLines.forEach(line => {
-      line.setMap(null);
+      try {
+        line.setMap(null);
+      } catch (error) {
+        console.error("Error clearing line:", error);
+      }
     });
     setCenterLines([]);
   };

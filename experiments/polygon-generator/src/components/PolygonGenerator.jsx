@@ -1,5 +1,5 @@
 // components/PolygonGenerator.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { PolygonProvider, usePolygonContext } from './context/PolygonContext';
 
@@ -28,7 +28,6 @@ const PolygonGeneratorContent = () => {
 
   // Marker and line states
   const [centerMarkers, setCenterMarkers] = useState([]);
-  const [lastCenterMarker, setLastCenterMarker] = useState(null);
   const [curveType, setCurveType] = useState('bezier');
   const [curveIntensity, setCurveIntensity] = useState(0.5);
 
@@ -58,9 +57,13 @@ const PolygonGeneratorContent = () => {
     clearPolygons
   } = usePolygonContext();
 
+  // Debugging logs to help diagnose the issue
+  useEffect(() => {
+    console.log("centerMarkers updated:", centerMarkers.length);
+  }, [centerMarkers]);
+
   // Handle marker creation after polygon generation
   const handlePolygonCreated = (polygon, vertices) => {
-    // Create a marker at the polygon's center
     if (map && window.google) {
       const center = calculateCentroid(vertices);
 
@@ -78,14 +81,17 @@ const PolygonGeneratorContent = () => {
         }
       });
 
-      // Update markers in state (this will feed into ConnectionLinesManager)
-      setCenterMarkers(prev => [...prev, marker]);
-      setLastCenterMarker(marker);
-    }
+      // Update markers directly in state
+      setCenterMarkers(prev => {
+        const updatedMarkers = [...prev, marker];
+        console.log("Added new marker, total markers:", updatedMarkers.length);
+        return updatedMarkers;
+      });
 
-    // If animation is enabled, add this polygon to the animation system
-    if (animateOpacity && animationManagerRef.current) {
-      animationManagerRef.current.addPolygonToAnimation(polygon);
+      // If animation is enabled, add this polygon to the animation system
+      if (animateOpacity && animationManagerRef.current) {
+        animationManagerRef.current.addPolygonToAnimation(polygon);
+      }
     }
   };
 
@@ -111,6 +117,18 @@ const PolygonGeneratorContent = () => {
   const handleClearShapes = () => {
     if (polygonManagerRef.current) {
       polygonManagerRef.current.clearAllPolygons();
+
+      // Clear markers manually to ensure they're removed from the map
+      centerMarkers.forEach(marker => {
+        if (marker && typeof marker.setMap === 'function') {
+          marker.setMap(null);
+        }
+      });
+
+      // Update state with empty array to trigger ConnectionLinesManager update
+      setCenterMarkers([]);
+
+      console.log("All shapes and markers cleared");
     }
   };
 
@@ -123,9 +141,24 @@ const PolygonGeneratorContent = () => {
     }
   };
 
+  // Apply curve changes to redraw connection lines
+  const handleApplyCurveChanges = () => {
+    // This will trigger a re-render of the ConnectionLinesManager with updated props
+    console.log("Applying curve changes with", centerMarkers.length, "markers");
+    // Force a rerender by creating a new array with the same elements
+    setCenterMarkers([...centerMarkers]);
+  };
+
   // Initialize component refs when map is ready
   const handleMapReady = (googleMap) => {
     setMap(googleMap);
+  };
+
+  // Handle markers changed from MarkerManager
+  const handleMarkersChanged = (markers) => {
+    // This function is no longer needed as we're managing markers directly
+    // in handlePolygonCreated, but keeping for backward compatibility
+    console.log("handleMarkersChanged called with", markers?.length || 0, "markers");
   };
 
   return (
@@ -188,7 +221,7 @@ const PolygonGeneratorContent = () => {
                 setAnimationPeriodRange={setAnimationPeriodRange}
                 onGeneratePolygon={generatePolygon}
                 onClearShapes={handleClearShapes}
-                onApplyCurveChanges={() => {}} // We'll handle this through the ConnectionLinesManager
+                onApplyCurveChanges={handleApplyCurveChanges}
                 onExpandPolygon={handleExpandPolygon}
                 onToggleAnimations={handleToggleAnimations}
               />
@@ -229,14 +262,10 @@ const PolygonGeneratorContent = () => {
             {/* Initialize the MarkerManager when map is ready */}
             <MarkerManager
               map={map}
-              onPolygonCreated={handlePolygonCreated}  // Pass this function to MarkerManager
-              onMarkersChanged={(markers, lastMarker) => {
-                setCenterMarkers(markers);
-                setLastCenterMarker(lastMarker);
-              }}
+              onMarkersChanged={handleMarkersChanged}
             />
 
-            {/* Initialize the ConnectionLinesManager when map is ready */}
+            {/* Update ConnectionLinesManager to use centerMarkers directly */}
             <ConnectionLinesManager
               map={map}
               markers={centerMarkers}
