@@ -16,8 +16,8 @@ const PolygonGenerator = () => {
   const [polygons, setPolygons] = useState([]);
   const [centerMarkers, setCenterMarkers] = useState([]);
   const [centerLines, setCenterLines] = useState([]);
-  const [minSize, setMinSize] = useState(100);
-  const [maxSize, setMaxSize] = useState(300);
+  const [minSize, setMinSize] = useState(3);
+  const [maxSize, setMaxSize] = useState(4);
   const [keepPolygons, setKeepPolygons] = useState(true);
   const [generatorMode, setGeneratorMode] = useState('beechLeaf');
   const [lastCenterMarker, setLastCenterMarker] = useState(null);
