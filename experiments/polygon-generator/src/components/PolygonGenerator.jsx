@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import * as turf from '@turf/turf';
 import { createShapeGenerator, calculateCentroid, expandPolygon } from './shape-generators';
 import PolygonControls from './PolygonControls';
+import FloorplanControls from './FloorplanControls';
 
 // Bedford, MA coordinates
-const BEDFORD_CENTER = { lat: 42.4913, lng: -71.2767 };
+const BEDFORD_CENTER = { lat: 45.45206769343375, lng: 9.162952783177321 }; 
 
 // Animation utility functions
 const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
@@ -30,6 +31,11 @@ const PolygonGenerator = () => {
   const [minOpacity, setMinOpacity] = useState(0.2);
   const [maxOpacity, setMaxOpacity] = useState(0.8);
   const [animationPeriodRange, setAnimationPeriodRange] = useState([5, 15]);
+
+  // Add state for floorplan overlay
+  const [activeTab, setActiveTab] = useState('polygons');
+  const [floorplanOverlay, setFloorplanOverlay] = useState(null);
+  const [floorplanVisible, setFloorplanVisible] = useState(false);
 
   // Animation refs
   const animationRef = useRef(null);
@@ -157,6 +163,15 @@ const PolygonGenerator = () => {
     };
   }, [map]);
 
+  // Add a cleanup function for the floorplan overlay
+  useEffect(() => {
+    return () => {
+      if (floorplanOverlay) {
+        floorplanOverlay.setMap(null);
+      }
+    };
+  }, [floorplanOverlay]);
+
   // Animation system
   const animatePolygons = useCallback((timestamp) => {
     let isAnyActive = false;
@@ -233,7 +248,12 @@ const PolygonGenerator = () => {
         zoomControl: true,
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_CENTER
-        }
+        },
+        // Add this option to enable smooth zooming
+        gestureHandling: 'greedy',
+        // Add max/min zoom constraints if needed
+        maxZoom: 21,
+        minZoom: 10
       });
       googleMapRef.current = newMap;
       setMap(newMap);
@@ -621,33 +641,69 @@ const PolygonGenerator = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">Bedford, MA</p>
-            <PolygonControls
-              minSize={minSize}
-              setMinSize={setMinSize}
-              maxSize={maxSize}
-              setMaxSize={setMaxSize}
-              keepPolygons={keepPolygons}
-              setKeepPolygons={setKeepPolygons}
-              generatorMode={generatorMode}
-              setGeneratorMode={setGeneratorMode}
-              curveType={curveType}
-              setCurveType={setCurveType}
-              curveIntensity={curveIntensity}
-              setCurveIntensity={setCurveIntensity}
-              animateOpacity={animateOpacity}
-              setAnimateOpacity={setAnimateOpacity}
-              minOpacity={minOpacity}
-              setMinOpacity={setMinOpacity}
-              maxOpacity={maxOpacity}
-              setMaxOpacity={setMaxOpacity}
-              animationPeriodRange={animationPeriodRange}
-              setAnimationPeriodRange={setAnimationPeriodRange}
-              onGeneratePolygon={generatePolygon}
-              onClearShapes={handleClearShapes}
-              onApplyCurveChanges={redrawAllCurves}
-              onExpandPolygon={handleExpandPolygon}
-              onToggleAnimations={handleToggleAnimations}
-            />
+
+            {/* Tabs for different control sections */}
+            <div className="mb-6">
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                  <button
+                    className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300
+                              whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm
+                              ${activeTab === 'polygons' ? 'border-blue-500 text-blue-600' : ''}`}
+                    onClick={() => setActiveTab('polygons')}
+                  >
+                    Polygons
+                  </button>
+                  <button
+                    className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300
+                              whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm
+                              ${activeTab === 'floorplans' ? 'border-blue-500 text-blue-600' : ''}`}
+                    onClick={() => setActiveTab('floorplans')}
+                  >
+                    Floorplans
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            {/* Show appropriate controls based on active tab */}
+            {activeTab === 'polygons' ? (
+              <PolygonControls
+                minSize={minSize}
+                setMinSize={setMinSize}
+                maxSize={maxSize}
+                setMaxSize={setMaxSize}
+                keepPolygons={keepPolygons}
+                setKeepPolygons={setKeepPolygons}
+                generatorMode={generatorMode}
+                setGeneratorMode={setGeneratorMode}
+                curveType={curveType}
+                setCurveType={setCurveType}
+                curveIntensity={curveIntensity}
+                setCurveIntensity={setCurveIntensity}
+                animateOpacity={animateOpacity}
+                setAnimateOpacity={setAnimateOpacity}
+                minOpacity={minOpacity}
+                setMinOpacity={setMinOpacity}
+                maxOpacity={maxOpacity}
+                setMaxOpacity={setMaxOpacity}
+                animationPeriodRange={animationPeriodRange}
+                setAnimationPeriodRange={setAnimationPeriodRange}
+                onGeneratePolygon={generatePolygon}
+                onClearShapes={handleClearShapes}
+                onApplyCurveChanges={redrawAllCurves}
+                onExpandPolygon={handleExpandPolygon}
+                onToggleAnimations={handleToggleAnimations}
+              />
+            ) : (
+              <FloorplanControls
+                map={map}
+                floorplanOverlay={floorplanOverlay}
+                setFloorplanOverlay={setFloorplanOverlay}
+                floorplanVisible={floorplanVisible}
+                setFloorplanVisible={setFloorplanVisible}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
