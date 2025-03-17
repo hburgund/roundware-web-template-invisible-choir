@@ -9,6 +9,7 @@ import { PolygonManager } from './Polygons/PolygonManager';
 import { MarkerManager } from './Markers/MarkerManager';
 import { ConnectionLinesManager } from './ConnectionLines/ConnectionLinesManager';
 import { PolygonAnimationManager } from './Animations/PolygonAnimationManager';
+import { calculateCentroid } from './shape-generators';
 
 // Import UI components
 import PolygonControls from './PolygonControls';
@@ -59,6 +60,29 @@ const PolygonGeneratorContent = () => {
 
   // Handle marker creation after polygon generation
   const handlePolygonCreated = (polygon, vertices) => {
+    // Create a marker at the polygon's center
+    if (map && window.google) {
+      const center = calculateCentroid(vertices);
+
+      // Create the marker
+      const marker = new window.google.maps.Marker({
+        position: center,
+        map: map,
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: '#FFFFFF',
+          fillOpacity: 1,
+          strokeColor: '#000000',
+          strokeWeight: 0,
+          scale: 3
+        }
+      });
+
+      // Update markers in state (this will feed into ConnectionLinesManager)
+      setCenterMarkers(prev => [...prev, marker]);
+      setLastCenterMarker(marker);
+    }
+
     // If animation is enabled, add this polygon to the animation system
     if (animateOpacity && animationManagerRef.current) {
       animationManagerRef.current.addPolygonToAnimation(polygon);
@@ -205,6 +229,7 @@ const PolygonGeneratorContent = () => {
             {/* Initialize the MarkerManager when map is ready */}
             <MarkerManager
               map={map}
+              onPolygonCreated={handlePolygonCreated}  // Pass this function to MarkerManager
               onMarkersChanged={(markers, lastMarker) => {
                 setCenterMarkers(markers);
                 setLastCenterMarker(lastMarker);

@@ -142,6 +142,6 @@ const PolygonAnimationManager = forwardRef(({
   };
 
   return null;
-};
+});
 
 export { PolygonAnimationManager };

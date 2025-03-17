@@ -2,6 +2,12 @@
 import React, { useState, useEffect } from 'react';
 
 const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => {
+  console.log("ConnectionLinesManager rendered with",
+    map ? "map" : "no map",
+    markers ? markers.length : 0, "markers",
+    "curveType:", curveType,
+    "curveIntensity:", curveIntensity
+  );
   const [centerLines, setCenterLines] = useState([]);
 
   // Clean up lines when component unmounts
@@ -14,6 +20,15 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
   // Redraw lines when markers, curveType or intensity changes
   useEffect(() => {
     if (map && markers && markers.length > 1) {
+      redrawAllCurves();
+    }
+  }, [markers, curveType, curveIntensity]);
+
+  useEffect(() => {
+    if (map && markers && markers.length > 1) {
+      console.log("Attempting to draw curves between", markers.length, "markers");
+      console.log("First marker position:", markers[0].getPosition().toString());
+      console.log("Curve type:", curveType, "Curve intensity:", curveIntensity);
       redrawAllCurves();
     }
   }, [markers, curveType, curveIntensity]);
@@ -89,9 +104,9 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
     const line = new window.google.maps.Polyline({
       path: curvePoints,
       geodesic: true,
-      strokeColor: '#FFFFFF',
+      strokeColor: '#FFFFFF',  // Make sure this is visible against your map
       strokeOpacity: 0.7,
-      strokeWeight: 1,
+      strokeWeight: 1,  // Consider increasing this to 2 or 3 for better visibility
       map: map
     });
 
@@ -104,15 +119,37 @@ const ConnectionLinesManager = ({ map, markers, curveType, curveIntensity }) => 
     // Clear existing lines
     clearAllCenterLines();
 
+    console.log("Redrawing curves, marker count:", markers.length);
+
+    // Check if we have enough markers to draw lines
+    if (!markers || markers.length < 2) {
+      console.log("Not enough markers to draw lines");
+      return;
+    }
+
     // Redraw lines between adjacent markers
     for (let i = 0; i < markers.length - 1; i++) {
-      const current = markers[i].getPosition();
-      const next = markers[i + 1].getPosition();
+      try {
+        const current = markers[i].getPosition();
+        const next = markers[i + 1].getPosition();
 
-      const currentLatLng = { lat: current.lat(), lng: current.lng() };
-      const nextLatLng = { lat: next.lat(), lng: next.lng() };
+        if (!current || !next) {
+          console.log("Invalid marker position at index", i);
+          continue;
+        }
 
-      drawCurveBetweenCenters(currentLatLng, nextLatLng);
+        const currentLatLng = { lat: current.lat(), lng: current.lng() };
+        const nextLatLng = { lat: next.lat(), lng: next.lng() };
+
+        console.log(`Drawing curve from (${currentLatLng.lat}, ${currentLatLng.lng}) to (${nextLatLng.lat}, ${nextLatLng.lng})`);
+
+        const line = drawCurveBetweenCenters(currentLatLng, nextLatLng);
+        if (!line) {
+          console.log("Failed to draw curve between centers");
+        }
+      } catch (error) {
+        console.error("Error drawing curve at index", i, error);
+      }
     }
   };
 

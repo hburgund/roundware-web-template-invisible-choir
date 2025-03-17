@@ -24,6 +24,25 @@ const GoogleMap = ({ onMapReady, mapOptions = {} }) => {
   };
 
   useEffect(() => {
+    // Define initMap function first
+    const initMap = () => {
+      if (!googleMapRef.current) {
+        const combinedOptions = { ...defaultMapOptions, ...mapOptions };
+        const newMap = new window.google.maps.Map(mapRef.current, combinedOptions);
+        googleMapRef.current = newMap;
+
+        // Notify parent component that map is ready
+        if (onMapReady) {
+          onMapReady(newMap);
+        }
+
+        // Ensure map resizes correctly
+        setTimeout(() => {
+          window.google.maps.event.trigger(newMap, 'resize');
+        }, 100);
+      }
+    };
+
     // Load Google Maps script if not loaded
     if (!window.google && !document.querySelector('script[src*="maps.googleapis.com/maps/api"]')) {
       const script = document.createElement('script');
@@ -59,25 +78,6 @@ const GoogleMap = ({ onMapReady, mapOptions = {} }) => {
         document.head.appendChild(turfScript);
       });
     }
-
-    // Initialize the map
-    const initMap = () => {
-      if (!googleMapRef.current) {
-        const combinedOptions = { ...defaultMapOptions, ...mapOptions };
-        const newMap = new window.google.maps.Map(mapRef.current, combinedOptions);
-        googleMapRef.current = newMap;
-
-        // Notify parent component that map is ready
-        if (onMapReady) {
-          onMapReady(newMap);
-        }
-
-        // Ensure map resizes correctly
-        setTimeout(() => {
-          window.google.maps.event.trigger(newMap, 'resize');
-        }, 100);
-      }
-    };
 
     // Resize handler
     const handleResize = () => {

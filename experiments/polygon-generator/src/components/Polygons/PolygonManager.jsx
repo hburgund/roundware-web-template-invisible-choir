@@ -136,10 +136,6 @@ const PolygonManager = forwardRef(({
     return generatePolygonAtLocation(randomLocation);
   };
 
-  // Return null as this is a non-visual component
-  return null;
-});
-
   // Expand the last polygon
   const expandLastPolygon = (expansionValue, expansionUnit = 'meters') => {
     if (polygons.length === 0) {
@@ -212,17 +208,10 @@ const PolygonManager = forwardRef(({
     if (onPolygonsCleared) {
       onPolygonsCleared();
     }
-    // Return methods that parent can call
-    return {
-      generatePolygonAtLocation,
-      generateRandomPolygon,
-      expandLastPolygon,
-      clearAllPolygons,
-      getAllPolygons: () => polygons
-    };
   };
 
-
-};
+  // Return null as this is a non-visual component
+  return null;
+});
 
 export { PolygonManager };
