@@ -3,16 +3,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { PolygonProvider, usePolygonContext } from './context/PolygonContext';
 
-// Import our new components
+// Import our components
 import GoogleMap from './Map/GoogleMap';
 import { PolygonManager } from './Polygons/PolygonManager';
 import { MarkerManager } from './Markers/MarkerManager';
 import { ConnectionLinesManager } from './ConnectionLines/ConnectionLinesManager';
+import { ConnectionLineAnimationManager } from './ConnectionLines/ConnectionLineAnimationManager';
 import { PolygonAnimationManager } from './Animations/PolygonAnimationManager';
 import { calculateCentroid } from './shape-generators';
 
 // Import UI components
 import PolygonControls from './PolygonControls';
+import ConnectionAnimationControls from './ConnectionLines/ConnectionAnimationControls';
 import FloorplanControls from './FloorplanControls';
 
 const PolygonGeneratorContent = () => {
@@ -31,7 +33,14 @@ const PolygonGeneratorContent = () => {
   const [curveType, setCurveType] = useState('bezier');
   const [curveIntensity, setCurveIntensity] = useState(0.5);
 
-  // Animation states
+  // Connection animation states
+  const [animateConnections, setAnimateConnections] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(1.0);
+  const [waveAmplitude, setWaveAmplitude] = useState(1.0);
+  const [waveFrequency, setWaveFrequency] = useState(1.0);
+  const [animationPattern, setAnimationPattern] = useState('sine');
+
+  // Polygon animation states
   const [animateOpacity, setAnimateOpacity] = useState(false);
   const [minOpacity, setMinOpacity] = useState(0.2);
   const [maxOpacity, setMaxOpacity] = useState(0.8);
@@ -44,6 +53,7 @@ const PolygonGeneratorContent = () => {
   // Component refs
   const polygonManagerRef = useRef(null);
   const animationManagerRef = useRef(null);
+  const connectionAnimationRef = useRef(null);
 
   // Bedford, MA coordinates
   const BEDFORD_CENTER = { lat: 45.45206769343375, lng: 9.162952783177321 };
@@ -132,8 +142,8 @@ const PolygonGeneratorContent = () => {
     }
   };
 
-  // Toggle animations or update animation settings
-  const handleToggleAnimations = () => {
+  // Toggle animations or update animation settings for polygons
+  const handleTogglePolygonAnimations = () => {
     if (!animateOpacity) return;
 
     if (animationManagerRef.current) {
@@ -147,6 +157,18 @@ const PolygonGeneratorContent = () => {
     console.log("Applying curve changes with", centerMarkers.length, "markers");
     // Force a rerender by creating a new array with the same elements
     setCenterMarkers([...centerMarkers]);
+  };
+
+  // Apply connection animation settings
+  const handleApplyConnectionAnimationSettings = () => {
+    if (connectionAnimationRef.current) {
+      connectionAnimationRef.current.updateAnimationSettings({
+        animationSpeed,
+        waveAmplitude,
+        waveFrequency,
+        animationPattern
+      });
+    }
   };
 
   // Initialize component refs when map is ready
@@ -187,6 +209,14 @@ const PolygonGeneratorContent = () => {
                   <button
                     className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300
                               whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm
+                              ${activeTab === 'connections' ? 'border-blue-500 text-blue-600' : ''}`}
+                    onClick={() => setActiveTab('connections')}
+                  >
+                    Connections
+                  </button>
+                  <button
+                    className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300
+                              whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm
                               ${activeTab === 'floorplans' ? 'border-blue-500 text-blue-600' : ''}`}
                     onClick={() => setActiveTab('floorplans')}
                   >
@@ -223,8 +253,64 @@ const PolygonGeneratorContent = () => {
                 onClearShapes={handleClearShapes}
                 onApplyCurveChanges={handleApplyCurveChanges}
                 onExpandPolygon={handleExpandPolygon}
-                onToggleAnimations={handleToggleAnimations}
+                onToggleAnimations={handleTogglePolygonAnimations}
               />
+            ) : activeTab === 'connections' ? (
+              <>
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Connection Line Settings:</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm mb-1">
+                        Curve Type:
+                      </label>
+                      <select
+                        value={curveType}
+                        onChange={(e) => setCurveType(e.target.value)}
+                        className="w-full p-2 border rounded"
+                      >
+                        <option value="bezier">Bezier Curve</option>
+                        <option value="arcuate">Simple Arc</option>
+                        <option value="wave">Wavy Line</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm mb-1">
+                        Curve Intensity: {curveIntensity.toFixed(1)}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={curveIntensity}
+                        onChange={(e) => setCurveIntensity(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <button
+                      onClick={handleApplyCurveChanges}
+                      className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded w-full"
+                    >
+                      Apply Curve Changes
+                    </button>
+                  </div>
+                </div>
+
+                <ConnectionAnimationControls
+                  animateConnections={animateConnections}
+                  setAnimateConnections={setAnimateConnections}
+                  animationSpeed={animationSpeed}
+                  setAnimationSpeed={setAnimationSpeed}
+                  waveAmplitude={waveAmplitude}
+                  setWaveAmplitude={setWaveAmplitude}
+                  waveFrequency={waveFrequency}
+                  setWaveFrequency={setWaveFrequency}
+                  animationPattern={animationPattern}
+                  setAnimationPattern={setAnimationPattern}
+                  onApplyChanges={handleApplyConnectionAnimationSettings}
+                />
+              </>
             ) : (
               <FloorplanControls
                 map={map}
@@ -234,6 +320,25 @@ const PolygonGeneratorContent = () => {
                 setFloorplanVisible={setFloorplanVisible}
               />
             )}
+
+            {/* Common controls for all tabs */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="space-y-2">
+                <button
+                  onClick={generatePolygon}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+                >
+                  Generate {generatorMode === 'beechLeaf' ? 'Beech Leaf' :
+                           generatorMode === 'orbicularLeaf' ? 'Orbicular Leaf' : 'Polygon'}
+                </button>
+                <button
+                  onClick={handleClearShapes}
+                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded w-full"
+                >
+                  Clear All Shapes
+                </button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -265,13 +370,28 @@ const PolygonGeneratorContent = () => {
               onMarkersChanged={handleMarkersChanged}
             />
 
-            {/* Update ConnectionLinesManager to use centerMarkers directly */}
-            <ConnectionLinesManager
-              map={map}
-              markers={centerMarkers}
-              curveType={curveType}
-              curveIntensity={curveIntensity}
-            />
+            {/* Use either the static or animated connection lines based on animation setting */}
+            {!animateConnections ? (
+              <ConnectionLinesManager
+                map={map}
+                markers={centerMarkers}
+                curveType={curveType}
+                curveIntensity={curveIntensity}
+              />
+            ) : (
+              <ConnectionLineAnimationManager
+                ref={connectionAnimationRef}
+                map={map}
+                markers={centerMarkers}
+                curveType={curveType}
+                curveIntensity={curveIntensity}
+                animateConnections={animateConnections}
+                animationSpeed={animationSpeed}
+                waveAmplitude={waveAmplitude}
+                waveFrequency={waveFrequency}
+                animationPattern={animationPattern}
+              />
+            )}
 
             {/* Initialize the PolygonAnimationManager when map is ready */}
             <PolygonAnimationManager

@@ -324,7 +324,7 @@ const PolygonControls = ({
       </div>
 
       {/* Actions */}
-      <div className="space-y-2 pt-4">
+      {/*<div className="space-y-2 pt-4">
         <button
           onClick={onGeneratePolygon}
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
@@ -337,7 +337,7 @@ const PolygonControls = ({
         >
           Clear All Shapes
         </button>
-      </div>
+      </div>*/}
 
       {/* Help Text */}
       <div className="mt-4 text-xs text-gray-600 pt-4 border-t border-gray-200">
