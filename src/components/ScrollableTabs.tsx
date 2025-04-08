@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { Tabs, Tab, Box, Modal, Paper, alpha, Typography, Stack, List, ListItem, IconButton, Slide, Fade } from '@mui/material';
+import { Tabs, Tab, Box, Modal, Paper, Typography, Stack, IconButton, Slide } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
 
-
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
+}
+
+// Define the tab configuration type
+interface TabConfig {
+  label: string;
+  content: React.ReactNode;
 }
 
 function TabPanel(props: TabPanelProps) {
@@ -35,6 +40,82 @@ function TabPanel(props: TabPanelProps) {
 export default function ScrollableTabs() {
   const [value, setValue] = useState(0);
   const [open, setOpen] = useState(true);
+
+  // Define your tabs configuration here
+  const tabs: TabConfig[] = [
+    {
+      label: "About",
+      content: (
+        <>
+          <Typography variant="h4" color="primary" gutterBottom>
+            About
+          </Typography>
+          <Typography variant="h6" color="primary" gutterBottom>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 8 }}>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </Typography>
+        </>
+      )
+    },
+    {
+      label: "Exhibitions",
+      content: (
+        <>
+          <Typography variant="h4" color="primary" gutterBottom>
+            Exhibitions
+          </Typography>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="subtitle1" color="primary" gutterBottom>
+                Lorem ipsum dolor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" color="primary" gutterBottom>
+                Lorem ipsum dolor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+              </Typography>
+            </Box>
+          </Stack>
+        </>
+      )
+    },
+    {
+      label: "Artists",
+      content: (
+        <>
+          <Typography variant="h4" color="primary" gutterBottom>
+            Artists
+          </Typography>
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="subtitle1" color="primary">
+                Name Surname
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Technical Director
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" color="primary">
+                Name Surname
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Technical Artist
+              </Typography>
+            </Box>
+          </Stack>
+        </>
+      )
+    }
+  ];
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -116,84 +197,16 @@ export default function ScrollableTabs() {
                 scrollButtons={false}
                 aria-label="scrollable prevent tabs example"
               >
-                <Tab label="About" />
-                <Tab label="Exhibitions" />
-                <Tab label="Artists" />
+                {tabs.map((tab, index) => (
+                  <Tab key={index} label={tab.label} />
+                ))}
               </Tabs>
             </Box>
-            <TabPanel value={value} index={0}>
-              <Typography variant="h4" color="primary" gutterBottom>
-                About
-              </Typography>
-              <Typography variant="h6" color="primary" gutterBottom>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 8 }}>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-              </Typography>
-            </TabPanel>
-            <TabPanel value={value} index={1}>
-              <Typography variant="h4" color="primary" gutterBottom>
-                Exhibitions
-              </Typography>
-              <Stack spacing={2}>
-                <Box>
-                  <Typography variant="subtitle1" color="primary" gutterBottom>
-                    Lorem ipsum dolor
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle1" color="primary" gutterBottom>
-                    Lorem ipsum dolor
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle1" color="primary" gutterBottom>
-                    Lorem ipsum dolor
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                  </Typography>
-                </Box>
-              </Stack>
-            </TabPanel>
-            <TabPanel value={value} index={2}>
-              <Typography variant="h4" color="primary" gutterBottom>
-                Artists
-              </Typography>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography variant="subtitle1" color="primary">
-                    Name Surname
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Technical Director
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle1" color="primary">
-                    Name Surname
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Technical Artist
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle1" color="primary">
-                    Name Surname
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Job Title
-                  </Typography>
-                </Box>
-              </Stack>
-            </TabPanel>
+            {tabs.map((tab, index) => (
+              <TabPanel key={index} value={value} index={index}>
+                {tab.content}
+              </TabPanel>
+            ))}
           </Box>
           <Box sx={{ position: 'fixed', bottom: 70, left: 0, right: 0, px: 2 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
