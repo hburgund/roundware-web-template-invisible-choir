@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Fade, Typography, Button, Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Box, Fade, Typography, Button, Stack } from '@mui/material';
 import { useHistory } from 'react-router-dom';
 import greenBackground from '../assets/green_background.png';
 import greenLeafBg from '../assets/green_leaf_bg.png';
 import introLogo from '../assets/intro_logo.png';
+import { useRoundware } from '@/hooks';
+import config from '@/config';
+import { GeoListenMode } from 'roundware-web-framework/dist/index';
 
 const Introduction: React.FC = () => {
   const history = useHistory();
   const [showLogo, setShowLogo] = useState(false);
   const [showContent, setShowContent] = useState(false);
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [error, setError] = useState<GeolocationPositionError | null>(null);
 
+	const { roundware, forceUpdate } = useRoundware();
+  const project = roundware.project;
+
+	if (!project || project.projectName === '(unknown)') {
+		return null;
+  }
+  
   useEffect(() => {
     // Start fade in after component mounts
     setShowLogo(true);
@@ -27,44 +35,35 @@ const Introduction: React.FC = () => {
   }, []);
 
   const handleTakePart = () => {
-    setShowPermissionDialog(true);
-  };
-
-  const handleBlock = () => {
-    setShowPermissionDialog(false);
-    // Simulate permission denied error
-    setError({
-      code: 1,
-      message: "Permission denied",
-      PERMISSION_DENIED: 1,
-      POSITION_UNAVAILABLE: 2,
-      TIMEOUT: 3
-    });
-  };
-
-  const handleRequestPermission = () => {
-    setShowPermissionDialog(false);
-    if (!navigator.geolocation) {
-      setError({ code: 1, message: "Your browser doesn't support geolocation.", PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        // Success callback - navigate to listen page
+    if (project.data?.listen_enabled) {
+      if (!config.listen.autoplay) {
         history.push('/listen');
-      },
-      (err) => {
-        // Error callback - treat all errors as permission denied
-        setError({
-          code: 1,
-          message: "Permission denied",
-          PERMISSION_DENIED: 1,
-          POSITION_UNAVAILABLE: 2,
-          TIMEOUT: 3
-        });
+        return;
       }
-    );
+      if (!roundware.mixer || !roundware.mixer?.playlist) {
+        roundware?.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
+          if (roundware && roundware.uiConfig && roundware.uiConfig.listen && roundware.uiConfig.listen[0]) {
+            const listen_tags = roundware.uiConfig.listen[0].display_items.map((i) => i.tag_id);
+            roundware.mixer.updateParams({
+              listenerLocation: roundware.listenerLocation,
+              minDist: 0,
+              maxDist: 0,
+              recordingRadius: 0,
+              listenTagIds: listen_tags,
+            });
+            roundware.mixer.play();
+            forceUpdate();
+            history.push('/listen');
+          }
+        });
+      } else {
+        roundware.mixer.play();
+        forceUpdate();
+        history.push('/listen');
+      }
+    } else if (project.data?.speak_enabled && config.speak.recordingMethod === 'standard') {
+      history.push('/speak');
+    }
   };
 
   return (
@@ -129,78 +128,6 @@ const Introduction: React.FC = () => {
         </Stack>
       </Fade>
 
-      {/* Custom Permission Dialog */}
-      <Dialog
-        open={showPermissionDialog}
-        onClose={() => setShowPermissionDialog(false)}
-      >
-        <DialogTitle>
-          Invisible Choir needs access
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Enabling location is necessary to participate fully in the artwork experience. Your location data won't be saved or shared.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-          <Button 
-            onClick={handleBlock}
-            variant="outlined"
-          >
-            Block
-          </Button>
-          <Button 
-            onClick={handleRequestPermission}
-            variant="contained"
-            color="primary"
-          >
-            Allow
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Permission Instructions Dialog */}
-      <Dialog
-        open={!!error}
-        onClose={() => setError(null)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogContent sx={{ p: 3 }}>
-          <Stack spacing={3}>
-            <Typography variant="h6">
-              Permission to location was denied. Please allow access to the location to use this feature.
-            </Typography>
-            
-            <Stack spacing={2}>
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                1. Click the lock icon in the address bar.
-              </Typography>
-              
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                2. Next, go to Permissions.
-              </Typography>
-              
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                3. Here, you'll find a list of permissions for Chrome.
-              </Typography>
-              
-              <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                4. Change to Allow.
-              </Typography>
-            </Stack>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button 
-            onClick={() => setError(null)}
-            variant="contained"
-            fullWidth
-          >
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
