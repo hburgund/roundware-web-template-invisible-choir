@@ -1,7 +1,9 @@
-import { Button, Dialog, DialogContent, Stack, Typography, Container } from '@mui/material';
+import { Button, Dialog, DialogContent, Stack, Typography, Container, Box } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
 import finalConfig from '@/config';
 import { type Funcionality } from 'web-permission-messages';
+import greenBackground from '@/assets/green_background.png';
+import greenLeafBg from '@/assets/green_leaf_bg.png';
 
 type Props = {
 	open: boolean;
@@ -17,6 +19,10 @@ const PermissionDeniedDialog = (props: Props) => {
 			fullScreen
 			PaperProps={{
 				sx: {
+					backgroundImage: `url(${greenBackground})`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					backgroundRepeat: 'no-repeat',
 					display: 'flex',
 					flexDirection: 'column',
 					alignItems: 'center',
@@ -28,6 +34,20 @@ const PermissionDeniedDialog = (props: Props) => {
 				}
 			}}
 		>
+			<Box
+				component="img"
+				src={greenLeafBg}
+				alt="Green Leaf Background"
+				sx={{
+					position: 'fixed',
+					top: 0,
+					right: 0,
+					zIndex: 1,
+					width: '100%',
+					height: 'auto',
+					objectFit: 'cover'
+				}}
+			/>
 			<DialogContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
 				<Container>
 					<Stack spacing={4} alignItems="center" justifyContent="center">
