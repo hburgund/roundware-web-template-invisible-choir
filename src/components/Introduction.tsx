@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Fade, Typography, Button, Stack } from '@mui/material';
 import { useHistory } from 'react-router-dom';
-import greenBackground from '../assets/green_background.png';
-import greenLeafBg from '../assets/green_leaf_bg.png';
 import introLogo from '../assets/intro_logo.png';
 import { useRoundware } from '@/hooks';
 import config from '@/config';
 import { GeoListenMode } from 'roundware-web-framework/dist/index';
+import LeafBackground from './LeafBackground';
 
 const Introduction: React.FC = () => {
   const history = useHistory();
@@ -67,31 +66,7 @@ const Introduction: React.FC = () => {
   };
 
   return (
-    <Box
-      sx={{
-        position: 'relative',
-        minHeight: '100vh',
-        width: '100%',
-        backgroundImage: `url(${greenBackground})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Box
-        component="img"
-        src={greenLeafBg}
-        alt="Green Leaf Background"
-        sx={{
-          position: 'absolute',
-          top: 50,
-          right: 0,
-          zIndex: 1,
-        }}
-      />
+    <LeafBackground>
       <Fade in={showLogo} timeout={1000}>
         <Box
           component="img"
@@ -127,8 +102,7 @@ const Introduction: React.FC = () => {
           </Button>
         </Stack>
       </Fade>
-
-    </Box>
+    </LeafBackground>
   );
 };
 
