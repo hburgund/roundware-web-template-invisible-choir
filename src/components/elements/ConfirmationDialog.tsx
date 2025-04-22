@@ -13,6 +13,7 @@ import {
 import ReplayIcon from '@mui/icons-material/Replay';
 import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
+import greenBackground from '../../assets/green_background.png';
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -40,6 +41,14 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       open={open}
       onClose={onClose}
       fullScreen
+      PaperProps={{
+        sx: {
+          backgroundImage: `url(${greenBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }
+      }}
     >
       <Box
         sx={{
