@@ -22,10 +22,9 @@ import OutOfRangeMessage from './OutOfRangeMessage';
 import { Box, Button, Fab, Fade, Skeleton, Stack, Tooltip} from '@mui/material';
 import { GraphicEq} from '@mui/icons-material';
 import AddLoopVoiceButton from './AddLoopVoiceButton';
-import RoundwareMixerControl from '../RoundwareMixerControl';
 import { GeoListenMode } from 'roundware-web-framework';
-import launchPageLogo from '../../../assets/launch_page_logo.png';
-import infoIcon from '../../../assets/info_i_icon.png';
+import MapControlIcons from './MapControlIcons';
+import LaunchPageLogo from './LaunchPageLogo';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -158,38 +157,8 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 				<LoadScript id='script-loader' googleMapsApiKey={props.googleMapsApiKey}>
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
-						<Box position="absolute" top={80} left={8} zIndex={1} sx={{ ml: 2 }}>
-							<Box
-								component="img"
-								src={launchPageLogo}
-								alt="Launch Page Logo"
-								sx={{
-									height: 60,
-									width: 'auto'
-								}}
-							/>
-						</Box>
-						<Box position="absolute" top={80} right={8} zIndex={1} sx={{ mr: 2 }}>
-							<Fab color="secondary" size="medium">
-								<Box
-									component="img"
-									src={infoIcon}
-									alt="Info"
-									sx={{
-										height: 24,
-										width: 24
-									}}
-								/>
-							</Fab>
-						</Box>
-						<Box position="absolute" top={140} right={8} zIndex={1}  sx={{ mr: 2 }}>
-							<Fab 
-								color={roundware.mixer?.playing ? "primary" : "secondary"} 
-								size="medium"
-							>
-								<RoundwareMixerControl />
-							</Fab>
-						</Box>
+						<LaunchPageLogo />
+						<MapControlIcons />
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
 						{map && roundware.mixer?.playlist && <WalkingModeButton />}

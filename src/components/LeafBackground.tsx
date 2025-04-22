@@ -14,6 +14,7 @@ const LeafBackground: React.FC<LeafBackgroundProps> = ({ children }) => {
         position: 'relative',
         minHeight: '100vh',
         width: '100%',
+        overflow: 'hidden',
         backgroundImage: `url(${greenBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
@@ -32,7 +33,8 @@ const LeafBackground: React.FC<LeafBackgroundProps> = ({ children }) => {
           top: 0,
           right: 0,
           zIndex: 1,
-          width: '100%',
+          width: { xs: '100%', sm: '80%', md: '60%' },
+          maxWidth: '600px',
           height: 'auto',
           objectFit: 'cover'
         }}

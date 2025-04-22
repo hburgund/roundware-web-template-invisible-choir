@@ -11,8 +11,8 @@ import { useRoundware } from '../../hooks';
 import finalConfig from '@/config';
 import { IconButton } from '@mui/material';
 import { GeoListenMode } from 'roundware-web-framework/dist/index';
-import soundIcon from '../../assets/sound_icon.png';
-import noSoundIcon from '../../assets/no_sound_icon.png';
+import soundIcon from '@/assets/icons/sound_icon.svg';
+import noSoundIcon from '@/assets/icons/no_sound_icon.svg';
 
 const RoundwareMixerControl = () => {
 	const { roundware, forceUpdate } = useRoundware();
