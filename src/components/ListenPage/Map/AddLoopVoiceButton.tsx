@@ -66,10 +66,11 @@ const AddLoopVoiceButton = () => {
 						<Tooltip title="TAP TO JOIN CHOIR" arrow placement="bottom">
 							<Fab 
 								size="large" 
+								color="secondary"
 								onClick={handleClick}
 								sx={{ pointerEvents: 'auto' }}
 							>
-								<AddCircleOutlineIcon fontSize="large" />
+								<AddCircleOutlineIcon fontSize="large" color="primary" />
 								
 							</Fab>
 						</Tooltip>
