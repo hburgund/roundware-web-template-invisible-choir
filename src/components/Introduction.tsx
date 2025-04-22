@@ -120,7 +120,7 @@ const Introduction: React.FC = () => {
           </Typography>
           <Button 
             variant="contained" 
-            color="secondary"
+            color="primary"
             onClick={handleTakePart}
           >
             TAKE PART
