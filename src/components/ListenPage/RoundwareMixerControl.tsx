@@ -11,6 +11,8 @@ import { useRoundware } from '../../hooks';
 import finalConfig from '@/config';
 import { IconButton } from '@mui/material';
 import { GeoListenMode } from 'roundware-web-framework/dist/index';
+import soundIcon from '../../assets/sound_icon.png';
+import noSoundIcon from '../../assets/no_sound_icon.png';
 
 const RoundwareMixerControl = () => {
 	const { roundware, forceUpdate } = useRoundware();
@@ -80,7 +82,8 @@ const RoundwareMixerControl = () => {
 			)}
 
 			<Button
-				onClick={() => {
+				onClick={(e) => {
+					e.stopPropagation();
 					if (!roundware.mixer || !roundware.mixer?.playlist) {
 						roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
 							if (roundware && roundware.uiConfig && roundware.uiConfig.listen && roundware.uiConfig.listen[0]) {
@@ -101,8 +104,31 @@ const RoundwareMixerControl = () => {
 						forceUpdate();
 					}
 				}}
+				sx={{ color: 'white', minWidth: 0, padding: 0 }}
 			>
-				{roundware && roundware.mixer && roundware.mixer.playing ? <VolumeUpIcon fontSize='large' /> : <VolumeOffIcon fontSize='large' />}
+				{roundware && roundware.mixer && roundware.mixer.playing ? (
+					<img
+						src={soundIcon}
+						alt="Sound On"
+						style={{
+							height: 24,
+							width: 24,
+							objectFit: 'contain',
+							imageRendering: 'crisp-edges'
+						}}
+					/>
+				) : (
+					<img
+						src={noSoundIcon}
+						alt="Sound Off"
+						style={{
+							height: 24,
+							width: 24,
+							objectFit: 'contain',
+							imageRendering: 'crisp-edges'
+						}}
+					/>
+				)}
 			</Button>
 			{finalConfig.ui.listenTransport.includeSkipForwardButton && (
 				<IconButton disabled={isPlaying ? false : true} onClick={() => seek(finalConfig.listen.skipDuration || 5)}>
