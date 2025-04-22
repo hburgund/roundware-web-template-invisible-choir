@@ -13,7 +13,7 @@ import {
 import ReplayIcon from '@mui/icons-material/Replay';
 import CloseIcon from '@mui/icons-material/Close';
 import LogoutIcon from '@mui/icons-material/Logout';
-import greenBackground from '../../assets/green_background.png';
+import greenBackground from '../../assets/green_background.svg';
 
 interface ConfirmationDialogProps {
   open: boolean;
