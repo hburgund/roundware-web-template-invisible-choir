@@ -54,7 +54,7 @@ const ProgressRing = memo(({ progress, mode }: ProgressRingProps) => {
         stroke={
           mode === "recording"
             ? theme.palette.common.white
-            : theme.palette.primary.main
+            : theme.palette.background.paper
         }
         strokeWidth={baseStrokeWidth}
         strokeLinecap="round"
@@ -90,11 +90,11 @@ const ProgressRing = memo(({ progress, mode }: ProgressRingProps) => {
         cx={svgSize / 2}
         cy={svgSize / 2}
         r={innerRadius}
-        fill={theme.palette.primary.main}
+        fill={theme.palette.background.paper}
         style={{
           filter:
             mode === "recording"
-              ? `drop-shadow(0 0 8px ${theme.palette.primary.light})`
+              ? `drop-shadow(0 0 8px ${theme.palette.background.paper})`
               : "none",
           transition: "filter 0.5s ease-in-out",
           animation: mode === "recording" ? "pulse 2s infinite" : "none",
@@ -110,7 +110,7 @@ const ProgressRing = memo(({ progress, mode }: ProgressRingProps) => {
             cy={svgSize / 2}
             r={innerRadius}
             fill="none"
-            stroke={theme.palette.primary.main}
+            stroke={theme.palette.background.paper}
             strokeWidth={innerBaseStrokeWidth}
             strokeLinecap="round"
             transform={`rotate(-90 ${svgSize / 2} ${svgSize / 2})`}
@@ -121,7 +121,7 @@ const ProgressRing = memo(({ progress, mode }: ProgressRingProps) => {
             cy={svgSize / 2}
             r={innerRadius}
             fill="none"
-            stroke={theme.palette.primary.light}
+            stroke={theme.palette.background.paper}
             strokeWidth={innerProgressStrokeWidth}
             strokeLinecap="round"
             strokeDasharray={innerCircumference}
@@ -144,13 +144,13 @@ const ProgressRing = memo(({ progress, mode }: ProgressRingProps) => {
         {`
           @keyframes pulse {
             0% {
-              filter: drop-shadow(0 0 8px ${theme.palette.primary.light});
+              filter: drop-shadow(0 0 8px ${theme.palette.background.paper});
             }
             50% {
-              filter: drop-shadow(0 0 16px ${theme.palette.primary.light});
+              filter: drop-shadow(0 0 16px ${theme.palette.background.paper});
             }
             100% {
-              filter: drop-shadow(0 0 8px ${theme.palette.primary.light});
+              filter: drop-shadow(0 0 8px ${theme.palette.background.paper});
             }
           }
         `}

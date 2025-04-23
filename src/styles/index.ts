@@ -14,6 +14,9 @@ export const defaultTheme = createTheme({
 		secondary: {
 			main: '#042F2E',
 		},
+		background: {
+			paper: '#14532D',
+		},
 	},
 	components: {
 		MuiButton: {
@@ -37,7 +40,10 @@ export const lightTheme = createTheme({
 		},
 		secondary: {
 			main: '#042F2E',
-		}
+		},
+		background: {
+			paper: '#14532D',
+		},
 	},
 });
 

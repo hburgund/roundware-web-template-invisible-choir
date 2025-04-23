@@ -1,4 +1,6 @@
-import { MicOutlined, PlayCircleFilled, Replay } from "@mui/icons-material";
+import { Replay } from "@mui/icons-material";
+import playIcon from "../../../../../../assets/icons/play_icon.svg";
+import micIcon from "../../../../../../assets/icons/mic_icon.svg";
 import {
   Box,
   Button,
@@ -40,20 +42,18 @@ const ControlButton = memo(
       >
         {mode === "idle" ? (
           <IconButton size="large" onClick={onPlayClick}>
-            <PlayCircleFilled
-              sx={{
-                fontSize: 60,
-                color: theme.palette.common.white,
-              }}
+            <img 
+              src={playIcon} 
+              alt="play" 
+              style={{ width: 60, height: 60 }}
             />
           </IconButton>
         ) : mode === "playing-speaker" ? (
           <IconButton onClick={onRecordClick}>
-            <MicOutlined
-              sx={{
-                fontSize: 60,
-                color: theme.palette.common.white,
-              }}
+            <img 
+              src={micIcon} 
+              alt="mic" 
+              style={{ width: 60, height: 60 }}
             />
           </IconButton>
         ) : mode === "recording" ? (
@@ -68,11 +68,10 @@ const ControlButton = memo(
               borderRadius: "50%",
             }}
           >
-            <MicOutlined
-              sx={{
-                fontSize: 40,
-                color: "rgba(255, 255, 255, 0.8)",
-              }}
+            <img 
+              src={micIcon} 
+              alt="mic" 
+              style={{ width: 40, height: 40 }}
             />
           </Box>
         ) : mode === "recording-playback" ? (
