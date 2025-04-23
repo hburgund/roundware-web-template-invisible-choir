@@ -115,6 +115,8 @@ const LoopingRecordingForm = () => {
             minWidth: 0,
             p: 1,
             borderRadius: "50%",
+            color: "white",
+            borderColor: "rgba(255, 255, 255, 0.5)"
           }}
           onClick={() => setShowCloseConfirm(true)}
         >

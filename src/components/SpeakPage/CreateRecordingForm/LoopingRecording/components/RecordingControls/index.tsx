@@ -16,7 +16,7 @@ const RecordingControls = () => {
 
   return (
     <Stack spacing={8} height={"100%"}>
-      <Box pt={28}>
+      <Box pt={20}>
         <StepIndicator />
       </Box>
       <Box
@@ -54,13 +54,13 @@ const RecordingControls = () => {
       <Box
         sx={{
           position: "absolute",
-          bottom: "30%",
+          bottom: "20%",
           left: 0,
           right: 0,
           textAlign: "center",
         }}
       >
-        <Typography variant="h6" textTransform={"uppercase"}>
+        <Typography variant="h6" textTransform={"uppercase"} fontWeight="300" fontSize={16}>
           {loop.mode === "idle"
             ? "Press play to start rehearsing"
             : loop.mode === "playing-speaker"

@@ -41,7 +41,7 @@ const StepIndicator = () => {
           <Box
             sx={{
               width: 100,
-              height: 3,
+              height: 2,
               backgroundColor: (t) =>
                 activeKey === step.key
                   ? t.palette.primary.main
@@ -51,7 +51,9 @@ const StepIndicator = () => {
           {activeKey === step.key && (
             <Typography
               variant="body2"
-              sx={{ fontWeight: "medium", color: "primary.main" }}
+              fontWeight="300"
+              fontSize={14}
+              color="primary.main"
             >
               {step.label}
             </Typography>
