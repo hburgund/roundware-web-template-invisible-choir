@@ -1,7 +1,11 @@
 //the createMuiTheme function was renamed to createTheme.
 import { createTheme } from '@mui/material/styles';
 import { makeStyles } from '@mui/styles';
+
 export const defaultTheme = createTheme({
+	typography: {
+		fontFamily: 'Inria Sans, sans-serif',
+	},
 	palette: {
 		mode: 'dark',
 		primary: {
@@ -23,6 +27,9 @@ export const defaultTheme = createTheme({
 });
 
 export const lightTheme = createTheme({
+	typography: {
+		fontFamily: 'Inria Sans, sans-serif',
+	},
 	palette: {
 		mode: 'light',
 		primary: {
