@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { Fade } from "@mui/material";
 import { useState } from "react";
+import JoinChoirBackground from "./JoinChoirBackground";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -36,7 +37,7 @@ const JoinChoir = ({
         display="flex"
         flexDirection="column"
         sx={{
-          "& .MuiFab-root": { width: 250, height: 250 },
+          "& .MuiFab-root": { width: 300, height: 300 },
           mx: "auto",
         }}
         position={"absolute"}
@@ -47,34 +48,38 @@ const JoinChoir = ({
         justifyContent={"center"}
         alignItems={"center"}
       >
+        <JoinChoirBackground />
         <Box sx={{ position: "relative" }}>
           <Skeleton
             variant="circular"
             animation="pulse"
             sx={{
               position: "absolute",
-              width: 300,
-              height: 300,
+              width: 340,
+              height: 340,
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
+              bgcolor: "secondary.main"
             }}
           />
 
-          <Fab size="large">
-            <Stack alignItems="center" spacing={1}>
-              <Typography variant="button">JOIN CHOIR</Typography>
-              <Stack
-                direction="row"
-                spacing={1}
-                justifyContent="center"
-                alignItems="center"
-              >
-                <Box sx={{ width: 20, height: 3, bgcolor: "primary.main" }} />
-                <Box sx={{ width: 20, height: 3, bgcolor: "grey.500" }} />
-                <Box sx={{ width: 20, height: 3, bgcolor: "grey.500" }} />
+          <Fab size="large" color="secondary" sx={{ width: 350, height: 350 }}>
+            <Stack alignItems="center" spacing={4}>
+              <Stack alignItems="center" spacing={1}>
+                <Typography variant="button" fontSize={45} sx={{ textTransform: 'none'}}>Join Choir</Typography>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent="center"
+                  alignItems="center"
+                >
+                  <Box sx={{ width: 55, height: 2, bgcolor: "primary.main" }} />
+                  <Box sx={{ width: 55, height: 2, bgcolor: "grey.500" }} />
+                  <Box sx={{ width: 55, height: 2, bgcolor: "grey.500" }} />
+                </Stack>
               </Stack>
-              <Typography variant="body2">
+              <Typography variant="body2" fontSize={14}>
                 Rehearse your
                 <br />
                 singing to the loop
@@ -82,7 +87,7 @@ const JoinChoir = ({
             </Stack>
           </Fab>
         </Box>
-        <Stack direction="row" alignItems="center" sx={{ mt: 4 }}>
+        <Stack direction="row" alignItems="center" sx={{ mt: 4, p: 4}}>
           <FormControlLabel
             control={
               <Checkbox
@@ -91,7 +96,7 @@ const JoinChoir = ({
               />
             }
             label={
-              <Typography variant="body2">
+              <Typography variant="body2" fontSize={14}>
                 I consent to my recording being used solely for the artistic
                 purposes of Invisible Choir
               </Typography>
@@ -101,7 +106,18 @@ const JoinChoir = ({
         <Button
           variant="contained"
           disabled={!isConsentChecked}
-          sx={{ mt: 4 }}
+          sx={{ 
+            mt: 4,
+            pl: 8,
+            pr: 8,
+            py: 1,
+            borderRadius: 3,
+            '&.Mui-disabled': {
+              backgroundColor: 'primary.main',
+              opacity: 0.4,
+              color: 'black'
+            }
+          }}
           onClick={handleContinue}
         >
           Continue
