@@ -44,7 +44,10 @@ const SubmissionControls = ({
             }}
             size="large"
             sx={{
-              fontWeight: "bold",
+              pl: 5,
+              pr: 5,
+              py: 1,
+              borderRadius: 4,
             }}
           >
             Submit Recording

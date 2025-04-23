@@ -96,6 +96,12 @@ const Introduction: React.FC = () => {
           <Button 
             variant="contained" 
             color="primary"
+            sx={{
+              pl: 8,
+              pr: 8,
+              py: 1,
+              borderRadius: 4,
+            }}
             onClick={handleTakePart}
           >
             TAKE PART

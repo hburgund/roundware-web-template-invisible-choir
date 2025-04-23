@@ -103,6 +103,9 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   onClick={onConfirm}
                   fullWidth
                   size="large"
+                  sx={{
+                    borderRadius: 4,
+                  }}
                 >
                   {confirmText}
                 </Button>
