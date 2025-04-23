@@ -1,6 +1,7 @@
 import { Replay } from "@mui/icons-material";
 import playIcon from "../../../../../../assets/icons/play_icon.svg";
 import micIcon from "../../../../../../assets/icons/mic_icon.svg";
+import micRecordingIcon from "../../../../../../assets/icons/mic_recording_icon.svg";
 import {
   Box,
   Button,
@@ -69,16 +70,19 @@ const ControlButton = memo(
             }}
           >
             <img 
-              src={micIcon} 
-              alt="mic" 
-              style={{ width: 40, height: 40 }}
+              src={micRecordingIcon} 
+              alt="mic recording" 
+              style={{ width: 60, height: 60 }}
             />
           </Box>
         ) : mode === "recording-playback" ? (
           <Button
             variant="outlined"
-            color="inherit"
+            color="primary"  
             size="small"
+            sx={{
+              borderRadius: 2,
+            }}
             startIcon={<Replay />}
             onClick={() => {
               setRerecordWarningOpen(true);
