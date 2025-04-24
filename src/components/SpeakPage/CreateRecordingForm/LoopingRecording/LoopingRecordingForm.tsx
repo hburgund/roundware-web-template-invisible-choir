@@ -110,8 +110,8 @@ const LoopingRecordingForm = () => {
           size="small"
           sx={{
             position: "absolute",
-            top: 80,
-            right: 16,
+            top: 15,
+            right: 25,
             minWidth: 0,
             p: 1,
             borderRadius: "50%",

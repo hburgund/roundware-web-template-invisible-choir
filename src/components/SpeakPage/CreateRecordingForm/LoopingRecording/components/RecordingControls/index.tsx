@@ -16,7 +16,7 @@ const RecordingControls = () => {
 
   return (
     <Stack spacing={8} height={"100%"}>
-      <Box pt={20}>
+      <Box pt={15}>
         <StepIndicator />
       </Box>
       <Box

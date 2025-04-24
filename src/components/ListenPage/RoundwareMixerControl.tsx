@@ -104,7 +104,7 @@ const RoundwareMixerControl = () => {
 						forceUpdate();
 					}
 				}}
-				sx={{ color: 'white', minWidth: 0, padding: 0 }}
+				sx={{ color: 'white', minWidth: 0, padding: 0, margin: 0 }}
 			>
 				{roundware && roundware.mixer && roundware.mixer.playing ? (
 					<img

@@ -3,7 +3,7 @@ import launchPageLogo from '@/assets/icons/launch_page_logo.svg';
 
 const LaunchPageLogo = () => {
   return (
-    <Box position="absolute" top={80} left={8} zIndex={1} sx={{ ml: 2 }}>
+    <Box position="absolute" zIndex={1} sx={{ mt: 2 }}>
       <Box
         component="img"
         src={launchPageLogo}

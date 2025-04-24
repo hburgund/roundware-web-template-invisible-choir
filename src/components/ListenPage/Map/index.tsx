@@ -24,7 +24,6 @@ import { GraphicEq} from '@mui/icons-material';
 import AddLoopVoiceButton from './AddLoopVoiceButton';
 import { GeoListenMode } from 'roundware-web-framework';
 import MapControlIcons from './MapControlIcons';
-import LaunchPageLogo from './LaunchPageLogo';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -157,7 +156,6 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 				<LoadScript id='script-loader' googleMapsApiKey={props.googleMapsApiKey}>
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
-						<LaunchPageLogo />
 						<MapControlIcons />
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
