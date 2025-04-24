@@ -6,7 +6,7 @@ import landingHeaderImage from '../../assets/bg-about.jpg';
 const useStyles = makeStyles(() => {
 	return {
 		topBar: {
-			backgroundColor: defaultTheme.palette.primary.main,
+			backgroundColor: 'transparent',
 			// background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(255,255,255,0) 100%)',
 			background: 'none',
 			boxShadow: 'none',
