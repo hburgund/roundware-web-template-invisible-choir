@@ -77,7 +77,7 @@ export const App = () => {
 							<Route path='/debug' component={DebugPage} />
 						</Switch>
 					</div>
-					<AppBar position='sticky' className={classes.bottomBar}>
+					{/* <AppBar position='sticky' className={classes.bottomBar}>
 						<Toolbar style={{ width: '100%', justifyContent: 'space-between' }}>
 							<Stack spacing={1} direction='row'>
 								<ShareButton />
@@ -108,7 +108,7 @@ export const App = () => {
 							<Route path='/listen' exact component={() => <React.Fragment></React.Fragment>} />
 							<Route path='/' component={ShareDialog} />
 						</Switch>
-					</AppBar>
+					</AppBar> */}
 				</DrawerSensitiveWrapper>
 			</BrowserRouter>
 		</ErrorBoundary>
