@@ -43,12 +43,6 @@ const SubmissionControls = ({
               setLegalModalOpen(true);
             }}
             size="large"
-            sx={{
-              pl: 5,
-              pr: 5,
-              py: 1,
-              borderRadius: 4,
-            }}
           >
             Submit Recording
           </Button>

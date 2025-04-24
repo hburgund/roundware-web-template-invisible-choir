@@ -78,11 +78,8 @@ const ControlButton = memo(
         ) : mode === "recording-playback" ? (
           <Button
             variant="outlined"
-            color="primary"  
-            size="small"
-            sx={{
-              borderRadius: 2,
-            }}
+            color="primary"
+            className="MuiButton-rerecord"
             startIcon={<Replay />}
             onClick={() => {
               setRerecordWarningOpen(true);

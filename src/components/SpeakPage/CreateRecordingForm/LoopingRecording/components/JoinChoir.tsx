@@ -106,23 +106,11 @@ const JoinChoir = ({
         <Button
           variant="contained"
           disabled={!isConsentChecked}
-          sx={{ 
-            mt: 4,
-            pl: 8,
-            pr: 8,
-            py: 1,
-            borderRadius: 3,
-            '&.Mui-disabled': {
-              backgroundColor: 'primary.main',
-              opacity: 0.4,
-              color: 'black'
-            }
-          }}
           onClick={handleContinue}
         >
           Continue
         </Button>
-        <Button variant="text" sx={{ mt: 3 }} onClick={onCancel}>
+        <Button variant="text" onClick={onCancel}>
           Cancel
         </Button>
       </Box>
