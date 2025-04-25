@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
-import { Tabs, Tab, Box, Modal, Paper, Typography, Stack, IconButton, Slide } from '@mui/material';
+import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import Slide from '@mui/material/Slide';
+import { TransitionProps } from '@mui/material/transitions';
 import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
+import greenBackground from '../assets/green_background.svg';
+
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
+}
+
+interface ScrollableTabsProps {
+  open: boolean;
+  onClose: () => void;
 }
 
 // Define the tab configuration type
@@ -37,9 +54,8 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ScrollableTabs() {
+export default function ScrollableTabs({ open, onClose }: ScrollableTabsProps) {
   const [value, setValue] = useState(0);
-  const [open, setOpen] = useState(true);
 
   // Define your tabs configuration here
   const tabs: TabConfig[] = [
@@ -47,7 +63,7 @@ export default function ScrollableTabs() {
       label: "About",
       content: (
         <>
-          <Typography variant="h4" color="primary" gutterBottom>
+          <Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
             About
           </Typography>
           <Typography variant="h6" color="primary" gutterBottom>
@@ -63,7 +79,7 @@ export default function ScrollableTabs() {
       label: "Exhibitions",
       content: (
         <>
-          <Typography variant="h4" color="primary" gutterBottom>
+          <Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
             Exhibitions
           </Typography>
           <Stack spacing={2}>
@@ -91,7 +107,7 @@ export default function ScrollableTabs() {
       label: "Artists",
       content: (
         <>
-          <Typography variant="h4" color="primary" gutterBottom>
+          <Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
             Artists
           </Typography>
           <Stack spacing={3}>
@@ -121,122 +137,105 @@ export default function ScrollableTabs() {
     setValue(newValue);
   };
 
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   return (
-    <Modal
+    <Dialog
       open={open}
-      onClose={handleClose}
-      aria-labelledby="scrollable-tabs-modal"
-      sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+      onClose={onClose}
+      TransitionComponent={Transition}
+      fullScreen
+      PaperProps={{
+        sx: {
+          backgroundImage: `url(${greenBackground})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          overflow: 'auto',
+          position: 'relative'
+        }
       }}
     >
-      <Slide 
-        direction="up" 
-        in={open} 
-        mountOnEnter 
-        unmountOnExit
-        timeout={500}
-      >
-        <Paper 
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        mt: 3, 
+        px: 3 
+      }}>
+        <Box
+          component="img"
+          src={mainLogo}
+          alt="Main Logo"
           sx={{
-            width: '100%',
-            height: '100%',
-            bgcolor: 'transparent',
-            overflow: 'auto',
-            position: 'relative'
+            height: 50,
+            width: 'auto',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        />
+        <IconButton
+          color="inherit"
+          size="medium"
+          edge="end"
+          onClick={onClose}
+          sx={{ 
+            border: 1, 
+            borderColor: 'rgba(255, 255, 255, 0.5)',
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            mt: 10, 
-            px: 3 
-          }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Box sx={{ width: '100%', mt: 3, pb: 10 }}>
+        <Box>
+          <Tabs
+            value={value}
+            onChange={handleChange}
+            variant="scrollable"
+            scrollButtons={false}
+            aria-label="scrollable prevent tabs example"
+          >
+            {tabs.map((tab, index) => (
+              <Tab key={index} label={tab.label}/>
+            ))}
+          </Tabs>
+        </Box>
+        {tabs.map((tab, index) => (
+          <TabPanel key={index} value={value} index={index}>
+            {tab.content}
+          </TabPanel>
+        ))}
+      </Box>
+      <Box sx={{ position: 'fixed', bottom: 20, left: 0, right: 0, px: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+          <Stack direction="column" spacing={2}>
             <Box
               component="img"
-              src={mainLogo}
-              alt="Main Logo"
+              src={startsLogo}
+              alt="Starts Logo"
               sx={{
-                height: 50,
-                width: 'auto',
-                display: 'flex',
-                alignItems: 'center'
+                height: 20,
+                width: 'auto'
               }}
             />
-            <IconButton
-              color="primary"
-              size="medium"
-              edge="end"
-              onClick={handleClose}
-              sx={{ 
-                border: 1, 
-                borderColor: 'primary.main',
-                width: 40,
+            <Box
+              component="img"
+              src={europeanCommissionLogo}
+              alt="European Commission Logo"
+              sx={{
                 height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                width: 'auto'
               }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Box sx={{ width: '100%', mt: 1, pb: 10 }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs
-                value={value}
-                onChange={handleChange}
-                variant="scrollable"
-                scrollButtons={false}
-                aria-label="scrollable prevent tabs example"
-              >
-                {tabs.map((tab, index) => (
-                  <Tab key={index} label={tab.label} />
-                ))}
-              </Tabs>
-            </Box>
-            {tabs.map((tab, index) => (
-              <TabPanel key={index} value={value} index={index}>
-                {tab.content}
-              </TabPanel>
-            ))}
-          </Box>
-          <Box sx={{ position: 'fixed', bottom: 70, left: 0, right: 0, px: 2 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
-              <Stack direction="column" spacing={2}>
-                <Box
-                  component="img"
-                  src={startsLogo}
-                  alt="Starts Logo"
-                  sx={{
-                    height: 20,
-                    width: 'auto'
-                  }}
-                />
-                <Box
-                  component="img"
-                  src={europeanCommissionLogo}
-                  alt="European Commission Logo"
-                  sx={{
-                    height: 40,
-                    width: 'auto'
-                  }}
-                />
-              </Stack>
-              <Typography variant="body2" color="text.secondary">
-                PRIVACY POLICY
-              </Typography>
-            </Stack>
-          </Box>
-        </Paper>
-      </Slide>
-    </Modal>
+            />
+          </Stack>
+          <Typography variant="body2" color="text.secondary">
+            PRIVACY POLICY
+          </Typography>
+        </Stack>
+      </Box>
+    </Dialog>
   );
 } 

@@ -41,6 +41,35 @@ const baseTheme = {
 				})
 			},
 		},
+		MuiTypography: {
+			styleOverrides: {
+				root: {
+					'&.info-text-heading': {
+						fontStyle: 'italic',
+						fontWeight: 700
+					}
+				}
+			}
+		},
+		MuiTab: {
+			styleOverrides: {
+				root: ({ theme }: { theme: Theme }) => ({
+					minWidth: 'auto',
+					padding: `${theme.spacing(1.5)} 0`,
+					marginLeft: theme.spacing(3),
+					'&.Mui-selected': {
+						color: theme.palette.primary.main
+					}
+				})
+			}
+		},
+		MuiTabs: {
+			styleOverrides: {
+				indicator: {
+					display: 'flex'
+				}
+			}
+		}
 	},
 };
 
