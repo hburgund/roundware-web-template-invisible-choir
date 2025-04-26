@@ -3,7 +3,7 @@ import { useRoundware } from '@/hooks';
 import RoundwareMixerControl from '../RoundwareMixerControl';
 import infoIcon from '@/assets/icons/info_i_icon.svg';
 import { useState } from 'react';
-import ScrollableTabs from '@/components/ScrollableTabs';
+import InfoPopup from '@/components/InfoPopup';
 
 const MapControlIcons = () => {
   const { roundware } = useRoundware();
@@ -40,7 +40,7 @@ const MapControlIcons = () => {
           <RoundwareMixerControl />
         </Fab>
       </Stack>
-      <ScrollableTabs open={showTabs} onClose={handleCloseTabs} />
+      <InfoPopup open={showTabs} onClose={handleCloseTabs} />
     </Box>
   );
 };

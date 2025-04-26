@@ -1,70 +1,242 @@
-import { useRoundware } from '../hooks';
-import React, { Fragment, useState } from 'react';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import Typography from '@mui/material/Typography';
-import DialogActions from '@mui/material/DialogActions';
-import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
-import Link from '@mui/material/Link';
+import React, { useState } from 'react';
+import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import Slide from '@mui/material/Slide';
+import { TransitionProps } from '@mui/material/transitions';
+import startsLogo from '../assets/starts_logo.png';
+import europeanCommissionLogo from '../assets/european_commission_logo.png';
+import mainLogo from '../assets/main_logo.png';
+import greenBackground from '../assets/green_background.svg';
 
-const InfoPopup = () => {
-	const [open, setOpen] = useState(false);
+const Transition = React.forwardRef(function Transition(
+	props: TransitionProps & {
+		children: React.ReactElement<any, any>;
+	},
+	ref: React.Ref<unknown>,
+) {
+	return <Slide direction="up" ref={ref} {...props} />;
+});
 
-	const handleClickOpen = () => {
-		setOpen(true);
-	};
+interface TabPanelProps {
+	children?: React.ReactNode;
+	index: number;
+	value: number;
+}
 
-	const handleClose = () => {
-		setOpen(false);
+interface InfoPopupProps {
+	open: boolean;
+	onClose: () => void;
+}
+
+// Define the tab configuration type
+interface TabConfig {
+	label: string;
+	content: React.ReactNode;
+}
+
+function TabPanel(props: TabPanelProps) {
+	const { children, value, index, ...other } = props;
+
+	return (
+		<div
+			role="tabpanel"
+			hidden={value !== index}
+			id={`scrollable-tabpanel-${index}`}
+			aria-labelledby={`scrollable-tab-${index}`}
+			{...other}
+		>
+			{value === index && (
+				<Box sx={{ p: 3 }}>
+					{children}
+				</Box>
+			)}
+		</div>
+	);
+}
+
+const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
+	const [value, setValue] = useState(0);
+
+	// Define your tabs configuration here
+	const tabs: TabConfig[] = [
+		{
+			label: "About",
+			content: (
+				<>
+					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
+						About
+					</Typography>
+					<Typography variant="h6" color="primary" gutterBottom>
+						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.
+					</Typography>
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 8 }}>
+						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					</Typography>
+				</>
+			)
+		},
+		{
+			label: "Exhibitions",
+			content: (
+				<>
+					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
+						Exhibitions
+					</Typography>
+					<Stack spacing={2}>
+						<Box>
+							<Typography variant="subtitle1" color="primary" gutterBottom>
+								Lorem ipsum dolor
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="subtitle1" color="primary" gutterBottom>
+								Lorem ipsum dolor
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+							</Typography>
+						</Box>
+					</Stack>
+				</>
+			)
+		},
+		{
+			label: "Artists",
+			content: (
+				<>
+					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
+						Artists
+					</Typography>
+					<Stack spacing={3}>
+						<Box>
+							<Typography variant="subtitle1" color="primary">
+								Name Surname
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								Technical Director
+							</Typography>
+						</Box>
+						<Box>
+							<Typography variant="subtitle1" color="primary">
+								Name Surname
+							</Typography>
+							<Typography variant="body2" color="text.secondary">
+								Technical Artist
+							</Typography>
+						</Box>
+					</Stack>
+				</>
+			)
+		}
+	];
+
+	const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+		setValue(newValue);
 	};
 
 	return (
-		<div>
-			<Button onClick={handleClickOpen}>INFO</Button>
-			<Dialog open={open} onClose={handleClose} aria-labelledby='alert-dialog-title' aria-describedby='alert-dialog-description'>
-				<DialogTitle id='alert-dialog-title'>What is Roundware?</DialogTitle>
-				<DialogContent dividers>
-					<Typography variant={'h6'} gutterBottom>
-						Roundware is:
+		<Dialog
+			open={open}
+			onClose={onClose}
+			TransitionComponent={Transition}
+			fullScreen
+			PaperProps={{
+				sx: {
+					backgroundImage: `url(${greenBackground})`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					overflow: 'auto',
+					position: 'relative'
+				}
+			}}
+		>
+			<Box sx={{ 
+				display: 'flex', 
+				justifyContent: 'space-between', 
+				alignItems: 'center',
+				mt: 3, 
+				px: 3 
+			}}>
+				<Box
+					component="img"
+					src={mainLogo}
+					alt="Main Logo"
+					sx={{
+						height: 50,
+						width: 'auto',
+						display: 'flex',
+						alignItems: 'center'
+					}}
+				/>
+				<IconButton
+					color="inherit"
+					size="medium"
+					edge="end"
+					onClick={onClose}
+					sx={{ 
+						border: 1, 
+						borderColor: 'rgba(255, 255, 255, 0.5)',
+						width: 40,
+						height: 40,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center'
+					}}
+				>
+					<CloseIcon />
+				</IconButton>
+			</Box>
+			<Box sx={{ width: '100%', mt: 3, pb: 10 }}>
+				<Box>
+					<Tabs
+						value={value}
+						onChange={handleChange}
+						variant="scrollable"
+						scrollButtons={false}
+						aria-label="scrollable prevent tabs example"
+					>
+						{tabs.map((tab, index) => (
+							<Tab key={index} label={tab.label}/>
+						))}
+					</Tabs>
+				</Box>
+				{tabs.map((tab, index) => (
+					<TabPanel key={index} value={value} index={index}>
+						{tab.content}
+					</TabPanel>
+				))}
+			</Box>
+			<Box sx={{ position: 'fixed', bottom: 20, left: 0, right: 0, px: 3 }}>
+				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+					<Stack direction="column" spacing={2}>
+						<Box
+							component="img"
+							src={startsLogo}
+							alt="Starts Logo"
+							sx={{
+								height: 20,
+								width: 'auto'
+							}}
+						/>
+						<Box
+							component="img"
+							src={europeanCommissionLogo}
+							alt="European Commission Logo"
+							sx={{
+								height: 40,
+								width: 'auto'
+							}}
+						/>
+					</Stack>
+					<Typography variant="body2" color="text.secondary">
+						PRIVACY POLICY
 					</Typography>
-					<Typography gutterBottom>an open, flexible, distributed framework which collects, stores, organizes and re-presents audio content.</Typography>
-					<Typography gutterBottom>It lets you collect audio from anyone with a smartphone or web access, upload it to a central repository along with its metadata and then filter it and play it back collectively in continuous audio streams.</Typography>
-					<Divider />
-					<Typography variant={'h6'} gutterBottom>
-						<br />
-						With Roundware, you can:
-					</Typography>
-					<ul>
-						<li>create a seamless, non-linear, location-sensitive layer of audio in any geographic space mixed on the fly based on participant input</li>
-						<li>collect audio from participants in real-time via iOS, Android and web-based devices</li>
-						<li>tag collected audio with location and project-based metadata for filtering</li>
-					</ul>
-					<Divider />
-					<Typography variant={'h6'} gutterBottom>
-						<br />
-						Join the fun...
-					</Typography>
-					<Typography gutterBottom>Roundware is an actively-developed open-source project and is free for anyone to use. It was initially developed for sound art installations, but has since been used for innovative museum audio tours as well as other educational purposes.</Typography>
-					<Typography gutterBottom>
-						You can check out codebases for the server and various frameworks on our&nbsp;
-						<Link href='https://github.com/roundware'>GitHub page</Link>.
-					</Typography>
-
-					{/*<a href="./listen">
-            <img id="map" src={assetMapGraphic} style={{width: "100%"}} />
-          </a>
-          <hr />*/}
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleClose} color='secondary' autoFocus>
-						Close
-					</Button>
-				</DialogActions>
-			</Dialog>
-		</div>
+				</Stack>
+			</Box>
+		</Dialog>
 	);
 };
 
