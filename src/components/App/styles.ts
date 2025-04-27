@@ -1,7 +1,7 @@
 import { makeStyles } from '@mui/styles';
 import config from '@/config';
 import { defaultTheme } from '../../styles';
-import landingHeaderImage from '../../assets/bg-about.jpg';
+import landingHeaderImage from '../../assets/bg-about.svg';
 
 const useStyles = makeStyles(() => {
 	return {
@@ -24,7 +24,7 @@ const useStyles = makeStyles(() => {
 		appContainer: {
 			display: 'flex',
 			flexGrow: 1,
-			backgroundImage: `linear-gradient(180deg, #000000bb, #ffffff00), url(${landingHeaderImage})`,
+			backgroundImage: `url(${landingHeaderImage})`,
 			backgroundSize: 'cover',
 			backgroundPosition: 'center',
 			backgroundAttachment: 'fixed',
