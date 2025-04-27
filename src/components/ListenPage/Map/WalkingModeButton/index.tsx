@@ -1,8 +1,8 @@
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import MapIcon from '@mui/icons-material/Map';
-import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useMediaQuery } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useMediaQuery, Fab } from '@mui/material';
 import Button from '@mui/material/Button';
-import { makeStyles, useTheme } from '@mui/styles';
+import { useTheme } from '@mui/styles';
 import { useGoogleMap } from '@react-google-maps/api';
 import clsx from 'clsx';
 import PermissionDeniedDialog from '@/components/elements/PermissionDeniedDialog';
@@ -15,24 +15,6 @@ import { useRoundware } from '../../../../hooks';
 import messages from '../../../../locales/en_US.json';
 import ListenerLocationMarker from './ListenerLocationMarker';
 
-const useStyles = makeStyles((theme) => {
-	return {
-		walkingModeButton: {
-			position: 'fixed',
-			zIndex: 100,
-			left: 20,
-			bottom: 68,
-			backgroundColor: '#cccccc',
-			'&:hover': {
-				backgroundColor: '#aaaaaa',
-			},
-		},
-		hidden: {
-			display: 'none',
-		},
-	};
-});
-
 const walkingModeButton = () => {
 	const { roundware, forceUpdate, geoListenMode, setGeoListenMode } = useRoundware();
 
@@ -40,7 +22,6 @@ const walkingModeButton = () => {
 	const [busy, setBusy] = useState(false);
 	const map = useGoogleMap();
 	const { params, deleteFromURL } = useURLSync();
-	const classes = useStyles();
 
 	const loc = roundware.listenerLocation;
 	const lat = loc && loc.latitude;
@@ -252,9 +233,15 @@ const walkingModeButton = () => {
 					<Button onClick={() => setWalkingModeStatus('')}>OK</Button>
 				</DialogActions>
 			</Dialog>
-			<Button title={geoListenMode == GeoListenMode.AUTOMATIC ? `Enter Map Mode` : `Enter Walking Mode`} className={clsx(classes.walkingModeButton, displayListenModeButton ? null : classes.hidden)} color='primary' disabled={busy} onClick={toggleWalkingMode}>
-				{geoListenMode === GeoListenMode.AUTOMATIC ? <MapIcon fontSize='large' /> : <DirectionsWalkIcon fontSize='large' />}
-			</Button>
+			<Fab 
+				title={geoListenMode == GeoListenMode.AUTOMATIC ? `Enter Map Mode` : `Enter Walking Mode`} 
+				className={clsx("map-button", displayListenModeButton ? null : "hidden")} 
+				color="secondary"
+				disabled={busy} 
+				onClick={toggleWalkingMode}
+			>
+				{geoListenMode === GeoListenMode.AUTOMATIC ? <MapIcon /> : <DirectionsWalkIcon />}
+			</Fab>
 			{geoListenMode === GeoListenMode.AUTOMATIC ? <ListenerLocationMarker /> : null}
 		</div>
 	);

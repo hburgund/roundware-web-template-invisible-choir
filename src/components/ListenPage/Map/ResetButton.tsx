@@ -1,6 +1,6 @@
 import config from '@/config';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
-import Button from '@mui/material/Button';
+import Fab from '@mui/material/Fab';
 import { useGoogleMap } from '@react-google-maps/api';
 
 import { useRoundware } from '@/hooks';
@@ -15,25 +15,17 @@ const ResetButton = ({ updateLocation }: Props) => {
 	const { roundware, geoListenMode } = useRoundware();
 	if (geoListenMode != GeoListenMode.MANUAL) return null;
 	return (
-		<Button
+		<Fab
 			onClick={() => {
 				if (!map) return;
 				map.setZoom(config.map.zoom.low);
 				updateLocation(roundware.project.location);
 			}}
-			sx={{
-				position: 'fixed',
-				zIndex: 100,
-				right: 20,
-				bottom: 68,
-				backgroundColor: '#cccccc',
-				'&:hover': {
-					backgroundColor: '#aaaaaa',
-				},
-			}}
+			color="secondary"
+			className="reset-button"
 		>
-			<ZoomOutMapIcon fontSize='large' />
-		</Button>
+			<ZoomOutMapIcon />
+		</Fab>
 	);
 };
 

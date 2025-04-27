@@ -113,6 +113,33 @@ const baseTheme = {
 					display: 'flex'
 				}
 			}
+		},
+		MuiFab: {
+			styleOverrides: {
+				root: {
+					'&.reset-button': {
+						position: 'fixed',
+						zIndex: 100,
+						right: 20,
+						bottom: 68,
+						'&:hover': {
+							backgroundColor: 'secondary.dark',
+						},
+					},
+					'&.map-button': {
+						position: 'fixed',
+						zIndex: 100,
+						left: 20,
+						bottom: 68,
+						'&:hover': {
+							backgroundColor: 'secondary.dark',
+						},
+						'&.hidden': {
+							display: 'none',
+						},
+					}
+				}
+			}
 		}
 	},
 };
