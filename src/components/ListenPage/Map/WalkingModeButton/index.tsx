@@ -217,7 +217,12 @@ const walkingModeButton = () => {
 
 	return (
 		<div>
-			<Dialog open={walkingModeStatus === 'locating'}>
+			<Dialog 
+				open={walkingModeStatus === 'locating'} 
+				classes={{
+					paper: 'location-permission-dialog'
+				}}
+			>
 				<DialogTitle>Invisible Choir needs access</DialogTitle>
 				<DialogContent>
 					<DialogContentText>
@@ -230,7 +235,7 @@ const walkingModeButton = () => {
 						setWalkingModeErrorMessage(messages.errors.permissionDenied);
 						enterMapMode();
 					}}>Block</Button>
-					<Button variant="outlined" onClick={() => {
+					<Button variant="contained" onClick={() => {
 						requestLocationPermission();
 					}}>Allow</Button>
 				</DialogActions>

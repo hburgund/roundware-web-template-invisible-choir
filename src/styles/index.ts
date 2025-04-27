@@ -9,12 +9,56 @@ declare module '@mui/material/Button' {
 	}
 }
 
+const black = '#000000';
+const white = '#ffffff';
+
 // Base theme with common settings
 const baseTheme = {
 	typography: {
 		fontFamily: 'Inria Sans, sans-serif',
 	},
 	components: {
+		MuiDialog: {
+			styleOverrides: {
+				paper: ({ theme }: { theme: Theme }) => ({
+					backgroundColor: white,
+					'& .MuiDialogTitle-root': {
+						color: black,
+						fontWeight: 'bold'
+					},
+					'& .MuiDialogContentText-root': {
+						color: black
+					},
+					'& .MuiDialogContent-root': {
+						paddingBottom: 0
+					},
+					'& .MuiDialogActions-root': {
+						justifyContent: 'flex-end',
+						'& .MuiButton-outlined': {
+							borderColor: black,
+							color: black,
+							padding: `${theme.spacing(1)} ${theme.spacing(2.5)}`,
+							borderRadius: 0,
+							textTransform: 'none',
+							marginRight: theme.spacing(1),
+							marginBottom: theme.spacing(2)
+						},
+						'& .MuiButton-contained': {
+							backgroundColor: black,
+							color: white,
+							padding: `${theme.spacing(1)} ${theme.spacing(2.5)}`,
+							borderRadius: 0,
+							textTransform: 'none',
+							marginRight: theme.spacing(2),
+							marginBottom: theme.spacing(2)
+						}
+					},
+					'&.location-permission-dialog': {
+						borderRadius: 20
+					}
+				})
+			}
+		},
 		MuiButton: {
 			styleOverrides: {
 				textPrimary: {
