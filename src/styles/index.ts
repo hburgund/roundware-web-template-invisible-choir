@@ -91,6 +91,15 @@ const baseTheme = {
 					'&.info-text-heading': {
 						fontStyle: 'italic',
 						fontWeight: 700
+					},
+					'&.joinChoirTitle': {
+						fontSize: '48px !important',
+						textTransform: 'none',
+					},
+					'&.joinChoirText': {
+						fontSize: '15px !important',
+						textAlign: 'center',
+						whiteSpace: 'pre-line',
 					}
 				}
 			}

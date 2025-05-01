@@ -11,6 +11,7 @@ import {
 import { Fade } from "@mui/material";
 import { useState } from "react";
 import JoinChoirBackground from "./JoinChoirBackground";
+import JoinChoirSteps from "./JoinChoirSteps";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -65,26 +66,7 @@ const JoinChoir = ({
           />
 
           <Fab size="large" color="secondary" sx={{ width: 350, height: 350 }}>
-            <Stack alignItems="center" spacing={4}>
-              <Stack alignItems="center" spacing={1}>
-                <Typography variant="button" fontSize={45} sx={{ textTransform: 'none'}}>Join Choir</Typography>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  justifyContent="center"
-                  alignItems="center"
-                >
-                  <Box sx={{ width: 55, height: 2, bgcolor: "primary.main" }} />
-                  <Box sx={{ width: 55, height: 2, bgcolor: "grey.500" }} />
-                  <Box sx={{ width: 55, height: 2, bgcolor: "grey.500" }} />
-                </Stack>
-              </Stack>
-              <Typography variant="body2" fontSize={14}>
-                Rehearse your
-                <br />
-                singing to the loop
-              </Typography>
-            </Stack>
+            <JoinChoirSteps />
           </Fab>
         </Box>
         <Stack direction="row" alignItems="center" sx={{ mt: 4, p: 4}}>
