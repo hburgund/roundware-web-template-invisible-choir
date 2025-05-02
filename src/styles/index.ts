@@ -81,6 +81,13 @@ const baseTheme = {
 						paddingRight: theme.spacing(2),
 						paddingY: theme.spacing(0.5),
 						borderRadius: theme.spacing(1.5)
+					},
+					'&.MuiButton-microphone': {
+						marginTop: 0,
+						paddingLeft: theme.spacing(3.5),
+						paddingRight: theme.spacing(3.5),
+						paddingY: theme.spacing(0),
+						borderRadius: theme.spacing(2)
 					}
 				})
 			},
