@@ -1,4 +1,4 @@
-import { Feature, multiPolygon, Polygon } from "@turf/helpers";
+import { Feature, MultiPolygon, multiPolygon, Polygon } from "@turf/helpers";
 import { circle, buffer } from "@turf/turf";
 import finalConfig from "@/config";
 import { useRoundware, useRoundwareDraft } from "@/hooks/index";
@@ -8,6 +8,7 @@ import { useHistory } from "react-router";
 import { IAssetData } from "roundware-web-framework";
 import { ITag } from "roundware-web-framework";
 import { ISpeakerData } from "roundware-web-framework";
+import { generateBeechLeafShape } from "@/utils/speakerShapes";
 
 // hook to handle saving of the recording to server
 export const useSubmission = ({
@@ -95,11 +96,26 @@ export const useSubmission = ({
         setStatus("error");
       }
     } else {
-      const speakerShape = multiPolygon([
-        circle([location.lng, location.lat], 10, {
-          units: "meters",
-        }).geometry.coordinates,
-      ]);
+      let speakerShape: Feature<MultiPolygon> | null = null;
+
+      if (finalConfig.speak.speakerShape === "circle") {
+        speakerShape = multiPolygon([
+          circle([location.lng, location.lat], 10, {
+            units: "meters",
+          }).geometry.coordinates,
+        ]);
+      } else if (finalConfig.speak.speakerShape === "beechLeaf") {
+        speakerShape = generateBeechLeafShape(location, {
+          minSize: 10,
+          maxSize: 30,
+        });
+      }
+
+      if (!speakerShape) {
+        throw new Error(
+          "Speaker shape is not defined. Please check the config."
+        );
+      }
 
       const formData = new FormData();
       formData.append("activeyn", "true");
