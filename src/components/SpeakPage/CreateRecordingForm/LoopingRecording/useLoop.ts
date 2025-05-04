@@ -117,6 +117,10 @@ export const useLoop = () => {
           throw new Error("speakerSource.current is null");
         }
         speakerSource.current.start();
+        console.log({
+          speakerDuration: speakerAudioBuffer.current.duration,
+          recordedDuration: buffer.duration,
+        });
         startedAtTime.current = Date.now();
         setMode("recording-playback");
       });

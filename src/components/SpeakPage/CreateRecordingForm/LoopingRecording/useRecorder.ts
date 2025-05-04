@@ -83,6 +83,7 @@ export const useRecorder = ({
     }, 1000);
   };
 
+  const isStopped = useRef(false);
   const startRecording = async () => {
     try {
       setRecordedAudioBlob(null);
@@ -100,11 +101,10 @@ export const useRecorder = ({
 
       mediaRecorder.current.ondataavailable = async (event) => {
         if (audioChunk.current) return;
+        if (isStopped.current) return;
         stopRecording();
 
         audioChunk.current = event.data;
-
-        console.log("Speaker Duration:", duration);
 
         const audioBuffer = await loop.audioContext.current.decodeAudioData(
           await new Blob([event.data], { type: "audio/wav" }).arrayBuffer()
@@ -112,6 +112,9 @@ export const useRecorder = ({
 
         if (!audioBuffer || !duration)
           throw new Error("Something went wrong while decoding audio data");
+
+        console.log("Speaker Duration:", duration);
+        console.log("Recorded Duration:", audioBuffer.duration);
 
         let adjustedBuffer = audioBuffer;
 
@@ -125,6 +128,14 @@ export const useRecorder = ({
             loop.audioContext.current
           );
           console.log("Trimmed audio buffer:", adjustedBuffer);
+          isStopped.current = true;
+        } else {
+          console.debug(
+            "Audio buffer is too short than original speaker duration. PC might be too fast!",
+            audioBuffer.duration
+          );
+
+          return;
         }
 
         const audioBlob = createBlobFromAudioBuffer(adjustedBuffer);
@@ -151,10 +162,10 @@ export const useRecorder = ({
 
       loop.stop();
 
-      console.log("Will be reocording for:", duration);
-      mediaRecorder.current.start(
-        duration ? (duration + 0.001) * 1000 : undefined
-      );
+      // extra 500ms for any other processing!
+      const totalDuration = duration ? duration * 1000 + 500 : undefined;
+
+      mediaRecorder.current.start(totalDuration);
     } catch (error) {
       console.error("Error starting recording:", error);
       setIsPermissionDenied(true);
