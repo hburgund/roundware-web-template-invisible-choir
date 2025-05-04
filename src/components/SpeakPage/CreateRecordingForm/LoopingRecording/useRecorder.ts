@@ -164,7 +164,7 @@ export const useRecorder = ({
 
       // extra 500ms for any other processing!
       const totalDuration = duration ? duration * 1000 + 500 : undefined;
-
+      isStopped.current = false;
       mediaRecorder.current.start(totalDuration);
     } catch (error) {
       console.error("Error starting recording:", error);
