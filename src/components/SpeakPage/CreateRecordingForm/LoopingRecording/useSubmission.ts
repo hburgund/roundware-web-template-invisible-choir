@@ -1,5 +1,6 @@
 import { Feature, MultiPolygon, multiPolygon, Polygon } from "@turf/helpers";
-import { circle, buffer } from "@turf/turf";
+import { circle } from "@turf/turf";
+import transformScale from "@turf/transform-scale";
 import finalConfig from "@/config";
 import { useRoundware, useRoundwareDraft } from "@/hooks/index";
 import moment from "moment";
@@ -148,17 +149,17 @@ export const useSubmission = ({
             baseSpeakers.map(async (s) => {
               if (!s.shape) return;
               // Ensure closestSpeaker.shape is defined and valid
-              const expandedShape = buffer(s.shape, 10, {
-                units: "meters",
-              }) as Feature<Polygon>;
+              const expandedShape = transformScale(
+                { type: "Feature", geometry: s.shape, properties: {} },
+                finalConfig.speak.speakerShapeScale
+              ) as Feature<MultiPolygon>;
 
               if (expandedShape) {
                 // Patch the closest speaker's shape
                 const patchResponse = await roundware.apiClient.patch(
                   `/speakers/${s.id}/`,
                   {
-                    shape: multiPolygon([expandedShape.geometry.coordinates])
-                      .geometry,
+                    shape: expandedShape.geometry,
                   }
                 );
 

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shape Transform Demo</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      #map {
+        height: 100vh;
+      }
+      .controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+      button {
+        margin: 5px;
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="controls">
+      <button id="expandBtn">Expand Shape</button>
+      <select id="shapeSelect">
+        <option value="beechLeaf">Beech Leaf</option>
+        <option value="square">Square</option>
+      </select>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script>
+      // Helper functions for coordinate conversion
+      const metersToLatDegrees = (meters) => meters / 111320;
+      const metersToLngDegrees = (meters, lat) =>
+        meters / (111320 * Math.cos((lat * Math.PI) / 180));
+      const getRandomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      // Beech leaf shape generator
+      function generateBeechLeafShape(centerLocation, options = {}) {
+        const { minSize = 10, maxSize = 30 } = options;
+        const centerLat = centerLocation.lat;
+        const centerLng = centerLocation.lng;
+        const scale = getRandomInRange(minSize, maxSize);
+        const rotation = getRandomInRange(0, Math.PI * 2);
+
+        const basePoints = [
+          { x: 0, y: -1 },
+          { x: 0.1, y: -0.95 },
+          { x: 0.2, y: -0.85 },
+          { x: 0.3, y: -0.7 },
+          { x: 0.4, y: -0.5 },
+          { x: 0.5, y: -0.25 },
+          { x: 0.55, y: 0 },
+          { x: 0.5, y: 0.25 },
+          { x: 0.4, y: 0.5 },
+          { x: 0.25, y: 0.75 },
+          { x: 0, y: 1 },
+          { x: -0.25, y: 0.75 },
+          { x: -0.4, y: 0.5 },
+          { x: -0.5, y: 0.25 },
+          { x: -0.55, y: 0 },
+          { x: -0.5, y: -0.25 },
+          { x: -0.4, y: -0.5 },
+          { x: -0.3, y: -0.7 },
+          { x: -0.2, y: -0.85 },
+          { x: -0.1, y: -0.95 },
+        ];
+
+        const coordinates = basePoints.map((point) => {
+          const randomX = point.x + getRandomInRange(-0.05, 0.05);
+          const randomY = point.y + getRandomInRange(-0.05, 0.05);
+          const rotatedX =
+            randomX * Math.cos(rotation) - randomY * Math.sin(rotation);
+          const rotatedY =
+            randomX * Math.sin(rotation) + randomY * Math.cos(rotation);
+          const latOffset = metersToLatDegrees(rotatedY * scale);
+          const lngOffset = metersToLngDegrees(rotatedX * scale, centerLat);
+          return [centerLng + lngOffset, centerLat + latOffset];
+        });
+
+        coordinates.push(coordinates[0]);
+        return turf.polygon([coordinates]);
+      }
+
+      // Initialize map
+      const map = L.map("map").setView([40.7683, -73.981], 17);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      let currentShape;
+      let originalShape;
+      let scaleFactor = 1;
+
+      // Function to create shape based on selection
+      function createShape(type) {
+        const center = { lat: 40.7683, lng: -73.981 };
+
+        switch (type) {
+          case "square":
+            return turf.polygon([
+              [
+                [-73.9814, 40.7681],
+                [-73.9814, 40.7685],
+                [-73.9809, 40.7685],
+                [-73.9809, 40.7681],
+                [-73.9814, 40.7681],
+              ],
+            ]);
+          case "beechLeaf":
+            return generateBeechLeafShape(center);
+          default:
+            return null;
+        }
+      }
+
+      // Function to update the map with current shape
+      function updateMap() {
+        map.eachLayer((layer) => {
+          if (layer instanceof L.GeoJSON) {
+            map.removeLayer(layer);
+          }
+        });
+
+        if (currentShape) {
+          L.geoJSON(currentShape, { style: { color: "red" } }).addTo(map);
+        }
+        if (originalShape) {
+          L.geoJSON(originalShape, { style: { color: "blue" } }).addTo(map);
+        }
+      }
+
+      // Event listeners
+      document.getElementById("shapeSelect").addEventListener("change", (e) => {
+        originalShape = createShape(e.target.value);
+        currentShape = originalShape;
+        scaleFactor = 1;
+        updateMap();
+      });
+
+      document.getElementById("expandBtn").addEventListener("click", () => {
+        if (currentShape) {
+          scaleFactor += 0.2;
+          currentShape = turf.transformScale(originalShape, scaleFactor);
+          updateMap();
+        }
+      });
+
+      // Initialize with default shape
+      originalShape = createShape("beechLeaf");
+      currentShape = originalShape;
+      updateMap();
+    </script>
+  </body>
+</html>

@@ -74,6 +74,8 @@ export type IConfig = {
     baseRecordingLoopSelectionMethod: "all" | "oldest";
     /** speaker shape */
     speakerShape: "circle" | "beechLeaf";
+    /** scale factor for expanding speaker shapes */
+    speakerShapeScale: number;
   };
   /** config for map */
   map: {
