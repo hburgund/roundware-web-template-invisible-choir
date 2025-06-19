@@ -1,5 +1,5 @@
 import { Card, CardContent, Fade, Link, Paper, Stack, ThemeProvider, Typography } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { lightTheme } from '@/styles';
 import OpenInNew from '@mui/icons-material/OpenInNew';
 import playbackInfo from '../../playbackInfo.json';
@@ -21,9 +21,22 @@ const PlaybackInfoOverlay = () => {
 
 	const { roundware } = useRoundware();
 
-	const [timeouts, setTimeouts] = useState<NodeJS.Timer[]>([]);
+	const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+	// Cleanup function to clear all timeouts
+	const clearAllTimeouts = () => {
+		timeoutsRef.current.forEach((timeout) => {
+			if (timeout) {
+				clearTimeout(timeout);
+			}
+		});
+		timeoutsRef.current = [];
+	};
 
 	useEffect(() => {
+		// Clear any existing timeouts when the effect runs
+		clearAllTimeouts();
+
 		if (roundware.mixer.playing) {
 			const elapsedTimeMs = roundware.mixer.playlist?.elapsedTimeMs;
 			if (typeof elapsedTimeMs !== 'number') return;
@@ -36,38 +49,38 @@ const PlaybackInfoOverlay = () => {
 				if (elapsedSeconds >= info.startTime && elapsedSeconds <= info.stopTime) {
 					setDisplayPlaybackInfo(info);
 
-					setTimeout(
+					const hideTimeout = setTimeout(
 						() => {
 							setDisplayPlaybackInfo(null);
 						},
 						// remaining time
 						(info.stopTime - elapsedSeconds) * 1000
 					);
+					timeoutsRef.current.push(hideTimeout);
 
 					// if the elapsed time is before the start time, schedule the display
 				} else if (elapsedSeconds < info.startTime) {
-					const timeout = setTimeout(() => {
+					const showTimeout = setTimeout(() => {
 						setDisplayPlaybackInfo(info);
-						setTimeout(() => {
+						const hideTimeout = setTimeout(() => {
 							setDisplayPlaybackInfo(null);
 						}, (info.stopTime - info.startTime) * 1000);
+						timeoutsRef.current.push(hideTimeout);
 					}, (info.startTime - elapsedSeconds) * 1000);
 
-					setTimeouts([...timeouts, timeout]);
+					timeoutsRef.current.push(showTimeout);
 				}
 			});
-		} else {
-			// cancel the intervals
-			timeouts.forEach(
-				(timeout) =>
-					timeout &&
-					clearTimeout(
-						// @ts-ignore
-						timeout
-					)
-			);
 		}
+
+		// Cleanup function that runs when dependencies change or component unmounts
+		return clearAllTimeouts;
 	}, [roundware.mixer.playing]);
+
+	// Additional cleanup on unmount
+	useEffect(() => {
+		return clearAllTimeouts;
+	}, []);
 
 	return (
 		<CustomMapControl position={google.maps.ControlPosition.TOP_CENTER}>
