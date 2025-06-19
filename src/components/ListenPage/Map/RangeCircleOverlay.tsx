@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => {
 			height: 500,
 			margin: 'auto',
 			borderWidth: 2,
-			borderColor: '#159095',
+			borderColor: '#042F2E',
 			borderStyle: 'solid',
 			position: 'relative',
 			top: '50%',

@@ -1,8 +1,8 @@
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import MapIcon from '@mui/icons-material/Map';
-import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useMediaQuery } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useMediaQuery, Fab } from '@mui/material';
 import Button from '@mui/material/Button';
-import { makeStyles, useTheme } from '@mui/styles';
+import { useTheme } from '@mui/styles';
 import { useGoogleMap } from '@react-google-maps/api';
 import clsx from 'clsx';
 import PermissionDeniedDialog from '@/components/elements/PermissionDeniedDialog';
@@ -14,24 +14,6 @@ import { GeoListenMode } from 'roundware-web-framework/dist/index';
 import { useRoundware } from '../../../../hooks';
 import messages from '../../../../locales/en_US.json';
 import ListenerLocationMarker from './ListenerLocationMarker';
-import LoadingOverlay from './LoadingOverlay';
-const useStyles = makeStyles((theme) => {
-	return {
-		walkingModeButton: {
-			position: 'fixed',
-			zIndex: 100,
-			left: 20,
-			bottom: 68,
-			backgroundColor: '#cccccc',
-			'&:hover': {
-				backgroundColor: '#aaaaaa',
-			},
-		},
-		hidden: {
-			display: 'none',
-		},
-	};
-});
 
 const walkingModeButton = () => {
 	const { roundware, forceUpdate, geoListenMode, setGeoListenMode } = useRoundware();
@@ -40,7 +22,6 @@ const walkingModeButton = () => {
 	const [busy, setBusy] = useState(false);
 	const map = useGoogleMap();
 	const { params, deleteFromURL } = useURLSync();
-	const classes = useStyles();
 
 	const loc = roundware.listenerLocation;
 	const lat = loc && loc.latitude;
@@ -131,71 +112,73 @@ const walkingModeButton = () => {
 			enterMapMode();
 		} else {
 			// geo location supported
-			// enable from roundware.geoPosition
 			setWalkingModeStatus('locating');
-			try {
-				// will ask for permission
-				roundware.geoPosition.enable();
+		}
+	};
 
-				// wait for user location
-				const location = await roundware.geoPosition.waitForInitialGeolocation();
+	const requestLocationPermission = async () => {
+		try {
+			// will ask for permission
+			roundware.geoPosition.enable();
 
-				// not need to check if user location is within bounds
-				if (config.map.bounds == 'none') {
-					setWalkingModeStatus('eligible');
-					enableWalkingMode();
-					return;
-				}
+			// wait for user location
+			const location = await roundware.geoPosition.waitForInitialGeolocation();
 
-				// need to ensure user is within map bounds
-				const userlatlng = new google.maps.LatLng(location.latitude!, location.longitude!);
+			// not need to check if user location is within bounds
+			if (config.map.bounds == 'none') {
+				setWalkingModeStatus('eligible');
+				enableWalkingMode();
+				return;
+			}
 
-				let bounds: google.maps.LatLngBounds;
+			// need to ensure user is within map bounds
+			const userlatlng = new google.maps.LatLng(location.latitude!, location.longitude!);
 
-				if (config.map.bounds == 'auto') {
-					const {
-						southwest: { latitude: swLat, longitude: swLng },
-						northeast: { latitude: neLat, longitude: neLng },
-					} = roundware.getMapBounds();
+			let bounds: google.maps.LatLngBounds;
 
-					bounds = new google.maps.LatLngBounds({ lat: swLat!, lng: swLng! }, { lat: neLat!, lng: neLng! });
-				} else {
-					const { swLat, swLng, neLat, neLng } = config.map.boundsPoints;
-					bounds = new google.maps.LatLngBounds({ lat: swLat!, lng: swLng! }, { lat: neLat!, lng: neLng! });
-				}
-				// within map bounds
-				if (!bounds || bounds.contains(userlatlng)) {
-					setWalkingModeStatus('eligible');
-					enableWalkingMode();
-				} else {
-					// not within map bounds
-					setWalkingModeStatus('error');
-					setWalkingModeErrorMessage(messages.errors.outOfRange);
-					enterMapMode();
-				}
-			} catch (e: any) {
-				// switch to map mode in case error
+			if (config.map.bounds == 'auto') {
+				const {
+					southwest: { latitude: swLat, longitude: swLng },
+					northeast: { latitude: neLat, longitude: neLng },
+				} = roundware.getMapBounds();
+
+				bounds = new google.maps.LatLngBounds({ lat: swLat!, lng: swLng! }, { lat: neLat!, lng: neLng! });
+			} else {
+				const { swLat, swLng, neLat, neLng } = config.map.boundsPoints;
+				bounds = new google.maps.LatLngBounds({ lat: swLat!, lng: swLng! }, { lat: neLat!, lng: neLng! });
+			}
+			// within map bounds
+			if (!bounds || bounds.contains(userlatlng)) {
+				setWalkingModeStatus('eligible');
+				enableWalkingMode();
+			} else {
+				// not within map bounds
 				setWalkingModeStatus('error');
-				// @see https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError
-				switch (e?.code) {
-					case 1:
-						// permission denied
-						setWalkingModeErrorMessage(messages.errors.permissionDenied);
-						break;
-
-					case 3:
-						setWalkingModeErrorMessage(messages.errors.timeOut);
-						break;
-					case 2:
-					// position unavailable
-					default:
-						console.error(e);
-						setWalkingModeErrorMessage(messages.errors.failedToDetermineLocation);
-						break;
-				}
-
+				setWalkingModeErrorMessage(messages.errors.outOfRange);
 				enterMapMode();
 			}
+		} catch (e: any) {
+			// switch to map mode in case error
+			setWalkingModeStatus('error');
+			// @see https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError
+			switch (e?.code) {
+				case 1:
+					// permission denied
+					setWalkingModeErrorMessage(messages.errors.permissionDenied);
+					break;
+
+				case 3:
+					setWalkingModeErrorMessage(messages.errors.timeOut);
+					break;
+				case 2:
+				// position unavailable
+				default:
+					console.error(e);
+					setWalkingModeErrorMessage(messages.errors.failedToDetermineLocation);
+					break;
+			}
+
+			enterMapMode();
 		}
 	};
 
@@ -215,7 +198,29 @@ const walkingModeButton = () => {
 
 	return (
 		<div>
-			<LoadingOverlay open={walkingModeStatus === 'locating'} message={'Locating... \nPlease allow location permissions.'} />
+			<Dialog 
+				open={walkingModeStatus === 'locating'} 
+				classes={{
+					paper: 'location-permission-dialog'
+				}}
+			>
+				<DialogTitle>Invisible Choir needs access</DialogTitle>
+				<DialogContent>
+					<DialogContentText>
+						Enabling location is necessary to participate fully in the artwork experience. Your location data won't be saved or shared.
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions>
+					<Button variant="outlined" onClick={() => {
+						setWalkingModeStatus('error');
+						setWalkingModeErrorMessage(messages.errors.permissionDenied);
+						enterMapMode();
+					}}>Block</Button>
+					<Button variant="contained" onClick={() => {
+						requestLocationPermission();
+					}}>Allow</Button>
+				</DialogActions>
+			</Dialog>
 
 			{/* permission denied dialog */}
 			<PermissionDeniedDialog open={walkingModeStatus === 'error' && isEqual(walkingModeErrorMessage, messages.errors.permissionDenied)} onClose={() => setWalkingModeStatus('')} functionality={'location'} />
@@ -228,9 +233,15 @@ const walkingModeButton = () => {
 					<Button onClick={() => setWalkingModeStatus('')}>OK</Button>
 				</DialogActions>
 			</Dialog>
-			<Button title={geoListenMode == GeoListenMode.AUTOMATIC ? `Enter Map Mode` : `Enter Walking Mode`} className={clsx(classes.walkingModeButton, displayListenModeButton ? null : classes.hidden)} color='primary' disabled={busy} onClick={toggleWalkingMode}>
-				{geoListenMode === GeoListenMode.AUTOMATIC ? <MapIcon fontSize='large' /> : <DirectionsWalkIcon fontSize='large' />}
-			</Button>
+			<Fab 
+				title={geoListenMode == GeoListenMode.AUTOMATIC ? `Enter Map Mode` : `Enter Walking Mode`} 
+				className={clsx("map-button", displayListenModeButton ? null : "hidden")} 
+				color="secondary"
+				disabled={busy} 
+				onClick={toggleWalkingMode}
+			>
+				{geoListenMode === GeoListenMode.AUTOMATIC ? <MapIcon /> : <DirectionsWalkIcon />}
+			</Fab>
 			{geoListenMode === GeoListenMode.AUTOMATIC ? <ListenerLocationMarker /> : null}
 		</div>
 	);

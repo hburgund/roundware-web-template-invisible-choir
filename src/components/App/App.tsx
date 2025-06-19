@@ -29,6 +29,7 @@ import ShareDialog from './ShareDialog';
 import SpeakButton from './SpeakButton';
 import useStyles from './styles';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
+import LaunchPageLogo from '../ListenPage/Map/LaunchPageLogo';
 
 export const App = () => {
 	const [theme] = useState(defaultTheme);
@@ -63,14 +64,7 @@ export const App = () => {
 				<DrawerSensitiveWrapper>
 					<AppBar className={classes.topBar} position='fixed'>
 						<Toolbar className={classes.topBar}>
-							<Typography variant='h6' className={classes.title}>
-								<NavLink to='/' className={classes.title}>
-									{roundware.project ? roundware.project.projectName : ''}
-								</NavLink>
-							</Typography>
-							<NavLink to='/'>
-								<img src={isExtraSmallScreen ? logoMinimal : logoSmall} className={classes.navLogo} />
-							</NavLink>
+							<LaunchPageLogo />
 						</Toolbar>
 					</AppBar>
 					<PlatformMessage getMessage={getMessageOnLoad} />
@@ -83,7 +77,7 @@ export const App = () => {
 							<Route path='/debug' component={DebugPage} />
 						</Switch>
 					</div>
-					<AppBar position='sticky' className={classes.bottomBar}>
+					{/* <AppBar position='sticky' className={classes.bottomBar}>
 						<Toolbar style={{ width: '100%', justifyContent: 'space-between' }}>
 							<Stack spacing={1} direction='row'>
 								<ShareButton />
@@ -102,7 +96,6 @@ export const App = () => {
 							<div>
 								<Route path='/listen'>
 									<ListenDrawer />
-									<RoundwareMixerControl />
 								</Route>
 							</div>
 
@@ -115,7 +108,7 @@ export const App = () => {
 							<Route path='/listen' exact component={() => <React.Fragment></React.Fragment>} />
 							<Route path='/' component={ShareDialog} />
 						</Switch>
-					</AppBar>
+					</AppBar> */}
 				</DrawerSensitiveWrapper>
 			</BrowserRouter>
 		</ErrorBoundary>

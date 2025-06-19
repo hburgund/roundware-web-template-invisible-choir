@@ -19,10 +19,11 @@ import SpeakerImages from './Speakers/SpeakerImages';
 import SpeakerToggle from '../SpeakerToggle';
 import PlaybackInfoOverlay from '../PlaybackInfoOverlay';
 import OutOfRangeMessage from './OutOfRangeMessage';
-import { Button, Paper, ThemeProvider } from '@mui/material';
-import { lightTheme } from '@/styles/index';
-import { Mic } from '@mui/icons-material';
+import { Box, Button, Fab, Fade, Skeleton, Stack, Tooltip} from '@mui/material';
+import { GraphicEq} from '@mui/icons-material';
 import AddLoopVoiceButton from './AddLoopVoiceButton';
+import { GeoListenMode } from 'roundware-web-framework';
+import MapControlIcons from './MapControlIcons';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -38,8 +39,9 @@ interface RoundwareMapProps {
 }
 const RoundwareMap = (props: RoundwareMapProps) => {
 	const classes = useStyles();
-	const { roundware } = useRoundware();
+	const { roundware, forceUpdate } = useRoundware();
 	const [map, setMap] = useState<google.maps.Map | undefined>();
+	const [showLaunch, setShowLaunch] = useState(true);
 
 	const { deleteFromURL } = useURLSync();
 	const updateListenerLocation = (newLocation?: Coordinates) => {
@@ -95,7 +97,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 			draggable: true,
 			mapTypeControl: false,
 			streetViewControl: false,
-			draggableCursor: 'cursor',
+			draggableCursor: null,
 			fullscreenControl: false,
 			zoomControlOptions: {
 				style: google.maps.ZoomControlStyle.SMALL,
@@ -124,12 +126,37 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 		setMap(map);
 	};
 
+	const handleLaunch = () => {
+		setShowLaunch(false);
+		// Start audio playback when launch overlay disappears
+		if (!roundware.mixer || !roundware.mixer?.playlist) {
+			roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
+				if (roundware && roundware.uiConfig && roundware.uiConfig.listen && roundware.uiConfig.listen[0]) {
+					const listen_tags = roundware.uiConfig.listen[0].display_items.map((i) => i.tag_id);
+					roundware.mixer.updateParams({
+						listenerLocation: roundware.listenerLocation,
+						minDist: 0,
+						maxDist: 0,
+						recordingRadius: 0,
+						listenTagIds: listen_tags,
+					});
+					roundware.mixer.toggle();
+					forceUpdate();
+				}
+			});
+		} else {
+			roundware.mixer.toggle();
+			forceUpdate();
+		}
+	};
+
 	return (
 		<>
 			{roundware.project ? (
 				<LoadScript id='script-loader' googleMapsApiKey={props.googleMapsApiKey}>
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
+						<MapControlIcons />
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
 						{map && roundware.mixer?.playlist && <WalkingModeButton />}
@@ -160,8 +187,51 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 						)}
 
 						<OutOfRangeMessage />
-
+							
 						<AddLoopVoiceButton />
+
+						<Fade in={showLaunch} timeout={1000}>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="center"
+								position="absolute"
+								width="100%"
+								height="100%"
+								sx={{ 
+									'& .MuiFab-root': { width: 120, height: 120 },
+									pointerEvents: 'none'
+								}}>
+								<Box sx={{ position: 'relative' }}>
+									<Skeleton
+										variant="circular"
+										animation="pulse"
+										sx={{
+											position: 'absolute',
+											width: 160,
+											height: 160,
+											top: '50%',
+											left: '50%',
+											transform: 'translate(-50%, -50%)',
+											bgcolor: 'secondary.main'
+										}}
+									/>
+									<Tooltip title="TAP LAUNCH TO LISTEN TO CHOIR" arrow placement="bottom">
+										<Fab 
+											size="large" 
+											color="secondary"
+											onClick={handleLaunch}
+											sx={{ pointerEvents: 'auto' }}
+										>
+											<Stack alignItems="center" spacing={2} sx={{ color: 'primary.main' }}>
+												<GraphicEq fontSize="large" color="primary" />
+												LAUNCH
+											</Stack>
+										</Fab>
+									</Tooltip>
+								</Box>
+							</Box>
+						</Fade>
 					</GoogleMap>
 				</LoadScript>
 			) : null}
