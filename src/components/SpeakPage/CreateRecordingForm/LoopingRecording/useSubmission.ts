@@ -129,7 +129,9 @@ export const useSubmission = ({
       formData.append("attenuation_distance", "5");
       formData.append("project_id", finalConfig.project.id.toString());
       if (baseSpeakers.length > 0) {
-        formData.append("parents", baseSpeakers.map((s) => s.id).join(","));
+        baseSpeakers.forEach((speaker) => {
+          formData.append("parents", speaker.id.toString());
+        });
       }
 
       const response: { id: string } = await roundware.apiClient.post(
