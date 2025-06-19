@@ -32,7 +32,7 @@ let config: IConfig = {
       loopPointUpdateProbability: 0.8,
       slotConsiderationProbability: 0.5,
       prefetchDistanceMeters: 5,
-      loopFractions: [1 / 8, 1 / 16],
+      loopFractions: [1/8, 1/4, 1/2, 5/8, 3/4, 1/1],
       effects: {
         delayTimeInMs: 50,
         feedback: 0.5,
@@ -70,8 +70,8 @@ let config: IConfig = {
     },
 
     zoom: {
-      high: 17,
-      low: 11,
+      high: 20,
+      low: 17,
       walking: 22,
     },
     speakerDisplay: "polygons",
