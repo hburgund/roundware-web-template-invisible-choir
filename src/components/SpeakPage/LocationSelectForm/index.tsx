@@ -2,7 +2,7 @@ import { Button, Card, CardActions, CardContent, Typography, useTheme, Theme } f
 import CircularProgress from '@mui/material/CircularProgress';
 import { makeStyles } from '@mui/styles';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
-import { GoogleMap, LoadScript, LoadScriptProps } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 
 import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
@@ -72,7 +72,6 @@ const LocationSelectForm = () => {
 	const history = useHistory();
 	const [error, set_error] = useState<GeolocationPositionError | Error | null>(null);
 	const [geolocating, set_geolocating] = useState<boolean>(false);
-	const gmapsLibraries = ['places'];
 
 	useEffect(() => {
 		if (draftRecording.tags.length === 0 && config.speak.allowSpeakTags === true) {
@@ -140,43 +139,41 @@ const LocationSelectForm = () => {
 				<Typography variant={'h4'} className={classes.locationHeaderLabel}>
 					Where are you recording today?
 				</Typography>
-				<LoadScript id='script-loader' googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''} libraries={gmapsLibraries as LoadScriptProps[`libraries`]}>
-					<PlacesAutocomplete />
-					<div className={classes.mapContainerDiv}>
-						<GoogleMap
-							mapContainerStyle={mapContainerStyle}
-							onLoad={(map) => {
-								const styledMapType = new google.maps.StyledMapType(RoundwareMapStyle, { name: 'Street Map' });
-								map.mapTypes.set('styled_map', styledMapType);
-								map.setOptions({
-									center: {
-										lat: draftRecording.location.latitude || 0,
-										lng: draftRecording.location.longitude || 0,
-									},
-									zoom: 9,
-									zoomControl: true,
-									draggable: true,
-									mapTypeControl: false,
-									streetViewControl: false,
-									draggableCursor: 'cursor',
-									fullscreenControl: false,
-									zoomControlOptions: {
-										style: google.maps.ZoomControlStyle.SMALL,
-									},
-									rotateControl: false,
-									mapTypeId: 'styled_map',
-									mapTypeControlOptions: {
-										mapTypeIds: [google.maps.MapTypeId.SATELLITE, 'styled_map'],
-										style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-										position: google.maps.ControlPosition.BOTTOM_LEFT,
-									},
-								});
-							}}
-						>
-							<LocationSelectMarker />
-						</GoogleMap>
-					</div>
-				</LoadScript>
+				<PlacesAutocomplete />
+				<div className={classes.mapContainerDiv}>
+					<GoogleMap
+						mapContainerStyle={mapContainerStyle}
+						onLoad={(map) => {
+							const styledMapType = new google.maps.StyledMapType(RoundwareMapStyle, { name: 'Street Map' });
+							map.mapTypes.set('styled_map', styledMapType);
+							map.setOptions({
+								center: {
+									lat: draftRecording.location.latitude || 0,
+									lng: draftRecording.location.longitude || 0,
+								},
+								zoom: 9,
+								zoomControl: true,
+								draggable: true,
+								mapTypeControl: false,
+								streetViewControl: false,
+								draggableCursor: 'cursor',
+								fullscreenControl: false,
+								zoomControlOptions: {
+									style: google.maps.ZoomControlStyle.SMALL,
+								},
+								rotateControl: false,
+								mapTypeId: 'styled_map',
+								mapTypeControlOptions: {
+									mapTypeIds: [google.maps.MapTypeId.SATELLITE, 'styled_map'],
+									style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+									position: google.maps.ControlPosition.BOTTOM_LEFT,
+								},
+							});
+						}}
+					>
+						<LocationSelectMarker />
+					</GoogleMap>
+				</div>
 			</CardContent>
 			{/* variant property does'nt exist here (removed) - Shreyas */}
 			<CardActions>

@@ -30,6 +30,9 @@ import SpeakButton from './SpeakButton';
 import useStyles from './styles';
 import ErrorBoundary from '@/components/elements/ErrorBoundary';
 import LaunchPageLogo from '../ListenPage/Map/LaunchPageLogo';
+import { LoadScript, LoadScriptProps } from '@react-google-maps/api';
+
+const gmapsLibraries = ['places'] as LoadScriptProps['libraries'];
 
 export const App = () => {
 	const [theme] = useState(defaultTheme);
@@ -39,78 +42,91 @@ export const App = () => {
 
 	return (
 		<ErrorBoundary>
-			<BrowserRouter getUserConfirmation={(message, callback) => UserConfirmation(message, callback)}>
-				<CssBaseline />
+			<LoadScript 
+				id='global-script-loader'
+				googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}
+				libraries={gmapsLibraries}
+				loadingElement={<div>Loading Maps...</div>}
+				onLoad={() => {
+					console.log('Global Google Maps script loaded');
+				}}
+				onError={(error: any) => {
+					console.error('Global Google Maps script loading error:', error);
+				}}
+			>
+				<BrowserRouter getUserConfirmation={(message, callback) => UserConfirmation(message, callback)}>
+					<CssBaseline />
 
-				<Helmet>
-					<meta charSet='utf-8' />
-					<title>{roundware.project ? roundware.project.projectName : ''}</title>
-					<link rel='icon' type='image/png' href={favicon} sizes='16x16' />
-					<meta name='theme-color' content={theme.palette.primary.main} />
+					<Helmet>
+						<meta charSet='utf-8' />
+						<title>{roundware.project ? roundware.project.projectName : ''}</title>
+						<link rel='icon' type='image/png' href={favicon} sizes='16x16' />
+						<meta name='theme-color' content={theme.palette.primary.main} />
 
-					<script async src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.VITE_GOOGLE_ANALYTICS_ID}`}></script>
-					<script>
-						{`
-						window.dataLayer = window.dataLayer || [];
+						<script async src={`https://www.googletagmanager.com/gtag/js?id=${import.meta.env.VITE_GOOGLE_ANALYTICS_ID}`}></script>
+						<script>
+							{`
+							window.dataLayer = window.dataLayer || [];
 
-		  function gtag(){dataLayer.push(arguments);}
-		  gtag('js', new Date());
+			  function gtag(){dataLayer.push(arguments);}
+			  gtag('js', new Date());
 
-		  gtag('config', '${import.meta.env.VITE_GOOGLE_ANALYTICS_ID}');
-		  `}
-					</script>
-				</Helmet>
+			  gtag('config', '${import.meta.env.VITE_GOOGLE_ANALYTICS_ID}');
+			  `}
+						</script>
+					</Helmet>
 
-				<DrawerSensitiveWrapper>
-					<AppBar className={classes.topBar} position='fixed'>
-						<Toolbar className={classes.topBar}>
-							<LaunchPageLogo />
-						</Toolbar>
-					</AppBar>
-					<PlatformMessage getMessage={getMessageOnLoad} />
-					<Toolbar />
-					<div className={classes.appContainer}>
-						<Switch>
-							<Route exact path='/' component={LandingPage} />
-							<Route path='/listen' component={ListenPage} />
-							<Route path='/speak' component={SpeakPage} />
-							<Route path='/debug' component={DebugPage} />
-						</Switch>
-					</div>
-					{/* <AppBar position='sticky' className={classes.bottomBar}>
-						<Toolbar style={{ width: '100%', justifyContent: 'space-between' }}>
-							<Stack spacing={1} direction='row'>
-								<ShareButton />
-								<Route path='/listen'>
-									{config.speak.recordingMethod === 'standard' ? (
-										roundware?.project?.data?.speak_enabled && (
-											<Link to={`/speak`}>
-												<SpeakButton />
-											</Link>
-										)
-									) : (
-										<div />
-									)}
-								</Route>
-							</Stack>
-							<div>
-								<Route path='/listen'>
-									<ListenDrawer />
-								</Route>
-							</div>
+					<DrawerSensitiveWrapper>
+						<AppBar className={classes.topBar} position='fixed'>
+							<Toolbar className={classes.topBar}>
+								<LaunchPageLogo />
+							</Toolbar>
+						</AppBar>
+						<PlatformMessage getMessage={getMessageOnLoad} />
+						<Toolbar />
+						<div className={classes.appContainer}>
+							<Switch>
+								<Route exact path='/' component={LandingPage} />
+								<Route path='/listen' component={ListenPage} />
+								<Route path='/speak' component={SpeakPage} />
+								<Route path='/debug' component={DebugPage} />
+							</Switch>
+						</div>
+						{/* <AppBar position='sticky' className={classes.bottomBar}>
+							<Toolbar style={{ width: '100%', justifyContent: 'space-between' }}>
+								<Stack spacing={1} direction='row'>
+									<ShareButton />
+									<Route path='/listen'>
+										{config.speak.recordingMethod === 'standard' ? (
+											roundware?.project?.data?.speak_enabled && (
+												<Link to={`/speak`}>
+													<SpeakButton />
+												</Link>
+											)
+										) : (
+											<div />
+										)}
+									</Route>
+								</Stack>
+								<div>
+									<Route path='/listen'>
+										<ListenDrawer />
+									</Route>
+								</div>
 
-							{config.debugMode === true ? <div style={{ color: 'white' }}>mixer: {roundware.mixer && JSON.stringify(roundware.mixer.mixParams)}</div> : null}
-							<div>
-								<InfoPopup />
-							</div>
-						</Toolbar>
-						<Switch>
-							<Route path='/listen' exact component={() => <React.Fragment></React.Fragment>} />
-							<Route path='/' component={ShareDialog} />
-						</Switch>
-					</AppBar> */}
-				</DrawerSensitiveWrapper>
-			</BrowserRouter>
+								{config.debugMode === true ? <div style={{ color: 'white' }}>mixer: {roundware.mixer && JSON.stringify(roundware.mixer.mixParams)}</div> : null}
+								<div>
+									<InfoPopup />
+								</div>
+							</Toolbar>
+							<Switch>
+								<Route path='/listen' exact component={() => <React.Fragment></React.Fragment>} />
+								<Route path='/' component={ShareDialog} />
+							</Switch>
+						</AppBar> */}
+					</DrawerSensitiveWrapper>
+				</BrowserRouter>
+			</LoadScript>
 		</ErrorBoundary>
 	);
 };
