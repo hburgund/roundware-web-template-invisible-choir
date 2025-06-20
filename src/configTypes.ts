@@ -50,6 +50,8 @@ export type IConfig = {
     geoListenMode: "device" | ("map" | "walking")[];
     /** clicking the 'Listen' button automatically starts the stream */
     autoplay: boolean;
+    /** interval in milliseconds for checking speaker updates */
+    speakerUpdateInterval: number;
     /** config for speaker */
     speaker: SpeakerConfig;
 

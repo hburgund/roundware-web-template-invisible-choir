@@ -23,6 +23,7 @@ let config: IConfig = {
     keepPausedAssets: true,
     geoListenMode: "device",
     autoplay: false,
+    speakerUpdateInterval: 30000,
     speaker: {
       mode: "progressive-sync-basePlusMax5Random",
       loop: true,

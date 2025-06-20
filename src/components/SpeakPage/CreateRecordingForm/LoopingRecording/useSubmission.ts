@@ -26,7 +26,7 @@ export const useSubmission = ({
   >("idle");
 
   const draftRecording = useRoundwareDraft();
-  const { tagLookup, roundware } = useRoundware();
+  const { tagLookup, roundware, updateSpeakers } = useRoundware();
   const history = useHistory();
 
   async function start() {
@@ -184,7 +184,17 @@ export const useSubmission = ({
         return;
       }
 
-      window.location.href = `/listen?latitude=${location.lat}&longitude=${location.lng}`;
+      // Update speakers on the map to show the new speaker and modified parent speakers
+      const speakerIdsToUpdate = [
+        parseInt(response.id), // New speaker
+        ...baseSpeakers.map(s => s.id) // Parent speakers that were modified
+      ];
+      
+      await updateSpeakers(speakerIdsToUpdate);
+
+      history.push(
+        `/listen?latitude=${location.lat}&longitude=${location.lng}`
+      );
 
       setStatus("submitted");
     }
