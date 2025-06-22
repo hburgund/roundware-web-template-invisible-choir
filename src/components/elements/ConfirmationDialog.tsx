@@ -107,14 +107,16 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   {confirmText}
                 </Button>
                 
-                <Button
-                  variant="text"
-                  onClick={onClose}
-                  fullWidth
-                  size="large"
-                >
-                  {cancelText}
-                </Button>
+                {cancelText && (
+                  <Button
+                    variant="text"
+                    onClick={onClose}
+                    fullWidth
+                    size="large"
+                  >
+                    {cancelText}
+                  </Button>
+                )}
               </Stack>
             </Stack>
           </Container>
