@@ -10,7 +10,7 @@ import SubmissionControls from "./components/SubmissionControls";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 
 const LoopingRecordingForm = () => {
-  const { recorder, submission } = useLoopContext();
+  const { recorder, submission, location } = useLoopContext();
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
@@ -53,8 +53,14 @@ const LoopingRecordingForm = () => {
         hasRecording={!!recorder.recordedAudioBlob}
         submissionStatus={submission.status}
         onLegalAccept={async () => {
-          setShowThankYouConfirm(true);
-          await submission.start();
+          try {
+            await submission.start();
+            // Wait for submission to fully complete before showing thank you dialog
+            setShowThankYouConfirm(true);
+          } catch (error) {
+            console.error("Submission failed:", error);
+            // Don't show thank you dialog if submission failed
+          }
         }}
         onLegalDecline={() => {}}
       />
@@ -91,10 +97,10 @@ const LoopingRecordingForm = () => {
       <ConfirmationDialog
         open={showThankYouConfirm}
         onClose={() => {
-          history.push("/listen");
+          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
         }}
         onConfirm={() => {
-          history.push("/listen");
+          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Thank You!"
