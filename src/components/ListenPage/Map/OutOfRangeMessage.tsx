@@ -28,7 +28,7 @@ export function coordsToPoints({ latitude, longitude }: { latitude: number; long
 }
 
 const OutOfRangeMessage = (props: Props) => {
-	const { roundware } = useRoundware();
+	const { roundware, lastSpeakerUpdateTime } = useRoundware();
 
 	const show = useMemo(() => {
 		if (!roundware.project.data?.out_of_range_message || !isNumber(roundware.project.outOfRangeDistance)) {
@@ -109,7 +109,7 @@ const OutOfRangeMessage = (props: Props) => {
 		}
 
 		return true;
-	}, [roundware.project.data?.out_of_range_message, roundware.project.outOfRangeDistance, roundware.listenerLocation, roundware.speakers()]);
+	}, [roundware.project.data?.out_of_range_message, roundware.project.outOfRangeDistance, roundware.listenerLocation, roundware.speakers(), lastSpeakerUpdateTime]);
 
 	if (show) {
 		return (

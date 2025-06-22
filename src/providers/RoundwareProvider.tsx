@@ -357,10 +357,14 @@ const RoundwareProvider = (props: PropTypes) => {
 								console.log('New speaker shape:', JSON.stringify(updatedSpeaker.shape));
 							}
 							
+							// Store the current buffer state before updating
+							const wasBufferLoaded = !!existingTrack.buffer;
+							const currentBuffer = existingTrack.buffer;
+							
 							// Get the SpeakerTrack constructor from the existing instance
 							const SpeakerTrack = Object.getPrototypeOf(existingTrack).constructor;
 							
-							// Create new instance with updated data
+							// Create new instance with updated data to get proper spatial calculations
 							const newSpeakerTrack = new SpeakerTrack({
 								data: updatedSpeaker,
 								audioContext: existingTrack.audioContext || speakerEngine.audioContext,
@@ -368,11 +372,23 @@ const RoundwareProvider = (props: PropTypes) => {
 								groupId: existingTrack.groupId || updatedSpeaker.id
 							});
 							
-							// Replace the old instance in the speakers array
+							// If the old track had a loaded buffer, restore it to the new track
+							if (wasBufferLoaded && currentBuffer) {
+								newSpeakerTrack.buffer = currentBuffer;
+								// Copy other relevant loaded state
+								if (existingTrack.request) {
+									newSpeakerTrack.request = existingTrack.request;
+								}
+								if (config.debugMode) {
+									console.log(`Restored buffer to updated speaker ${updatedSpeaker.id}`);
+								}
+							}
+							
+							// Replace with the new track that has updated spatial calculations
 							speakerEngine.speakers[speakerIndex] = newSpeakerTrack;
 							
 							if (config.debugMode) {
-								console.log(`Successfully replaced SpeakerTrack instance for speaker ${updatedSpeaker.id}`);
+								console.log(`Successfully replaced SpeakerTrack with updated spatial calculations for speaker ${updatedSpeaker.id}, buffer preserved: ${wasBufferLoaded}`);
 							}
 						} else {
 							console.warn(`Could not find speaker ${updatedSpeaker.id} in engine to update`);
@@ -411,8 +427,8 @@ const RoundwareProvider = (props: PropTypes) => {
 				}
 			}
 
-			// Only update timestamp for periodic updates
-			if (!speakerIds && (newSpeakers.length > 0 || updatedSpeakers.length > 0)) {
+			// Update timestamp for all updates that have changes
+			if (newSpeakers.length > 0 || updatedSpeakers.length > 0) {
 				setLastSpeakerUpdateTime(new Date());
 			}
 			
@@ -591,6 +607,7 @@ const RoundwareProvider = (props: PropTypes) => {
 				assetsReady,
 				hideSpeakerPolygons,
 				setHideSpeakerPolygons,
+				lastSpeakerUpdateTime,
 			}}
 		>
 			{props.children}

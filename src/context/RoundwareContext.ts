@@ -50,6 +50,9 @@ export interface IRoundwareContext {
 	// hide speaker polygons for these
 	hideSpeakerPolygons: number[];
 	setHideSpeakerPolygons: React.Dispatch<React.SetStateAction<number[]>>;
+	
+	// timestamp of last speaker update to trigger re-renders
+	lastSpeakerUpdateTime: Date | null;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

@@ -12,10 +12,9 @@ const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 const SpeakerPolygons = (props: Props) => {
-	const { roundware, hideSpeakerPolygons } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
 
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
-
 	const [googleMapPolygonProps, setGoogleMapPolygonProps] = useState<PolygonProps[]>([]);
 
 	const updatePolygons = () => {
@@ -25,7 +24,7 @@ const SpeakerPolygons = (props: Props) => {
 				?.filter(({ data: speaker }) => !!speaker.shape)
 				?.filter((s) => !hideSpeakerPolygons.includes(s.data.id))
 				.flatMap((s, index) => {
-					const prop: PolygonProps = {
+					const prop: PolygonProps & { key: string } = {
 						path: polygonToGoogleMapPaths(s.data.shape!),
 						options: {
 							...options,
@@ -40,8 +39,7 @@ const SpeakerPolygons = (props: Props) => {
 								  }
 								: {}),
 						},
-						// @ts-ignore
-						key: s?.speakerData?.id,
+						key: s.data.id.toString(),
 					};
 					return [prop];
 				}) ?? []
@@ -53,21 +51,37 @@ const SpeakerPolygons = (props: Props) => {
 		updatePolygons();
 	}, []);
 
+	// Update polygons when speakers are updated (using timestamp)
 	useEffect(() => {
-		if (!Array.isArray(roundware.speakers())) return;
+		if (lastSpeakerUpdateTime) {
+			updatePolygons();
+		}
+	}, [lastSpeakerUpdateTime]);
 
-		roundware.mixer.speakerEngine?.speakers.forEach((s) => {
-			s.on('loaded', updatePolygons);
-			s.on('unloaded', updatePolygons);
-		});
+	useEffect(() => {
+		if (!Array.isArray(roundware.speakers())) {
+			return;
+		}
+
+		if (roundware.mixer?.speakerEngine?.speakers) {
+			roundware.mixer.speakerEngine.speakers.forEach((s) => {
+				s.on('loaded', updatePolygons);
+				s.on('unloaded', updatePolygons);
+			});
+		}
+
+		// Trigger initial update
+		updatePolygons();
 
 		return () => {
-			roundware.mixer.speakerEngine?.speakers.forEach((s) => {
-				s.off('loaded', updatePolygons);
-				s.off('unloaded', updatePolygons);
-			});
+			if (roundware.mixer?.speakerEngine?.speakers) {
+				roundware.mixer.speakerEngine.speakers.forEach((s) => {
+					s.off('loaded', updatePolygons);
+					s.off('unloaded', updatePolygons);
+				});
+			}
 		};
-	}, [roundware.speakers()]);
+	}, [roundware.speakers(), roundware.mixer?.speakerEngine?.speakers]);
 
 	return (
 		<div>
