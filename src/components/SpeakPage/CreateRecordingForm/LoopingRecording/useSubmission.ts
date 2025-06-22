@@ -143,7 +143,7 @@ export const useSubmission = ({
         }
       );
 
-      console.error("Response: " + JSON.stringify(response, null, 2));
+      console.info("Response: " + JSON.stringify(response, null, 2));
 
       try {
         if (response && baseSpeakers.length > 0) {
@@ -165,8 +165,8 @@ export const useSubmission = ({
                   }
                 );
 
-                console.error("Patch response:", patchResponse);
-                console.error("Closest speaker shape updated successfully");
+                console.info("Patch response:", patchResponse);
+                console.info("Closest speaker shape updated successfully");
               } else {
                 console.error("Failed to expand closestSpeaker shape");
               }
