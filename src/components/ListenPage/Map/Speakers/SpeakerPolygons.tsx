@@ -51,12 +51,6 @@ const SpeakerPolygons = (props: Props) => {
 	useEffect(() => {
 		// Update immediately on mount
 		updatePolygons();
-		
-		// Then set up periodic updates
-		const interval = setInterval(() => {
-			updatePolygons();
-		}, 3000);
-		return () => clearInterval(interval);
 	}, []);
 
 	useEffect(() => {

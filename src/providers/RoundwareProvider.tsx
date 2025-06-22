@@ -157,15 +157,20 @@ const RoundwareProvider = (props: PropTypes) => {
 	 * Updates speaker data and refreshes the audio engine to reflect changes in speaker geometry/properties.
 	 * Can be called with specific speaker IDs (for immediate updates after recording submission) 
 	 * or without IDs (for periodic updates to catch changes from other users).
-	 * Implements surgical speaker track replacement to ensure spatial audio calculations use updated data.
+	 * Uses surgical speaker track replacement to ensure spatial audio calculations use updated data.
 	 */
 	const updateSpeakers: IRoundwareContext[`updateSpeakers`] = async (speakerIds) => {
 		try {
+			let newSpeakers: any[] = [];
+			let updatedSpeakers: any[] = [];
+			
 			if (speakerIds && speakerIds.length > 0) {
+				// Targeted update: fetch specific speakers that were just updated
 				if (config.debugMode) {
 					console.log(`Updating specific speakers: ${speakerIds.join(', ')}`);
+					console.log(`Current speakers count before update: ${Array.isArray(roundware.speakers()) ? roundware.speakers().length : 'N/A'}`);
 				}
-				// Fetch the updated speakers from the API
+				
 				const speakerPromises = speakerIds.map(async (id) => {
 					try {
 						if (!roundware?.apiClient) {
@@ -180,52 +185,42 @@ const RoundwareProvider = (props: PropTypes) => {
 					}
 				});
 
-				const updatedSpeakers = await Promise.all(speakerPromises);
-				const validSpeakers = updatedSpeakers.filter(Boolean);
+				const fetchedSpeakers = await Promise.all(speakerPromises);
+				const validSpeakers = fetchedSpeakers.filter(Boolean);
 
-				if (validSpeakers.length > 0) {
-					// Manually update the speaker data in the roundware.speakers() array
-					const currentSpeakers = roundware.speakers();
-					
-					if (!Array.isArray(currentSpeakers)) {
-						console.error('Current speakers is not an array, cannot update');
+				if (validSpeakers.length === 0) {
+					console.warn('No valid speakers received from API');
+					return;
+				}
+
+				// Update the underlying speaker data in roundware.speakers() array
+				const currentSpeakers = roundware.speakers();
+				
+				if (!Array.isArray(currentSpeakers)) {
+					console.error('Current speakers is not an array, cannot update');
+					return;
+				}
+				
+				// Separate new vs existing speakers for proper handling
+				validSpeakers.forEach((updatedSpeaker: any) => {
+					if (!updatedSpeaker || !updatedSpeaker.id) {
+						console.warn('Invalid speaker data received, skipping');
 						return;
 					}
-					
-					validSpeakers.forEach((updatedSpeaker: any) => {
-						if (!updatedSpeaker || !updatedSpeaker.id) {
-							console.warn('Invalid speaker data received, skipping');
-							return;
-						}
-						const existingIndex = currentSpeakers.findIndex((s) => s.id === updatedSpeaker.id);
-						if (existingIndex !== -1) {
-							// Update existing speaker
-							currentSpeakers[existingIndex] = updatedSpeaker;
-						} else {
-							// Add new speaker
-							currentSpeakers.push(updatedSpeaker);
-						}
-					});
-
-					// Trigger a re-initialization of the speaker engine if it exists
-					if (roundware.mixer?.speakerEngine) {
-						try {
-							// Re-initialize the speaker engine with updated speakers
-							roundware.mixer.speakerEngine.speakers = [];
-							await roundware.activateMixer();
-							if (config.debugMode) {
-								console.log('Successfully reinitialized mixer with updated speakers');
-							}
-						} catch (error) {
-							console.error('Failed to reinitialize speaker engine:', error);
-						}
+					const existingIndex = currentSpeakers.findIndex((s) => s.id === updatedSpeaker.id);
+					if (existingIndex !== -1) {
+						// Update existing speaker
+						currentSpeakers[existingIndex] = updatedSpeaker;
+						updatedSpeakers.push(updatedSpeaker);
+					} else {
+						// Add new speaker
+						currentSpeakers.push(updatedSpeaker);
+						newSpeakers.push(updatedSpeaker);
 					}
-				} else {
-					console.warn('No valid speakers received from API');
-				}
+				});
+
 			} else {
-				// Periodic update: since server doesn't support date filtering yet,
-				// we'll fetch all speakers and compare with current ones
+				// Periodic update: fetch all speakers and compare with current ones
 				try {
 					const allSpeakers = await roundware.apiClient.get('/speakers/', {
 						project_id: roundware.project.projectId,
@@ -236,325 +231,189 @@ const RoundwareProvider = (props: PropTypes) => {
 						console.log('Fetched all speakers for comparison:', Array.isArray(allSpeakers) ? allSpeakers.length : 0);
 					}
 
-					if (Array.isArray(allSpeakers)) {
-						const currentSpeakers = roundware.speakers();
-						
-						if (!Array.isArray(currentSpeakers)) {
-							if (config.debugMode) {
-								console.warn('Current speakers is not an array, skipping comparison');
-							}
-							return;
-						}
-						
-						// Check if there are any differences (new speakers or shape changes)
-						let hasChanges = false;
-						
-						// Check for new speakers
-						const newSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
-							if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
-							
-							// Validate that the new speaker has valid geometry
-							if (!fetchedSpeaker.shape || !fetchedSpeaker.shape.coordinates) {
-								console.warn(`New speaker ${fetchedSpeaker.id} from API has invalid geometry, skipping`);
-								return false;
-							}
-							
-							return !currentSpeakers.find((current) => current.id === fetchedSpeaker.id);
-						});
-						
-						// Check for updated speakers (compare shapes or other properties)
-						const updatedSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
-							if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
-							
-							// Validate that the fetched speaker has valid geometry
-							if (!fetchedSpeaker.shape || !fetchedSpeaker.shape.coordinates) {
-								console.warn(`Speaker ${fetchedSpeaker.id} from API has invalid geometry, skipping`);
-								return false;
-							}
-							
-							const current = currentSpeakers.find((c) => c.id === fetchedSpeaker.id);
-							if (!current) return false;
-							
-							// Compare shape data (main thing that gets updated)
-							try {
-								return JSON.stringify(current.shape) !== JSON.stringify(fetchedSpeaker.shape);
-							} catch (error) {
-								if (config.debugMode) {
-									console.warn(`Error comparing shapes for speaker ${fetchedSpeaker.id}:`, error);
-								}
-								return false;
-							}
-						});
+					if (!Array.isArray(allSpeakers)) {
+						console.warn('Invalid speakers data from API');
+						return;
+					}
 
-						if (newSpeakers.length > 0 || updatedSpeakers.length > 0) {
-							hasChanges = true;
+					const currentSpeakers = roundware.speakers();
+					
+					if (!Array.isArray(currentSpeakers)) {
+						if (config.debugMode) {
+							console.warn('Current speakers is not an array, skipping comparison');
+						}
+						return;
+					}
+					
+					// Check for new speakers
+					newSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
+						if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
+						
+						return !currentSpeakers.find((current) => current.id === fetchedSpeaker.id);
+					});
+					
+					// Check for updated speakers (compare shapes or other properties)
+					updatedSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
+						if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
+						
+						const current = currentSpeakers.find((c) => c.id === fetchedSpeaker.id);
+						if (!current) return false;
+						
+						// Compare shape data (main thing that gets updated)
+						try {
+							return JSON.stringify(current.shape) !== JSON.stringify(fetchedSpeaker.shape);
+						} catch (error) {
 							if (config.debugMode) {
-								console.log(`Found ${newSpeakers.length} new speakers and ${updatedSpeakers.length} updated speakers`);
+								console.warn(`Error comparing shapes for speaker ${fetchedSpeaker.id}:`, error);
 							}
-							
-							// Update the underlying speaker data
-							[...newSpeakers, ...updatedSpeakers].forEach((speaker: any) => {
-								const existingIndex = currentSpeakers.findIndex((s) => s.id === speaker.id);
-								if (existingIndex !== -1) {
-									// Update existing speaker
-									currentSpeakers[existingIndex] = speaker;
-								} else {
-									// Add new speaker
-									currentSpeakers.push(speaker);
-								}
+							return false;
+						}
+					});
+
+					if (newSpeakers.length === 0 && updatedSpeakers.length === 0) {
+						// No changes detected
+						return;
+					}
+
+					if (config.debugMode) {
+						console.log(`Found ${newSpeakers.length} new speakers and ${updatedSpeakers.length} updated speakers`);
+					}
+					
+					// Update the underlying speaker data
+					[...newSpeakers, ...updatedSpeakers].forEach((speaker: any) => {
+						const existingIndex = currentSpeakers.findIndex((s) => s.id === speaker.id);
+						if (existingIndex !== -1) {
+							// Update existing speaker
+							currentSpeakers[existingIndex] = speaker;
+						} else {
+							// Add new speaker
+							currentSpeakers.push(speaker);
+						}
+					});
+
+				} catch (error) {
+					console.error('Failed to fetch speakers for periodic update:', error);
+					return;
+				}
+			}
+
+			// Now update the speaker engine using the surgical approach (same for both targeted and periodic updates)
+			if (roundware.mixer?.speakerEngine && (newSpeakers.length > 0 || updatedSpeakers.length > 0)) {
+				const speakerEngine = roundware.mixer.speakerEngine;
+				
+				// Handle new speakers - add SpeakerTrack instances without disrupting existing ones
+				if (newSpeakers.length > 0) {
+					if (config.debugMode) {
+						console.log(`Adding ${newSpeakers.length} new speakers to audio engine`);
+					}
+					
+					// Get existing speaker tracks for reference
+					const existingSpeakerTracks = speakerEngine.speakers || [];
+					
+					if (existingSpeakerTracks.length > 0) {
+						// Use existing speaker track as template
+						const templateTrack = existingSpeakerTracks[0];
+						const SpeakerTrack = Object.getPrototypeOf(templateTrack).constructor;
+						
+						// Create SpeakerTrack instances for new speakers
+						const newSpeakerTracks = newSpeakers.map((data: any) => {
+							return new SpeakerTrack({
+								data,
+								audioContext: speakerEngine.audioContext,
+								config: roundware.mixer.mixParams.speakerConfig!,
+								groupId: data.id, // Use speaker ID as group ID for new speakers
 							});
+						});
+						
+						// Add new speaker tracks to the engine
+						speakerEngine.speakers.push(...newSpeakerTracks);
+						
+						if (config.debugMode) {
+							console.log(`Successfully added ${newSpeakerTracks.length} speaker tracks to engine`);
+						}
+					} else {
+						// No existing speakers to use as template - this shouldn't happen in normal operation
+						console.warn('No existing speaker tracks found to use as template for new speakers');
+					}
+				}
 
-							// Now we need to update the speaker engine for audio playback using the surgical approach
-							if (roundware.mixer?.speakerEngine) {
-								const speakerEngine = roundware.mixer.speakerEngine;
-								try {
-									// Handle new speakers - add SpeakerTrack instances without disrupting existing ones
-									if (newSpeakers.length > 0) {
-										if (config.debugMode) {
-											console.log(`Adding ${newSpeakers.length} new speakers to audio engine`);
-										}
-										
-										try {
-											// Import SpeakerTrack and SpeakerUtils (these are internal to roundware framework)
-											const { SpeakerTrack, SpeakerUtils } = (speakerEngine as any).constructor;
-											
-											// Get all current speaker data for group calculation
-											const allSpeakerData = [
-												...currentSpeakers,
-												...speakerEngine.speakers.map((s: any) => s.data)
-											];
-											
-											// Create SpeakerTrack instances for new speakers
-											const newSpeakerTracks = newSpeakers.map((data: any) => {
-												const groupId = SpeakerUtils.getRootForSpeaker(data, allSpeakerData);
-												return new SpeakerTrack({
-													data,
-													audioContext: speakerEngine.audioContext,
-													config: roundware.mixer.mixParams.speakerConfig!,
-													groupId,
-												});
-											});
-											
-											// Add new speaker tracks to the engine
-											speakerEngine.speakers.push(...newSpeakerTracks);
-											
-											// Update groups mapping for new speakers
-											newSpeakerTracks.forEach((speaker: any) => {
-												if (!speakerEngine.group.has(speaker.groupId)) {
-													speakerEngine.group.set(speaker.groupId, null);
-												}
-											});
-											
-											if (config.debugMode) {
-												console.log(`Successfully added ${newSpeakerTracks.length} speaker tracks to engine`);
-											}
-										} catch (error) {
-											console.error('Failed to add new speakers to audio engine:', error);
-										}
-									}
-
-									// Handle updated speakers - update their data in existing SpeakerTrack instances
-									if (updatedSpeakers.length > 0) {
-										if (config.debugMode) {
-											console.log(`Updating ${updatedSpeakers.length} existing speakers in engine`);
-										}
-										updatedSpeakers.forEach((updatedSpeaker: any) => {
-											const engineSpeaker = speakerEngine.speakers.find(
-												(s: any) => s.data.id === updatedSpeaker.id
-											);
-											
-											if (engineSpeaker) {
-												if (config.debugMode) {
-													console.log(`Updating speaker ${updatedSpeaker.id} data in engine`);
-													console.log('Old speaker shape:', JSON.stringify(engineSpeaker.data.shape));
-													console.log('New speaker shape:', JSON.stringify(updatedSpeaker.shape));
-												}
-												
-												// Nuclear option: Try to completely replace the SpeakerTrack instance
-												const speakerIndex = speakerEngine.speakers.findIndex((s: any) => s.data.id === updatedSpeaker.id);
-												
-												try {
-													// Get the SpeakerTrack constructor and dependencies from the existing instance
-													const audioContext = engineSpeaker.audioContext || (speakerEngine as any).audioContext;
-													const speakerConfig = engineSpeaker.config || {};
-													const groupId = engineSpeaker.groupId;
-													
-													// Validate speaker geometry before creating new instance
-													if (!updatedSpeaker.shape || !updatedSpeaker.shape.coordinates) {
-														console.error(`Speaker ${updatedSpeaker.id} has invalid geometry, skipping update`);
-														return;
-													}
-													
-													// Try to access the SpeakerTrack constructor
-													const SpeakerTrack = Object.getPrototypeOf(engineSpeaker).constructor;
-													
-													// Create new instance with updated data
-													const newSpeakerTrack = new SpeakerTrack({
-														data: updatedSpeaker,
-														audioContext,
-														config: speakerConfig,
-														groupId
-													});
-													
-													// Replace the old instance in the speakers array
-													if (speakerIndex >= 0) {
-														speakerEngine.speakers[speakerIndex] = newSpeakerTrack;
-														if (config.debugMode) {
-															console.log(`Successfully replaced entire SpeakerTrack instance for speaker ${updatedSpeaker.id}`);
-														}
-													}
-													
-												} catch (constructorError) {
-													if (config.debugMode) {
-														console.log('Could not create new SpeakerTrack instance, falling back to data update:', constructorError);
-													}
-													
-													// Fallback: Force update all possible data references
-													try {
-														engineSpeaker.data = JSON.parse(JSON.stringify(updatedSpeaker));
-														if ((engineSpeaker as any).originalData) {
-															(engineSpeaker as any).originalData = JSON.parse(JSON.stringify(updatedSpeaker));
-														}
-														if ((engineSpeaker as any)._data) {
-															(engineSpeaker as any)._data = JSON.parse(JSON.stringify(updatedSpeaker));
-														}
-														if (config.debugMode) {
-															console.log('Fallback data update completed for speaker:', updatedSpeaker.id);
-														}
-													} catch (fallbackError) {
-														console.error(`Failed to update speaker ${updatedSpeaker.id} data:`, fallbackError);
-													}
-												}
-												
-												// Force spatial audio recalculation using the engine's actual methods
-												try {
-													// Validate all speaker geometries before attempting spatial calculations
-													const hasInvalidGeometry = speakerEngine.speakers.some((speaker: any) => {
-														return !speaker.data?.shape || !speaker.data.shape.coordinates;
-													});
-													
-													if (hasInvalidGeometry) {
-														console.warn('Detected speakers with invalid geometry, skipping spatial recalculation to prevent errors');
-														return;
-													}
-													
-													// First, recalculate volumes for all speakers
-													if (typeof (speakerEngine as any).calculateVolumesByLocation === 'function') {
-														try {
-															(speakerEngine as any).calculateVolumesByLocation();
-															if (config.debugMode) {
-																console.log('Called calculateVolumesByLocation() on speaker engine');
-															}
-														} catch (calcError) {
-															console.error('Error in calculateVolumesByLocation:', calcError);
-															// Continue with other recalculation methods even if this fails
-														}
-													}
-													
-													// Then trigger updateParams() with current listener location to force full recalculation
-													if (typeof (speakerEngine as any).updateParams === 'function' && (speakerEngine as any).mixParams) {
-														// Get current mix params and trigger updateParams to force spatial recalculation
-														const currentMixParams = (speakerEngine as any).mixParams;
-														if (currentMixParams) {
-															try {
-																(speakerEngine as any).updateParams(currentMixParams);
-																if (config.debugMode) {
-																	console.log('Called updateParams() on speaker engine to force spatial recalculation');
-																}
-															} catch (updateError) {
-																console.error('Error in updateParams:', updateError);
-																// Continue with individual speaker updates even if this fails
-															}
-														}
-													}
-													
-													// Force immediate volume updates for currently playing tracks
-													const playingTracks = (speakerEngine as any).playingTracks;
-													if (Array.isArray(playingTracks)) {
-														playingTracks.forEach((trackId: number | null) => {
-															if (trackId !== null) {
-																try {
-																	const speaker = (speakerEngine as any).getSpeakerTrackById(trackId);
-																	if (speaker && (speakerEngine as any).listenerPoint) {
-																		// Validate speaker geometry before attempting volume calculation
-																		if (!speaker.data?.shape || !speaker.data.shape.coordinates) {
-																			console.warn(`Speaker ${trackId} has invalid geometry, skipping volume update`);
-																			return;
-																		}
-																		
-																		// Force recalculate volume for this specific speaker
-																		if (typeof speaker.volumeByLocation === 'function') {
-																			const listenerPoint = (speakerEngine as any).listenerPoint;
-																			const newVolume = speaker.volumeByLocation(listenerPoint);
-																			speaker.calculatedVolume = newVolume;
-																			
-																			if (config.debugMode) {
-																				console.log('Listener point:', JSON.stringify(listenerPoint));
-																				console.log('Speaker shape being used for calculation:', JSON.stringify(speaker.data.shape));
-																				console.log(`Recalculated volume for playing speaker ${trackId}: ${newVolume}`);
-																			}
-																			
-																			// Apply the new volume immediately to playing audio
-																			if (typeof speaker.fadeBufferSourceToVolume === 'function') {
-																				speaker.fadeBufferSourceToVolume(newVolume);
-																				if (config.debugMode) {
-																					console.log(`Applied new volume ${newVolume} to playing speaker ${trackId}`);
-																					console.log(`Speaker ${trackId} bufferSourcePlaying:`, speaker.bufferSourcePlaying);
-																					console.log(`Speaker ${trackId} current volume:`, speaker.calculatedVolume);
-																				}
-																			}
-																		}
-																	}
-																} catch (speakerError) {
-																	console.error(`Failed to update volume for playing speaker ${trackId}:`, speakerError);
-																}
-															}
-														});
-													}
-												} catch (engineError) {
-													console.error('Speaker engine spatial recalculation failed:', engineError);
-												}
-											}
-										});
-									}
-									
-								} catch (error) {
-									console.error('Failed to update speaker engine surgically:', error);
-									if (config.debugMode) {
-										console.log('Note: SpeakerTrack/SpeakerUtils may not be accessible. Falling back to basic data updates.');
-									}
-									
-									// Fallback: at least update the data for existing speakers if surgical approach fails
-									if (updatedSpeakers.length > 0) {
-										updatedSpeakers.forEach((updatedSpeaker: any) => {
-											try {
-												const engineSpeaker = speakerEngine.speakers.find(
-													(s: any) => s.data.id === updatedSpeaker.id
-												);
-												
-												if (engineSpeaker) {
-													if (config.debugMode) {
-														console.log(`Fallback: Updating speaker ${updatedSpeaker.id} data`);
-													}
-													engineSpeaker.data = updatedSpeaker;
-												}
-											} catch (fallbackError) {
-												console.error(`Failed fallback update for speaker ${updatedSpeaker.id}:`, fallbackError);
-											}
-										});
-									}
-								}
+				// Handle updated speakers - replace their SpeakerTrack instances
+				if (updatedSpeakers.length > 0) {
+					if (config.debugMode) {
+						console.log(`Updating ${updatedSpeakers.length} existing speakers in engine`);
+					}
+					
+					updatedSpeakers.forEach((updatedSpeaker: any) => {
+						const speakerIndex = speakerEngine.speakers.findIndex(
+							(s: any) => s.data.id === updatedSpeaker.id
+						);
+						
+						if (speakerIndex >= 0) {
+							const existingTrack = speakerEngine.speakers[speakerIndex];
+							
+							if (config.debugMode) {
+								console.log(`Updating speaker ${updatedSpeaker.id} data in engine`);
+								console.log('Old speaker shape:', JSON.stringify(existingTrack.data.shape));
+								console.log('New speaker shape:', JSON.stringify(updatedSpeaker.shape));
+							}
+							
+							// Get the SpeakerTrack constructor from the existing instance
+							const SpeakerTrack = Object.getPrototypeOf(existingTrack).constructor;
+							
+							// Create new instance with updated data
+							const newSpeakerTrack = new SpeakerTrack({
+								data: updatedSpeaker,
+								audioContext: existingTrack.audioContext || speakerEngine.audioContext,
+								config: existingTrack.config || {},
+								groupId: existingTrack.groupId || updatedSpeaker.id
+							});
+							
+							// Replace the old instance in the speakers array
+							speakerEngine.speakers[speakerIndex] = newSpeakerTrack;
+							
+							if (config.debugMode) {
+								console.log(`Successfully replaced SpeakerTrack instance for speaker ${updatedSpeaker.id}`);
+							}
+						} else {
+							console.warn(`Could not find speaker ${updatedSpeaker.id} in engine to update`);
+						}
+					});
+				}
+				
+				// Force spatial audio recalculation after updates
+				try {
+					// First, recalculate volumes for all speakers
+					if (typeof (speakerEngine as any).calculateVolumesByLocation === 'function') {
+						(speakerEngine as any).calculateVolumesByLocation();
+						if (config.debugMode) {
+							console.log('Called calculateVolumesByLocation() on speaker engine');
+						}
+					}
+					
+					// Then trigger updateParams() with current listener location to force full recalculation
+					if (typeof (speakerEngine as any).updateParams === 'function' && (speakerEngine as any).mixParams) {
+						const currentMixParams = (speakerEngine as any).mixParams;
+						if (currentMixParams) {
+							(speakerEngine as any).updateParams(currentMixParams);
+							if (config.debugMode) {
+								console.log('Called updateParams() on speaker engine to force spatial recalculation');
 							}
 						}
+					}
+				} catch (engineError) {
+					console.error('Speaker engine spatial recalculation failed:', engineError);
+				}
+				
+				if (config.debugMode) {
+					console.log(`Speaker update completed. New speakers: ${newSpeakers.length}, Updated speakers: ${updatedSpeakers.length}`);
+					console.log(`Total speakers in engine after update: ${speakerEngine.speakers.length}`);
+					console.log(`Total speakers in roundware.speakers() after update: ${roundware.speakers().length}`);
+				}
+			}
 
-						// Only update timestamp if we actually processed some speakers
-						if (hasChanges) {
-							setLastSpeakerUpdateTime(new Date());
-						}
-					}
-									} catch (error) {
-						console.error('Failed to fetch speakers for periodic update:', error);
-					}
+			// Only update timestamp for periodic updates
+			if (!speakerIds && (newSpeakers.length > 0 || updatedSpeakers.length > 0)) {
+				setLastSpeakerUpdateTime(new Date());
 			}
 			
 			// Always trigger a force update to ensure UI components re-render

@@ -190,7 +190,14 @@ export const useSubmission = ({
         ...baseSpeakers.map(s => s.id) // Parent speakers that were modified
       ];
       
-      await updateSpeakers(speakerIdsToUpdate);
+      console.log("Updating speakers after recording submission:", speakerIdsToUpdate);
+      
+      try {
+        await updateSpeakers(speakerIdsToUpdate);
+        console.log("Successfully updated speakers after recording submission");
+      } catch (error) {
+        console.error("Failed to update speakers after recording submission:", error);
+      }
 
       // Remove automatic navigation - let the user control when to proceed via the thank you dialog
       // history.push(

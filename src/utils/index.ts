@@ -13,13 +13,28 @@ export const polygonToGoogleMapPaths = (polygon: {
   type: string;
   coordinates: number[][][] | number[][][][];
 }) => {
-  let coordinates: number[][] = [];
-  // @ts-ignore
-  if (polygon.type == "MultiPolygon") coordinates = polygon.coordinates[0][0];
-  // @ts-ignore
-  else if (polygon.type == "Polygon") coordinates = polygon.coordinates[0];
-  return coordinates?.map((p) => new window.google.maps.LatLng(p[1], p[0]));
+  try {
+    let coordinates: number[][] = [];
+    
+    // @ts-ignore
+    if (polygon.type == "MultiPolygon") {
+      coordinates = polygon.coordinates[0][0] as number[][];
+    }
+    // @ts-ignore
+    else if (polygon.type == "Polygon") {
+      coordinates = polygon.coordinates[0] as number[][];
+    } else {
+      console.warn('Unsupported polygon type:', polygon.type);
+      return [];
+    }
+
+    return coordinates?.map((p) => new window.google.maps.LatLng(p[1], p[0])) || [];
+  } catch (error) {
+    console.warn('Invalid polygon geometry, skipping map rendering:', error);
+    return [];
+  }
 };
+
 function getWidth() {
   return Math.max(
     document.body.scrollWidth,
