@@ -79,7 +79,7 @@ const RecordingControls = () => {
         functionality="microphone"
       />
       <Prompt
-        when={!!recorder.recordedAudioBlob && submission.status === "submitted"}
+        when={!!recorder.recordedAudioBlob && submission.status !== "submitted"}
         message={JSON.stringify({
           message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
           stay: `Keep Recording`,
