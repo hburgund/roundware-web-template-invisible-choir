@@ -192,9 +192,10 @@ export const useSubmission = ({
       
       await updateSpeakers(speakerIdsToUpdate);
 
-      history.push(
-        `/listen?latitude=${location.lat}&longitude=${location.lng}`
-      );
+      // Remove automatic navigation - let the user control when to proceed via the thank you dialog
+      // history.push(
+      //   `/listen?latitude=${location.lat}&longitude=${location.lng}`
+      // );
 
       setStatus("submitted");
     }
