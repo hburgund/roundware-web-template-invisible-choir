@@ -146,6 +146,30 @@ const RoundwareProvider = (props: PropTypes) => {
 			return true;
 		});
 	};
+
+	/**
+	 * Gets existing speaker group assignments from the current speaker engine.
+	 * This preserves the original group logic from roundware-web-framework.
+	 * Returns a Map where keys are speaker IDs and values are group IDs.
+	 */
+	const getExistingSpeakerGroups = (): Map<number, number> => {
+		const groupMap = new Map<number, number>();
+		
+		if (roundware?.mixer?.speakerEngine?.speakers) {
+			roundware.mixer.speakerEngine.speakers.forEach(track => {
+				if (track.data && track.data.id && track.groupId !== undefined) {
+					groupMap.set(track.data.id, track.groupId);
+				}
+			});
+		}
+		
+		if (config.debugMode) {
+			console.log('Existing speaker groups preserved:', Array.from(groupMap.entries()));
+		}
+		
+		return groupMap;
+	};
+
 	// tells the provider to update assetData dependencies with the roundware _assetData source
 	const updateAssets: IRoundwareContext[`updateAssets`] = (assetData) => {
 		const filteredAssets = filterAssets(assetData || roundware.assetData || []);
@@ -158,6 +182,7 @@ const RoundwareProvider = (props: PropTypes) => {
 	 * Can be called with specific speaker IDs (for immediate updates after recording submission) 
 	 * or without IDs (for periodic updates to catch changes from other users).
 	 * Uses surgical speaker track replacement to ensure spatial audio calculations use updated data.
+	 * Now properly calculates speaker groups based on parent/child relationships for synchronization.
 	 */
 	const updateSpeakers: IRoundwareContext[`updateSpeakers`] = async (speakerIds) => {
 		try {
@@ -297,47 +322,36 @@ const RoundwareProvider = (props: PropTypes) => {
 				}
 			}
 
-			// Now update the speaker engine using the surgical approach (same for both targeted and periodic updates)
+			// Surgical approach: update existing speakers, add new speakers to correct groups
 			if (roundware.mixer?.speakerEngine && (newSpeakers.length > 0 || updatedSpeakers.length > 0)) {
 				const speakerEngine = roundware.mixer.speakerEngine;
 				
-				// Handle new speakers - add SpeakerTrack instances without disrupting existing ones
-				if (newSpeakers.length > 0) {
-					if (config.debugMode) {
-						console.log(`Adding ${newSpeakers.length} new speakers to audio engine`);
+				// Helper function to find the correct group ID for a new speaker based on its parents
+				const findGroupIdForNewSpeaker = (speakerData: any): number => {
+					if (!speakerData.parents || !Array.isArray(speakerData.parents) || speakerData.parents.length === 0) {
+						// No parents - create its own group
+						return speakerData.id;
 					}
 					
-					// Get existing speaker tracks for reference
-					const existingSpeakerTracks = speakerEngine.speakers || [];
-					
-					if (existingSpeakerTracks.length > 0) {
-						// Use existing speaker track as template
-						const templateTrack = existingSpeakerTracks[0];
-						const SpeakerTrack = Object.getPrototypeOf(templateTrack).constructor;
-						
-						// Create SpeakerTrack instances for new speakers
-						const newSpeakerTracks = newSpeakers.map((data: any) => {
-							return new SpeakerTrack({
-								data,
-								audioContext: speakerEngine.audioContext,
-								config: roundware.mixer.mixParams.speakerConfig!,
-								groupId: data.id, // Use speaker ID as group ID for new speakers
-							});
-						});
-						
-						// Add new speaker tracks to the engine
-						speakerEngine.speakers.push(...newSpeakerTracks);
-						
-						if (config.debugMode) {
-							console.log(`Successfully added ${newSpeakerTracks.length} speaker tracks to engine`);
+					// Find the group ID of the first parent that exists in the speaker engine
+					for (const parentId of speakerData.parents) {
+						const parentTrack = speakerEngine.speakers.find((track: any) => track.data.id === parentId);
+						if (parentTrack && parentTrack.groupId !== undefined) {
+							if (config.debugMode) {
+								console.log(`New speaker ${speakerData.id} joining group ${parentTrack.groupId} from parent ${parentId}`);
+							}
+							return parentTrack.groupId;
 						}
-					} else {
-						// No existing speakers to use as template - this shouldn't happen in normal operation
-						console.warn('No existing speaker tracks found to use as template for new speakers');
 					}
-				}
-
-				// Handle updated speakers - replace their SpeakerTrack instances
+					
+					// Fallback: if no parent found in engine, use speaker's own ID
+					if (config.debugMode) {
+						console.log(`New speaker ${speakerData.id} parents not found in engine, creating new group`);
+					}
+					return speakerData.id;
+				};
+				
+				// Handle updated speakers - just update their data, preserve group ID and buffers
 				if (updatedSpeakers.length > 0) {
 					if (config.debugMode) {
 						console.log(`Updating ${updatedSpeakers.length} existing speakers in engine`);
@@ -352,48 +366,78 @@ const RoundwareProvider = (props: PropTypes) => {
 							const existingTrack = speakerEngine.speakers[speakerIndex];
 							
 							if (config.debugMode) {
-								console.log(`Updating speaker ${updatedSpeaker.id} data in engine`);
-								console.log('Old speaker shape:', JSON.stringify(existingTrack.data.shape));
-								console.log('New speaker shape:', JSON.stringify(updatedSpeaker.shape));
+								console.log(`Updating speaker ${updatedSpeaker.id} data, preserving group ${existingTrack.groupId}`);
 							}
 							
-							// Store the current buffer state before updating
+							// Store the current buffer and group state before updating
 							const wasBufferLoaded = !!existingTrack.buffer;
 							const currentBuffer = existingTrack.buffer;
+							const currentRequest = existingTrack.request;
+							const currentGroupId = existingTrack.groupId;
 							
 							// Get the SpeakerTrack constructor from the existing instance
 							const SpeakerTrack = Object.getPrototypeOf(existingTrack).constructor;
 							
-							// Create new instance with updated data to get proper spatial calculations
+							// Create new instance with updated data but preserve group ID
 							const newSpeakerTrack = new SpeakerTrack({
 								data: updatedSpeaker,
 								audioContext: existingTrack.audioContext || speakerEngine.audioContext,
 								config: existingTrack.config || {},
-								groupId: existingTrack.groupId || updatedSpeaker.id
+								groupId: currentGroupId // Preserve existing group ID
 							});
 							
-							// If the old track had a loaded buffer, restore it to the new track
+							// Restore buffer if it existed
 							if (wasBufferLoaded && currentBuffer) {
 								newSpeakerTrack.buffer = currentBuffer;
-								// Copy other relevant loaded state
-								if (existingTrack.request) {
-									newSpeakerTrack.request = existingTrack.request;
-								}
+								newSpeakerTrack.request = currentRequest;
 								if (config.debugMode) {
 									console.log(`Restored buffer to updated speaker ${updatedSpeaker.id}`);
 								}
 							}
 							
-							// Replace with the new track that has updated spatial calculations
+							// Replace with the new track
 							speakerEngine.speakers[speakerIndex] = newSpeakerTrack;
-							
-							if (config.debugMode) {
-								console.log(`Successfully replaced SpeakerTrack with updated spatial calculations for speaker ${updatedSpeaker.id}, buffer preserved: ${wasBufferLoaded}`);
-							}
 						} else {
 							console.warn(`Could not find speaker ${updatedSpeaker.id} in engine to update`);
 						}
 					});
+				}
+				
+				// Handle new speakers - add them to the correct group based on parent relationships
+				if (newSpeakers.length > 0) {
+					if (config.debugMode) {
+						console.log(`Adding ${newSpeakers.length} new speakers to audio engine`);
+					}
+					
+					// Get existing speaker tracks for reference
+					const existingSpeakerTracks = speakerEngine.speakers || [];
+					
+					if (existingSpeakerTracks.length > 0) {
+						// Use existing speaker track as template
+						const templateTrack = existingSpeakerTracks[0];
+						const SpeakerTrack = Object.getPrototypeOf(templateTrack).constructor;
+						
+						// Create SpeakerTrack instances for new speakers with correct group IDs
+						const newSpeakerTracks = newSpeakers.map((data: any) => {
+							const groupId = findGroupIdForNewSpeaker(data);
+							
+							return new SpeakerTrack({
+								data,
+								audioContext: speakerEngine.audioContext,
+								config: roundware.mixer.mixParams.speakerConfig!,
+								groupId: groupId,
+							});
+						});
+						
+						// Add new speaker tracks to the engine
+						speakerEngine.speakers.push(...newSpeakerTracks);
+						
+						if (config.debugMode) {
+							console.log(`Successfully added ${newSpeakerTracks.length} speaker tracks to engine`);
+						}
+					} else {
+						console.warn('No existing speaker tracks found to use as template for new speakers');
+					}
 				}
 				
 				// Force spatial audio recalculation after updates
@@ -524,6 +568,43 @@ const RoundwareProvider = (props: PropTypes) => {
 			});
 		}
 	}, [roundware?.project]);
+
+	// Log original speaker groups when speaker engine is first available
+	useEffect(() => {
+		if (roundware?.mixer?.speakerEngine?.speakers && Array.isArray(roundware.mixer.speakerEngine.speakers) && roundware.mixer.speakerEngine.speakers.length > 0) {
+			if (config.debugMode) {
+				console.log('=== ORIGINAL SPEAKER GROUPS (before recalculation) ===');
+				
+				// Log raw speaker data with parent relationships
+				const speakersData = roundware.speakers();
+				console.log('Raw speaker data from API:', speakersData.map(s => ({
+					id: s.id,
+					parents: s.parents || 'none',
+					// Include any other relevant fields you want to see
+				})));
+				
+				// Log original group IDs from speaker engine
+				const originalGroups = roundware.mixer.speakerEngine.speakers.map(track => ({
+					speakerId: track.data.id,
+					originalGroupId: track.groupId,
+					hasParents: track.data.parents ? track.data.parents.length > 0 : false,
+					parents: track.data.parents || []
+				}));
+				console.log('Original speaker engine group assignments:', originalGroups);
+				
+				// Group by original group ID to see the structure
+				const groupedByOriginalId = new Map();
+				originalGroups.forEach(speaker => {
+					if (!groupedByOriginalId.has(speaker.originalGroupId)) {
+						groupedByOriginalId.set(speaker.originalGroupId, []);
+					}
+					groupedByOriginalId.get(speaker.originalGroupId).push(speaker.speakerId);
+				});
+				console.log('Original groups structure:', Array.from(groupedByOriginalId.entries()));
+				console.log('=== END ORIGINAL SPEAKER GROUPS ===');
+			}
+		}
+	}, [roundware?.mixer?.speakerEngine?.speakers]);
 
 	// Set up periodic speaker updates using configurable interval
 	// This helps catch speakers added by other users
