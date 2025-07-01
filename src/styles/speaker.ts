@@ -8,6 +8,6 @@ export const speakerPolygonOptions: PolygonProps[`options`] = {
 	editable: false,
 	strokeOpacity: 0,
 	strokeWeight: 0,
-	fillOpacity: 0.25,
+	// fillOpacity removed - now uses config.map.speakerDisplayDefaults.fillOpacity
 	strokeColor: undefined,
 };

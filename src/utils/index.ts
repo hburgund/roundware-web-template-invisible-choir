@@ -194,3 +194,9 @@ function getWavHeader(options: {
 
   return new Uint8Array(buffer);
 }
+
+// Export color utilities
+export * from './colors';
+
+// Export speaker API utilities
+export * from './speakerApi';

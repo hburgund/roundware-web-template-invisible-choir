@@ -1,5 +1,6 @@
 // types for config file
 
+// @ts-ignore - SpeakerConfig exists in framework but may not be exported in index
 import { SpeakerConfig } from "roundware-web-framework";
 
 export type IAssetCardConfig = {
@@ -101,6 +102,12 @@ export type IConfig = {
     speakerDisplay?: "images" | "polygons" | "none";
     /** colors to be used for speaker polygons */
     speakerPolygonColors: string[];
+    /** Default styling for speaker polygon display */
+    speakerDisplayDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+    };
     /** should the map area be restricted */
     useListenMapBounds: boolean;
     /** should the bounds markers be shown;  */

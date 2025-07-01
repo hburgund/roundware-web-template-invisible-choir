@@ -10,6 +10,7 @@ import { IAssetData } from "roundware-web-framework";
 import { ITag } from "roundware-web-framework";
 import { ISpeakerData } from "roundware-web-framework";
 import { generateBeechLeafShape } from "@/utils/speakerShapes";
+import { getRandomSpeakerColor } from "@/utils/colors";
 
 // hook to handle saving of the recording to server
 export const useSubmission = ({
@@ -124,6 +125,10 @@ export const useSubmission = ({
       formData.append("maxvolume", "1.0");
       formData.append("minvolume", "0.0");
       formData.append("shape", JSON.stringify(speakerShape.geometry));
+
+      // Add random fill_color from config
+      const fillColor = getRandomSpeakerColor();
+      formData.append("fill_color", fillColor);
 
       formData.append("file", recordedAudioBlob);
       formData.append("attenuation_distance", "5");
