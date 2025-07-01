@@ -146,4 +146,115 @@ export function getBaseColor(color: string | undefined): string | undefined {
   } catch {
     return color;
   }
+}
+
+/**
+ * Normalizes a hex color for case-insensitive comparison
+ * @param color - Hex color string
+ * @returns Normalized hex color in uppercase
+ */
+export function normalizeHexColor(color: string): string {
+  return color.trim().toUpperCase();
+}
+
+/**
+ * Groups speakers by their fill_color (case-insensitive)
+ * @param speakers - Array of speakers with color data
+ * @returns Map of normalized fill_color to array of speakers
+ */
+export function groupSpeakersByFillColor(speakers: any[]): Map<string, any[]> {
+  const groups = new Map<string, any[]>();
+  
+  for (const speaker of speakers) {
+    // Skip speakers with invalid fill_color
+    if (!isValidColor(speaker.fill_color)) {
+      continue;
+    }
+    
+    const normalizedColor = normalizeHexColor(speaker.fill_color);
+    
+    if (!groups.has(normalizedColor)) {
+      groups.set(normalizedColor, []);
+    }
+    groups.get(normalizedColor)!.push(speaker);
+  }
+  
+  return groups;
+}
+
+/**
+ * Selects color pair using cascading logic based on parent speakers
+ * @param parentSpeakers - Array of parent speakers
+ * @returns Color pair object or null if should fall back to random config selection
+ */
+export function selectCascadingColorPair(parentSpeakers: any[]): { fill_color: string; border_color?: string } | null {
+  // No parents - fall back to random config selection
+  if (!parentSpeakers || parentSpeakers.length === 0) {
+    return null;
+  }
+  
+  // Group parents by fill_color
+  const colorGroups = groupSpeakersByFillColor(parentSpeakers);
+  
+  // No parents with valid colors - fall back to random config selection
+  if (colorGroups.size === 0) {
+    return null;
+  }
+  
+  // Find the group(s) with the most parents
+  const maxGroupSize = Math.max(...Array.from(colorGroups.values()).map(group => group.length));
+  const largestGroups = Array.from(colorGroups.entries()).filter(([_, group]) => group.length === maxGroupSize);
+  
+  // For ties, randomly select one of the tied groups
+  const randomIndex = Math.floor(Math.random() * largestGroups.length);
+  const [selectedColor, selectedGroup] = largestGroups[randomIndex];
+  
+  // Use the color pair from any speaker in the selected group (they all share the same fill_color)
+  const representativeSpeaker = selectedGroup[0];
+  
+  return {
+    fill_color: representativeSpeaker.fill_color,
+    border_color: isValidColor(representativeSpeaker.border_color) ? representativeSpeaker.border_color : undefined
+  };
+}
+
+/**
+ * Selects a color pair for a new speaker using cascading logic
+ * @param parentSpeakers - Array of parent speakers
+ * @returns Color pair object with fill_color and optional border_color
+ * 
+ * @example
+ * // Scenario 1: One parent
+ * getNewSpeakerColorPair([{fill_color: "#7F1D1D", border_color: "#B45309"}])
+ * // Returns: {fill_color: "#7F1D1D", border_color: "#B45309"}
+ * 
+ * // Scenario 2: Multiple parents, clear predominance
+ * getNewSpeakerColorPair([
+ *   {fill_color: "#7F1D1D", border_color: "#B45309"},  // red
+ *   {fill_color: "#7F1D1D", border_color: "#B45309"},  // red  
+ *   {fill_color: "#059669", border_color: "#065F46"}   // green
+ * ])
+ * // Returns: {fill_color: "#7F1D1D", border_color: "#B45309"} (red wins 2-1)
+ * 
+ * // Scenario 3: Tie between colors
+ * getNewSpeakerColorPair([
+ *   {fill_color: "#7F1D1D", border_color: "#B45309"},  // red
+ *   {fill_color: "#059669", border_color: "#065F46"}   // green
+ * ])
+ * // Returns: randomly either red or green color pair
+ * 
+ * // Scenario 4: No parents
+ * getNewSpeakerColorPair([])
+ * // Returns: random color pair from config
+ */
+export function getNewSpeakerColorPair(parentSpeakers: any[] = []): { fill_color: string; border_color?: string } {
+  // Try cascading selection first
+  const cascadingColors = selectCascadingColorPair(parentSpeakers);
+  
+  if (cascadingColors) {
+    return cascadingColors;
+  }
+  
+  // Fall back to random config selection
+  return getRandomSpeakerColorPair();
 } 

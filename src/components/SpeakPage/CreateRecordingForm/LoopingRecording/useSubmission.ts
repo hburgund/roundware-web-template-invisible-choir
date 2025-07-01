@@ -10,7 +10,7 @@ import { IAssetData } from "roundware-web-framework";
 import { ITag } from "roundware-web-framework";
 import { ISpeakerData } from "roundware-web-framework";
 import { generateBeechLeafShape } from "@/utils/speakerShapes";
-import { getRandomSpeakerColorPair } from "@/utils/colors";
+import { getNewSpeakerColorPair } from "@/utils/colors";
 
 // hook to handle saving of the recording to server
 export const useSubmission = ({
@@ -126,8 +126,17 @@ export const useSubmission = ({
       formData.append("minvolume", "0.0");
       formData.append("shape", JSON.stringify(speakerShape.geometry));
 
-      // Add random colors from config (fill and optionally border)
-      const colorPair = getRandomSpeakerColorPair();
+      // Add cascading colors based on parent speakers (or random from config if no parents)
+      const colorPair = getNewSpeakerColorPair(baseSpeakers);
+      
+      if (finalConfig.debugMode) {
+        console.log("Speaker color selection:", {
+          parentCount: baseSpeakers.length,
+          parentColors: baseSpeakers.map(s => ({ id: s.id, fill_color: s.fill_color, border_color: s.border_color })),
+          selectedColors: colorPair
+        });
+      }
+      
       formData.append("fill_color", colorPair.fill_color);
       if (colorPair.border_color) {
         formData.append("border_color", colorPair.border_color);
