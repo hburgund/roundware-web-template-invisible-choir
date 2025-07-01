@@ -1,7 +1,7 @@
 import { PolygonProps } from '@react-google-maps/api';
-import finalConfig from '@/config';
+import { getFillColorsFromConfig } from '@/utils/colors';
 
-export const speakerPolygonColors = finalConfig.map.speakerPolygonColors;
+export const speakerPolygonColors = getFillColorsFromConfig();
 export const speakerPolygonOptions: PolygonProps[`options`] = {
 	clickable: false,
 	draggable: false,

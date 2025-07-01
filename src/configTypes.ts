@@ -100,8 +100,8 @@ export type IConfig = {
      * 'images' will overlay the speaker region with the image "speaker.png" file
      */
     speakerDisplay?: "images" | "polygons" | "none";
-    /** colors to be used for speaker polygons */
-    speakerPolygonColors: string[];
+    /** colors to be used for speaker polygons - either array of colors or array of [fill, border] pairs */
+    speakerPolygonColors: string[] | [string, string][];
     /** Default styling for speaker polygon display */
     speakerDisplayDefaults: {
       strokeWeight: number;
