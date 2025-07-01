@@ -197,6 +197,3 @@ function getWavHeader(options: {
 
 // Export color utilities
 export * from './colors';
-
-// Export speaker API utilities
-export * from './speakerApi';

@@ -12,7 +12,6 @@ import {
 	getStrokeOpacity, 
 	getBaseColor 
 } from '@/utils/colors';
-import { updateSpeakerFillColor } from '@/utils/speakerApi';
 // Import module augmentation to extend ISpeakerData with color fields
 import '@/types/speaker-augmentation';
 
@@ -22,9 +21,6 @@ const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 
-// Track speakers that are being processed to avoid duplicate PATCH requests
-const speakersBeingPatched = new Set<number>();
-
 const SpeakerPolygons = (props: Props) => {
 	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
 
@@ -32,48 +28,23 @@ const SpeakerPolygons = (props: Props) => {
 	const [googleMapPolygonProps, setGoogleMapPolygonProps] = useState<PolygonProps[]>([]);
 
 	/**
-	 * Gets the fill color for a speaker, either from the database or randomly assigned
+	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
 	 */
-	const getSpeakerFillColor = useCallback(async (speaker: any, fallbackIndex: number): Promise<string> => {
-		// Now speaker will have fill_color due to module augmentation
-		
-		// If speaker already has a fill_color, use it
+	const getSpeakerFillColor = useCallback((speaker: any, fallbackIndex: number): string => {
+		// Server migration provides default colors, but fallback for invalid data
 		if (isValidColor(speaker.fill_color)) {
 			return speaker.fill_color;
 		}
 
-		// If this speaker is already being processed, use fallback color to avoid duplicate requests
-		if (speakersBeingPatched.has(speaker.id)) {
-			return getColorForIndex(fallbackIndex);
+		// Fallback to config colors for invalid data
+		if (config.debugMode) {
+			console.warn(`Invalid fill_color "${speaker.fill_color}" for speaker ${speaker.id}, using config fallback`);
 		}
-
-		// Speaker doesn't have a color, assign one randomly and save to database
-		const randomColor = getRandomSpeakerColor();
 		
-		// Mark this speaker as being processed
-		speakersBeingPatched.add(speaker.id);
-		
-		try {
-			// Update the database with the new color
-			await updateSpeakerFillColor(roundware, speaker.id, randomColor);
-			
-			// Update the local speaker data to avoid future requests
-			speaker.fill_color = randomColor;
-			
-			if (config.debugMode) {
-				console.log(`Assigned and saved color ${randomColor} to speaker ${speaker.id}`);
-			}
-		} catch (error) {
-			console.error(`Failed to save color for speaker ${speaker.id}:`, error);
-		} finally {
-			// Remove from processing set
-			speakersBeingPatched.delete(speaker.id);
-		}
+		return getColorForIndex(fallbackIndex);
+	}, []);
 
-		return randomColor;
-	}, [roundware]);
-
-	const updatePolygons = useCallback(async () => {
+	const updatePolygons = useCallback(() => {
 		const speakers = roundware.mixer.speakerEngine?.speakers
 			?.sort((a: any, b: any) => (a?.data.id > b?.data.id ? -1 : 1))
 			?.filter(({ data: speaker }: any) => !!speaker.shape)
@@ -84,46 +55,44 @@ const SpeakerPolygons = (props: Props) => {
 			return;
 		}
 
-		// Process speakers and get their colors
-		const polygonProps = await Promise.all(
-			speakers.map(async (s: any, index: number) => {
-				// s.data now automatically has fill_color and border_color due to module augmentation
-				
-				// Get fill color (persistent or newly assigned)
-				const fillColor = await getSpeakerFillColor(s.data, index);
-				const baseFillColor = getBaseColor(fillColor);
-				const fillOpacity = getFillOpacity(fillColor, speakerPolygonOptions?.fillOpacity || config.map.speakerDisplayDefaults?.fillOpacity || 0.25);
+		// Process speakers and get their colors  
+		const polygonProps = speakers.map((s: any, index: number) => {
+			// s.data now automatically has fill_color and border_color due to module augmentation
+			
+			// Get fill color (from server or config fallback)
+			const fillColor = getSpeakerFillColor(s.data, index);
+			const baseFillColor = getBaseColor(fillColor);
+			const fillOpacity = getFillOpacity(fillColor, speakerPolygonOptions?.fillOpacity || config.map.speakerDisplayDefaults?.fillOpacity || 0.25);
 
-				// Handle border color
-				const borderColor = s.data.border_color;
-				const baseBorderColor = getBaseColor(borderColor);
-				const strokeOpacity = getStrokeOpacity(borderColor, config.map.speakerDisplayDefaults?.strokeOpacity || 1);
-				const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (speakerPolygonOptions?.strokeWeight || 0);
+			// Handle border color
+			const borderColor = s.data.border_color;
+			const baseBorderColor = getBaseColor(borderColor);
+			const strokeOpacity = getStrokeOpacity(borderColor, config.map.speakerDisplayDefaults?.strokeOpacity || 1);
+			const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (speakerPolygonOptions?.strokeWeight || 0);
 
-				const prop: PolygonProps & { key: string } = {
-					path: polygonToGoogleMapPaths(s.data.shape!),
-					options: {
-						...options,
-						fillColor: baseFillColor || getColorForIndex(index),
-						fillOpacity: fillOpacity,
-						strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
-						strokeOpacity: strokeOpacity,
-						strokeWeight: strokeWeight,
-						// Handle speakers without loaded audio buffer
-						...(!s.buffer
-							? {
-									fillOpacity: 0,
-									strokeOpacity: strokeOpacity > 0 ? strokeOpacity : 1,
-									strokeWeight: strokeWeight > 0 ? strokeWeight : 1,
-									strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
-							  }
-							: {}),
-					},
-					key: s.data.id.toString(),
-				};
-				return prop;
-			})
-		);
+			const prop: PolygonProps & { key: string } = {
+				path: polygonToGoogleMapPaths(s.data.shape!),
+				options: {
+					...options,
+					fillColor: baseFillColor || getColorForIndex(index),
+					fillOpacity: fillOpacity,
+					strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
+					strokeOpacity: strokeOpacity,
+					strokeWeight: strokeWeight,
+					// Handle speakers without loaded audio buffer
+					...(!s.buffer
+						? {
+								fillOpacity: 0,
+								strokeOpacity: strokeOpacity > 0 ? strokeOpacity : 1,
+								strokeWeight: strokeWeight > 0 ? strokeWeight : 1,
+								strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
+						  }
+						: {}),
+				},
+				key: s.data.id.toString(),
+			};
+			return prop;
+		});
 
 		setGoogleMapPolygonProps(polygonProps);
 	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor]);
