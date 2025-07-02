@@ -110,34 +110,57 @@ export type IConfig = {
     };
     /** Styling for speaker center markers and connection lines */
     speakerConnectorStyles: {
-      /** Size (radius) of center markers */
-      markerSize: number;
-      /** Border color of center markers */
-      markerBorderColor: string;
-      /** Border stroke weight of center markers */
-      markerBorderStrokeWeight: number;
-      /** Fill color of center markers - "auto" uses polygon color, or hex color */
-      markerFill: "auto" | string;
-      /** Opacity of center markers (0-1) */
-      markerOpacity: number;
-      /** Z-index for center markers */
-      markerZIndex: number;
-      /** Stroke weight of connection lines */
-      connectorLineWeight: number;
-      /** Color of connection lines (hex with optional alpha) */
-      connectorLineColor: string;
-      /** Opacity of connection lines (0-1) */
-      connectorLineOpacity: number;
-      /** Z-index for connection lines */
-      connectorZIndex: number;
-      /** Dash pattern for connection lines - empty array for solid line */
-      connectorDashPattern: number[];
+      // === CURVE BEHAVIOR (applies to both arc and bezier) ===
+      /** Type of curve algorithm to use */
+      curveType: "arc" | "bezier";
       /** Curve intensity for connection lines - number for fixed intensity, or [min, max] array for random range */
-      connectorCurveIntensity: number | [number, number];
+      curveIntensity: number | [number, number];
       /** Enable organic variations like random curve direction and subtle noise (default: true) */
-      connectorOrganicVariations?: boolean;
+      organicVariations?: boolean;
       /** Intensity of organic noise added to curves (0-1, default: 0.1) */
-      connectorNoiseIntensity?: number;
+      noiseIntensity?: number;
+
+      // === BEZIER-SPECIFIC SETTINGS ===  
+      bezier?: {
+        /** Number of control points (2 for cubic bezier) */
+        controlPoints?: number;
+        /** How far bezier control points offset from the straight line - [min, max] for variation */
+        waveIntensity?: number | [number, number];
+        /** Asymmetry factor for S-curves - 0 = symmetric, 1 = highly asymmetric */
+        asymmetry?: number;
+        /** Complexity of bezier curves - simple = smooth S, wavy = multiple waves */
+        complexity?: "simple" | "wavy";
+        /** Amplitude of small waves in wavy mode - 0 = no small waves, higher = more pronounced waves */
+        waveAmplitude?: number;
+      };
+
+      // === MARKER STYLING ===
+      markers: {
+        /** Size (radius) of center markers */
+        size: number;
+        /** Border color of center markers */
+        borderColor: string;
+        /** Border stroke weight of center markers */
+        borderWeight: number;
+        /** Fill color of center markers - "auto" uses polygon color, or hex color */
+        fill: "auto" | string;
+        /** Opacity of center markers (0-1) */
+        opacity: number;
+        /** Z-index for center markers */
+        zIndex: number;
+      };
+
+      // === LINE STYLING ===
+      lines: {
+        /** Stroke weight of connection lines */
+        weight: number;
+        /** Color of connection lines (hex with optional alpha) */
+        color: string;
+        /** Opacity of connection lines (0-1) */
+        opacity: number;
+        /** Z-index for connection lines */
+        zIndex: number;
+      };
     };
     /** should the map area be restricted */
     useListenMapBounds: boolean;

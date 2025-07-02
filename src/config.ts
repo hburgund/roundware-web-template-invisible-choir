@@ -86,20 +86,38 @@ let config: IConfig = {
       fillOpacity: 0.25,
     },
     speakerConnectorStyles: {
-      markerSize: 2,
-      markerBorderColor: "#ffffff",
-      markerBorderStrokeWeight: 1,
-      markerFill: "auto",
-      markerOpacity: 0.5,
-      markerZIndex: 2000,
-      connectorLineWeight: 1,
-      connectorLineColor: "#ffffff",
-      connectorLineOpacity: 0.3,
-      connectorZIndex: 1000,
-      connectorDashPattern: [],
-      connectorCurveIntensity: [0.05, 0.5],
-      connectorOrganicVariations: true,
-      connectorNoiseIntensity: 0.01,
+      // === CURVE BEHAVIOR (applies to both arc and bezier) ===
+      curveType: "bezier",
+      curveIntensity: [0.05, 0.5],
+      organicVariations: true,
+      noiseIntensity: 0.0,
+
+      // === BEZIER-SPECIFIC SETTINGS ===
+      bezier: {
+        controlPoints: 2,
+        waveIntensity: [0.2, 0.6],
+        asymmetry: 0,
+        complexity: "wavy",
+        waveAmplitude: 0.0,
+      },
+
+      // === MARKER STYLING ===
+      markers: {
+        size: 2,
+        borderColor: "#ffffff",
+        borderWeight: 1,
+        fill: "auto",
+        opacity: 0.5,
+        zIndex: 2000,
+      },
+
+      // === LINE STYLING ===
+      lines: {
+        weight: 1,
+        color: "#ffffff",
+        opacity: 0.3,
+        zIndex: 1000,
+      },
     },
     useListenMapBounds: false,
     showBoundsMarkers: false,

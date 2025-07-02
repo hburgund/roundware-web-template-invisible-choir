@@ -100,9 +100,12 @@ const calculatePolygonCenter = (shape: any): google.maps.LatLngLiteral => {
 };
 
 /**
- * Calculate curved connection path points using simple arc approach with organic variations
+ * Calculate curved connection path points using arc or bezier approach with organic variations
  */
-const calculateArcPoints = (start: google.maps.LatLngLiteral, end: google.maps.LatLngLiteral, curveIntensityConfig: number | [number, number], connectionId: string): google.maps.LatLngLiteral[] => {
+const calculateCurvedPoints = (start: google.maps.LatLngLiteral, end: google.maps.LatLngLiteral, curveIntensityConfig: number | [number, number], connectionId: string): google.maps.LatLngLiteral[] => {
+	// Get curve configuration
+	const curveType = config.map.speakerConnectorStyles.curveType;
+	
 	// Determine curve intensity from config (single value or random from range)
 	let curveIntensity: number;
 	if (Array.isArray(curveIntensityConfig)) {
@@ -120,8 +123,8 @@ const calculateArcPoints = (start: google.maps.LatLngLiteral, end: google.maps.L
 	const points: google.maps.LatLngLiteral[] = [];
 	
 	// Check if organic variations are enabled
-	const organicVariations = config.map.speakerConnectorStyles.connectorOrganicVariations !== false;
-	const noiseIntensity = config.map.speakerConnectorStyles.connectorNoiseIntensity || 0.1;
+	const organicVariations = config.map.speakerConnectorStyles.organicVariations !== false;
+	const noiseIntensity = config.map.speakerConnectorStyles.noiseIntensity || 0.1;
 
 	// Add slight randomness to number of points for organic feel (15-25 points) if variations enabled
 	const basePoints = 20;
@@ -154,6 +157,152 @@ const calculateArcPoints = (start: google.maps.LatLngLiteral, end: google.maps.L
 		const x = Math.sin(seed + index) * 10000;
 		return x - Math.floor(x);
 	};
+
+	if (curveType === "bezier") {
+		// Bezier curve implementation
+		return calculateBezierCurve(start, end, curveIntensity, connectionId, numPoints, distance, normalizedOffsetLat, normalizedOffsetLng, seededRandom, organicVariations, noiseIntensity);
+	} else {
+		// Arc curve implementation (existing logic)
+		return calculateArcCurve(start, end, curveIntensity, numPoints, distance, normalizedOffsetLat, normalizedOffsetLng, seededRandom, organicVariations, noiseIntensity);
+	}
+};
+
+/**
+ * Calculate bezier curve points with S-curve and wavy variations
+ */
+const calculateBezierCurve = (
+	start: google.maps.LatLngLiteral, 
+	end: google.maps.LatLngLiteral, 
+	curveIntensity: number,
+	connectionId: string,
+	numPoints: number,
+	distance: number,
+	normalizedOffsetLat: number,
+	normalizedOffsetLng: number,
+	seededRandom: (index: number) => number,
+	organicVariations: boolean,
+	noiseIntensity: number
+): google.maps.LatLngLiteral[] => {
+	const points: google.maps.LatLngLiteral[] = [];
+	
+	// Get bezier configuration
+	const waveIntensityConfig = config.map.speakerConnectorStyles.bezier?.waveIntensity || 0.3;
+	const asymmetry = config.map.speakerConnectorStyles.bezier?.asymmetry || 0;
+	const complexity = config.map.speakerConnectorStyles.bezier?.complexity || "simple";
+	const waveAmplitude = config.map.speakerConnectorStyles.bezier?.waveAmplitude || 0;
+
+	// Determine wave intensity
+	let waveIntensity: number;
+	if (Array.isArray(waveIntensityConfig)) {
+		const [min, max] = waveIntensityConfig;
+		// Only use random range if organic variations are enabled, otherwise use minimum value
+		waveIntensity = organicVariations ? min + seededRandom(10) * (max - min) : min;
+	} else {
+		waveIntensity = waveIntensityConfig;
+	}
+
+	// Create control points for S-curve
+	// Control point 1 at 1/3 along the line
+	const cp1t = 1/3;
+	const cp1BaseLat = start.lat + cp1t * (end.lat - start.lat);
+	const cp1BaseLng = start.lng + cp1t * (end.lng - start.lng);
+	
+	// Control point 2 at 2/3 along the line  
+	const cp2t = 2/3;
+	const cp2BaseLat = start.lat + cp2t * (end.lat - start.lat);
+	const cp2BaseLng = start.lng + cp2t * (end.lng - start.lng);
+
+	// Apply S-curve offsets (opposite directions for serpentine effect)
+	let cp1Offset = waveIntensity * distance * curveIntensity;
+	let cp2Offset = -waveIntensity * distance * curveIntensity; // Opposite direction
+
+	// Apply asymmetry only if organic variations are enabled AND asymmetry > 0
+	if (organicVariations && asymmetry > 0) {
+		const asymmetryFactor = 1 + (seededRandom(11) - 0.5) * asymmetry;
+		cp1Offset *= asymmetryFactor;
+		cp2Offset *= (2 - asymmetryFactor); // Inverse relationship
+	}
+
+	// Random curve direction only if organic variations enabled
+	if (organicVariations && seededRandom(12) > 0.5) {
+		cp1Offset *= -1;
+		cp2Offset *= -1;
+	}
+
+	// Calculate control point positions
+	const cp1Lat = cp1BaseLat + normalizedOffsetLat * cp1Offset;
+	const cp1Lng = cp1BaseLng + normalizedOffsetLng * cp1Offset;
+	const cp2Lat = cp2BaseLat + normalizedOffsetLat * cp2Offset;
+	const cp2Lng = cp2BaseLng + normalizedOffsetLng * cp2Offset;
+
+	// Generate bezier curve points
+	for (let i = 0; i <= numPoints; i++) {
+		const t = i / numPoints;
+		const oneMinusT = 1 - t;
+		const oneMinusTCubed = oneMinusT * oneMinusT * oneMinusT;
+		const oneMinusTSquared = oneMinusT * oneMinusT;
+		const tSquared = t * t;
+		const tCubed = t * t * t;
+
+		// Cubic bezier formula: (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+		let lat = oneMinusTCubed * start.lat + 
+				 3 * oneMinusTSquared * t * cp1Lat + 
+				 3 * oneMinusT * tSquared * cp2Lat + 
+				 tCubed * end.lat;
+		
+		let lng = oneMinusTCubed * start.lng + 
+				 3 * oneMinusTSquared * t * cp1Lng + 
+				 3 * oneMinusT * tSquared * cp2Lng + 
+				 tCubed * end.lng;
+
+		// Add wavy complexity if enabled
+		if (complexity === "wavy" && organicVariations && waveAmplitude > 0) {
+			const waveFrequency = 2; // Number of small waves along the curve
+			const scaledWaveAmplitude = waveAmplitude * waveIntensity * distance;
+			const wave = Math.sin(Math.PI * t * waveFrequency + seededRandom(i + 20) * Math.PI) * scaledWaveAmplitude;
+			
+			lat += normalizedOffsetLat * wave;
+			lng += normalizedOffsetLng * wave;
+		}
+
+		// Add organic noise if enabled and noise intensity > 0
+		if (organicVariations && noiseIntensity > 0) {
+			const noiseFrequency = 3;
+			const noise = Math.sin(Math.PI * t * noiseFrequency + seededRandom(i + 30) * Math.PI * 2) * noiseIntensity;
+			const noiseOffset = noise * waveIntensity * distance * 0.1;
+			
+			lat += normalizedOffsetLat * noiseOffset;
+			lng += normalizedOffsetLng * noiseOffset;
+		}
+		
+		// Add jitter only if organic variations enabled and noise intensity > 0 (using noise as proxy for wanting randomness)
+		if (organicVariations && noiseIntensity > 0) {
+			lat += (seededRandom(i + 100) - 0.5) * 0.05 * waveIntensity * distance;
+			lng += (seededRandom(i + 200) - 0.5) * 0.05 * waveIntensity * distance;
+		}
+
+		points.push({ lat, lng });
+	}
+
+	return points;
+};
+
+/**
+ * Calculate simple arc curve points (original arc implementation)
+ */
+const calculateArcCurve = (
+	start: google.maps.LatLngLiteral,
+	end: google.maps.LatLngLiteral,
+	curveIntensity: number,
+	numPoints: number,
+	distance: number,
+	normalizedOffsetLat: number,
+	normalizedOffsetLng: number,
+	seededRandom: (index: number) => number,
+	organicVariations: boolean,
+	noiseIntensity: number
+): google.maps.LatLngLiteral[] => {
+	const points: google.maps.LatLngLiteral[] = [];
 
 	// Random curve direction (some curves go left, some right) - only if organic variations enabled
 	const curveDirection = organicVariations && seededRandom(0) > 0.5 ? -1 : 1;
@@ -288,15 +437,15 @@ const SpeakerPolygons = (props: Props) => {
 					position={center}
 					icon={{
 						path: google.maps.SymbolPath.CIRCLE,
-						fillColor: config.map.speakerConnectorStyles.markerFill === "auto" 
+						fillColor: config.map.speakerConnectorStyles.markers.fill === "auto" 
 							? (baseFillColor || getColorForIndex(index))
-							: config.map.speakerConnectorStyles.markerFill,
-						fillOpacity: config.map.speakerConnectorStyles.markerOpacity,
-						strokeColor: config.map.speakerConnectorStyles.markerBorderColor,
-						strokeWeight: config.map.speakerConnectorStyles.markerBorderStrokeWeight,
-						scale: config.map.speakerConnectorStyles.markerSize,
+							: config.map.speakerConnectorStyles.markers.fill,
+						fillOpacity: config.map.speakerConnectorStyles.markers.opacity,
+						strokeColor: config.map.speakerConnectorStyles.markers.borderColor,
+						strokeWeight: config.map.speakerConnectorStyles.markers.borderWeight,
+						scale: config.map.speakerConnectorStyles.markers.size,
 					}}
-					zIndex={config.map.speakerConnectorStyles.markerZIndex}
+					zIndex={config.map.speakerConnectorStyles.markers.zIndex}
 					title={config.debugMode ? `Speaker ${s.data.id} Center: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}` : undefined}
 				/>
 			);
@@ -327,22 +476,18 @@ const SpeakerPolygons = (props: Props) => {
 				}
 
 				// Calculate curved connection path points
-				const curvedPathPoints = calculateArcPoints(childCenter, parentCenter, config.map.speakerConnectorStyles.connectorCurveIntensity, `connection-${s.data.id}-${parentId}`);
+				const curvedPathPoints = calculateCurvedPoints(childCenter, parentCenter, config.map.speakerConnectorStyles.curveIntensity, `connection-${s.data.id}-${parentId}`);
 
 				return (
 					<Polyline
 						key={`connection-${s.data.id}-${parentId}`}
 						path={curvedPathPoints}
 						options={{
-							strokeColor: config.map.speakerConnectorStyles.connectorLineColor,
-							strokeOpacity: config.map.speakerConnectorStyles.connectorLineOpacity,
-							strokeWeight: config.map.speakerConnectorStyles.connectorLineWeight,
+							strokeColor: config.map.speakerConnectorStyles.lines.color,
+							strokeOpacity: config.map.speakerConnectorStyles.lines.opacity,
+							strokeWeight: config.map.speakerConnectorStyles.lines.weight,
 							clickable: false,
-							zIndex: config.map.speakerConnectorStyles.connectorZIndex,
-							// Apply dash pattern if configured (empty array means solid line)
-							...(config.map.speakerConnectorStyles.connectorDashPattern.length > 0 && {
-								strokeDashArray: config.map.speakerConnectorStyles.connectorDashPattern.join(' ')
-							})
+							zIndex: config.map.speakerConnectorStyles.lines.zIndex,
 						}}
 					/>
 				);
