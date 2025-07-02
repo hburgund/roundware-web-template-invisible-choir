@@ -99,6 +99,102 @@ const calculatePolygonCenter = (shape: any): google.maps.LatLngLiteral => {
 	}
 };
 
+/**
+ * Calculate curved connection path points using simple arc approach with organic variations
+ */
+const calculateArcPoints = (start: google.maps.LatLngLiteral, end: google.maps.LatLngLiteral, curveIntensityConfig: number | [number, number], connectionId: string): google.maps.LatLngLiteral[] => {
+	// Determine curve intensity from config (single value or random from range)
+	let curveIntensity: number;
+	if (Array.isArray(curveIntensityConfig)) {
+		const [min, max] = curveIntensityConfig;
+		curveIntensity = min + Math.random() * (max - min);
+	} else {
+		curveIntensity = curveIntensityConfig;
+	}
+
+	// If curve intensity is 0, return straight line
+	if (curveIntensity === 0) {
+		return [start, end];
+	}
+
+	const points: google.maps.LatLngLiteral[] = [];
+	
+	// Check if organic variations are enabled
+	const organicVariations = config.map.speakerConnectorStyles.connectorOrganicVariations !== false;
+	const noiseIntensity = config.map.speakerConnectorStyles.connectorNoiseIntensity || 0.1;
+
+	// Add slight randomness to number of points for organic feel (15-25 points) if variations enabled
+	const basePoints = 20;
+	const pointVariation = organicVariations ? Math.floor(Math.random() * 10) - 5 : 0; // -5 to +5 or 0
+	const numPoints = Math.max(15, Math.min(25, basePoints + pointVariation));
+
+	// Calculate distance for determining control point offset
+	const latDiff = end.lat - start.lat;
+	const lngDiff = end.lng - start.lng;
+	const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+
+	// Perpendicular offset direction (rotate 90 degrees)
+	const offsetLat = -lngDiff;
+	const offsetLng = latDiff;
+
+	// Normalize the offset vector
+	const offsetLength = Math.sqrt(offsetLat * offsetLat + offsetLng * offsetLng);
+	if (offsetLength === 0) {
+		// Points are the same, return straight line
+		return [start, end];
+	}
+	
+	const normalizedOffsetLat = offsetLat / offsetLength;
+	const normalizedOffsetLng = offsetLng / offsetLength;
+
+	// Create a consistent random seed based on connection ID for deterministic but varied results
+	const seed = connectionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+	const seededRandom = (index: number) => {
+		// Simple seeded random function for consistent results across renders
+		const x = Math.sin(seed + index) * 10000;
+		return x - Math.floor(x);
+	};
+
+	// Random curve direction (some curves go left, some right) - only if organic variations enabled
+	const curveDirection = organicVariations && seededRandom(0) > 0.5 ? -1 : 1;
+
+	// Add some randomness to the curve intensity for more organic feel - only if variations enabled
+	const intensityVariation = organicVariations ? 0.3 : 0; // 30% variation or none
+	const randomIntensityMultiplier = 1 + (seededRandom(1) - 0.5) * intensityVariation;
+	const finalCurveIntensity = curveIntensity * randomIntensityMultiplier * curveDirection;
+
+	// Calculate points using simple arc with sine function for height plus organic variations
+	for (let i = 0; i <= numPoints; i++) {
+		const t = i / numPoints;
+		
+		// Base position along the straight line
+		const baseLat = start.lat + t * (end.lat - start.lat);
+		const baseLng = start.lng + t * (end.lng - start.lng);
+		
+		// Primary arc height using sine function
+		let height = Math.sin(Math.PI * t) * finalCurveIntensity * distance * 0.5;
+		
+		// Add subtle organic noise to the curve - only if variations enabled
+		if (organicVariations) {
+			const noiseFrequency = 3; // Multiple small variations along the curve
+			const noise = Math.sin(Math.PI * t * noiseFrequency + seededRandom(i + 2) * Math.PI * 2) * noiseIntensity;
+			height += noise * Math.abs(finalCurveIntensity) * distance * 0.1;
+		}
+		
+		// Add very subtle random jitter to each point for more organic feel - only if variations enabled
+		const jitterLat = organicVariations ? (seededRandom(i + 100) - 0.5) * 0.05 * Math.abs(finalCurveIntensity) * distance : 0;
+		const jitterLng = organicVariations ? (seededRandom(i + 200) - 0.5) * 0.05 * Math.abs(finalCurveIntensity) * distance : 0;
+		
+		// Apply perpendicular offset for main curve
+		const lat = baseLat + normalizedOffsetLat * height + jitterLat;
+		const lng = baseLng + normalizedOffsetLng * height + jitterLng;
+		
+		points.push({ lat, lng });
+	}
+
+	return points;
+};
+
 const SpeakerPolygons = (props: Props) => {
 	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
 
@@ -230,10 +326,13 @@ const SpeakerPolygons = (props: Props) => {
 					return null;
 				}
 
+				// Calculate curved connection path points
+				const curvedPathPoints = calculateArcPoints(childCenter, parentCenter, config.map.speakerConnectorStyles.connectorCurveIntensity, `connection-${s.data.id}-${parentId}`);
+
 				return (
 					<Polyline
 						key={`connection-${s.data.id}-${parentId}`}
-						path={[childCenter, parentCenter]}
+						path={curvedPathPoints}
 						options={{
 							strokeColor: config.map.speakerConnectorStyles.connectorLineColor,
 							strokeOpacity: config.map.speakerConnectorStyles.connectorLineOpacity,

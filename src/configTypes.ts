@@ -132,6 +132,12 @@ export type IConfig = {
       connectorZIndex: number;
       /** Dash pattern for connection lines - empty array for solid line */
       connectorDashPattern: number[];
+      /** Curve intensity for connection lines - number for fixed intensity, or [min, max] array for random range */
+      connectorCurveIntensity: number | [number, number];
+      /** Enable organic variations like random curve direction and subtle noise (default: true) */
+      connectorOrganicVariations?: boolean;
+      /** Intensity of organic noise added to curves (0-1, default: 0.1) */
+      connectorNoiseIntensity?: number;
     };
     /** should the map area be restricted */
     useListenMapBounds: boolean;
