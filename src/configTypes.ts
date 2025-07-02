@@ -108,6 +108,31 @@ export type IConfig = {
       strokeOpacity: number;
       fillOpacity: number;
     };
+    /** Styling for speaker center markers and connection lines */
+    speakerConnectorStyles: {
+      /** Size (radius) of center markers */
+      markerSize: number;
+      /** Border color of center markers */
+      markerBorderColor: string;
+      /** Border stroke weight of center markers */
+      markerBorderStrokeWeight: number;
+      /** Fill color of center markers - "auto" uses polygon color, or hex color */
+      markerFill: "auto" | string;
+      /** Opacity of center markers (0-1) */
+      markerOpacity: number;
+      /** Z-index for center markers */
+      markerZIndex: number;
+      /** Stroke weight of connection lines */
+      connectorLineWeight: number;
+      /** Color of connection lines (hex with optional alpha) */
+      connectorLineColor: string;
+      /** Opacity of connection lines (0-1) */
+      connectorLineOpacity: number;
+      /** Z-index for connection lines */
+      connectorZIndex: number;
+      /** Dash pattern for connection lines - empty array for solid line */
+      connectorDashPattern: number[];
+    };
     /** should the map area be restricted */
     useListenMapBounds: boolean;
     /** should the bounds markers be shown;  */

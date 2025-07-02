@@ -192,13 +192,15 @@ const SpeakerPolygons = (props: Props) => {
 					position={center}
 					icon={{
 						path: google.maps.SymbolPath.CIRCLE,
-						fillColor: baseFillColor || getColorForIndex(index),
-						fillOpacity: 0.9,
-						strokeColor: '#ffffff',
-						strokeWeight: 2,
-						scale: 8,
+						fillColor: config.map.speakerConnectorStyles.markerFill === "auto" 
+							? (baseFillColor || getColorForIndex(index))
+							: config.map.speakerConnectorStyles.markerFill,
+						fillOpacity: config.map.speakerConnectorStyles.markerOpacity,
+						strokeColor: config.map.speakerConnectorStyles.markerBorderColor,
+						strokeWeight: config.map.speakerConnectorStyles.markerBorderStrokeWeight,
+						scale: config.map.speakerConnectorStyles.markerSize,
 					}}
-					zIndex={2000}
+					zIndex={config.map.speakerConnectorStyles.markerZIndex}
 					title={config.debugMode ? `Speaker ${s.data.id} Center: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}` : undefined}
 				/>
 			);
@@ -233,19 +235,15 @@ const SpeakerPolygons = (props: Props) => {
 						key={`connection-${s.data.id}-${parentId}`}
 						path={[childCenter, parentCenter]}
 						options={{
-							strokeColor: "#ffffff",
-							strokeOpacity: 0.8,
-							strokeWeight: 2,
-							icons: [{
-								icon: {
-									path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-									scale: 3,
-									fillColor: "#ffffff",
-									fillOpacity: 1,
-									strokeWeight: 0
-								},
-								offset: '50%'
-							}]
+							strokeColor: config.map.speakerConnectorStyles.connectorLineColor,
+							strokeOpacity: config.map.speakerConnectorStyles.connectorLineOpacity,
+							strokeWeight: config.map.speakerConnectorStyles.connectorLineWeight,
+							clickable: false,
+							zIndex: config.map.speakerConnectorStyles.connectorZIndex,
+							// Apply dash pattern if configured (empty array means solid line)
+							...(config.map.speakerConnectorStyles.connectorDashPattern.length > 0 && {
+								strokeDashArray: config.map.speakerConnectorStyles.connectorDashPattern.join(' ')
+							})
 						}}
 					/>
 				);
