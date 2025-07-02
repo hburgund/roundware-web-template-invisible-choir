@@ -1,4 +1,4 @@
-import { Polygon, PolygonProps } from '@react-google-maps/api';
+import { Polygon, PolygonProps, Marker, Polyline } from '@react-google-maps/api';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRoundware } from '@/hooks';
 import { speakerPolygonColors as colors, speakerPolygonOptions } from '@/styles/speaker';
@@ -12,6 +12,7 @@ import {
 	getStrokeOpacity, 
 	getBaseColor 
 } from '@/utils/colors';
+import * as turf from '@turf/turf';
 // Import module augmentation to extend ISpeakerData with color fields
 import '@/types/speaker-augmentation';
 
@@ -21,11 +22,88 @@ const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 
+/**
+ * Calculate the centroid (center point) of a polygon using Turf.js for accuracy
+ */
+const calculatePolygonCenter = (shape: any): google.maps.LatLngLiteral => {
+	try {
+		// The shape is already a GeoJSON object
+		if (shape && shape.type === 'MultiPolygon' && Array.isArray(shape.coordinates)) {
+			// Use turf.center() instead of turf.centroid() - this gives the center of the bounding box
+			// which is more visually intuitive for irregular polygons
+			const center = turf.center(shape);
+
+			if (config.debugMode) {
+				console.log('Turf center (bounding box) calculation for speaker:', {
+					shapeType: shape.type,
+					center: center.geometry.coordinates,
+					result: {
+						lat: center.geometry.coordinates[1],
+						lng: center.geometry.coordinates[0]
+					}
+				});
+			}
+
+			return {
+				lat: center.geometry.coordinates[1],
+				lng: center.geometry.coordinates[0]
+			};
+		} else {
+			throw new Error("Shape is not a valid GeoJSON MultiPolygon");
+		}
+	} catch (error) {
+		console.error("Error calculating polygon center:", error);
+
+		// Fallback for GeoJSON: use the first point of the first polygon
+		try {
+			if (shape &&
+				shape.type === 'MultiPolygon' &&
+				Array.isArray(shape.coordinates) &&
+				shape.coordinates.length > 0 &&
+				Array.isArray(shape.coordinates[0]) &&
+				shape.coordinates[0].length > 0 &&
+				Array.isArray(shape.coordinates[0][0]) &&
+				shape.coordinates[0][0].length > 0) {
+
+				// Calculate average of all points in the first polygon
+				const polygon = shape.coordinates[0][0];
+				let sumLat = 0;
+				let sumLng = 0;
+
+				for (let i = 0; i < polygon.length; i++) {
+					sumLng += polygon[i][0];
+					sumLat += polygon[i][1];
+				}
+
+				const fallbackResult = {
+					lat: sumLat / polygon.length,
+					lng: sumLng / polygon.length
+				};
+
+				if (config.debugMode) {
+					console.log('Fallback centroid calculation for speaker:', {
+						shapeType: shape.type,
+						polygonPoints: polygon.length,
+						result: fallbackResult
+					});
+				}
+
+				return fallbackResult;
+			}
+
+			return { lat: 0, lng: 0 };
+		} catch (fallbackError) {
+			console.error("Fallback center calculation failed:", fallbackError);
+			return { lat: 0, lng: 0 };
+		}
+	}
+};
+
 const SpeakerPolygons = (props: Props) => {
 	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
 
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
-	const [googleMapPolygonProps, setGoogleMapPolygonProps] = useState<PolygonProps[]>([]);
+	const [googleMapElements, setGoogleMapElements] = useState<React.ReactElement[]>([]);
 
 	/**
 	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
@@ -51,14 +129,18 @@ const SpeakerPolygons = (props: Props) => {
 			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id));
 
 		if (!speakers) {
-			setGoogleMapPolygonProps([]);
+			setGoogleMapElements([]);
 			return;
 		}
 
-		// Process speakers and get their colors  
-		const polygonProps = speakers.map((s: any, index: number) => {
-			// s.data now automatically has fill_color and border_color due to module augmentation
-			
+		// Create a map of speaker IDs to their center positions for easy lookup
+		const speakerCenters: { [key: number]: google.maps.LatLngLiteral } = {};
+		speakers.forEach((s: any) => {
+			speakerCenters[s.data.id] = calculatePolygonCenter(s.data.shape);
+		});
+
+		// First pass: create polygons and center markers
+		const polygonsAndMarkers = speakers.flatMap((s: any, index: number) => {
 			// Get fill color (from server or config fallback)
 			const fillColor = getSpeakerFillColor(s.data, index);
 			const baseFillColor = getBaseColor(fillColor);
@@ -70,31 +152,108 @@ const SpeakerPolygons = (props: Props) => {
 			const strokeOpacity = getStrokeOpacity(borderColor, config.map.speakerDisplayDefaults?.strokeOpacity || 1);
 			const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (speakerPolygonOptions?.strokeWeight || 0);
 
-			const prop: PolygonProps & { key: string } = {
-				path: polygonToGoogleMapPaths(s.data.shape!),
-				options: {
-					...options,
-					fillColor: baseFillColor || getColorForIndex(index),
-					fillOpacity: fillOpacity,
-					strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
-					strokeOpacity: strokeOpacity,
-					strokeWeight: strokeWeight,
-					// Handle speakers without loaded audio buffer
-					...(!s.buffer
-						? {
-								fillOpacity: 0,
-								strokeOpacity: strokeOpacity > 0 ? strokeOpacity : 1,
-								strokeWeight: strokeWeight > 0 ? strokeWeight : 1,
-								strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
-						  }
-						: {}),
-				},
-				key: s.data.id.toString(),
-			};
-			return prop;
+			const path = polygonToGoogleMapPaths(s.data.shape);
+			const center = speakerCenters[s.data.id];
+
+			// Create polygon
+			const polygon = (
+				<Polygon
+					key={`polygon-${s.data.id}`}
+					path={path}
+					options={{
+						...options,
+						fillColor: baseFillColor || getColorForIndex(index),
+						fillOpacity: fillOpacity,
+						strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
+						strokeOpacity: strokeOpacity,
+						strokeWeight: strokeWeight,
+						// Handle speakers without loaded audio buffer
+						...(!s.buffer
+							? {
+									fillOpacity: 0,
+									strokeOpacity: strokeOpacity > 0 ? strokeOpacity : 1,
+									strokeWeight: strokeWeight > 0 ? strokeWeight : 1,
+									strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
+							  }
+							: {}),
+					}}
+				/>
+			);
+
+			// Skip creating markers with invalid centers
+			if (center.lat === 0 && center.lng === 0) {
+				return [polygon];
+			}
+
+			// Create center marker
+			const marker = (
+				<Marker
+					key={`center-${s.data.id}`}
+					position={center}
+					icon={{
+						path: google.maps.SymbolPath.CIRCLE,
+						fillColor: baseFillColor || getColorForIndex(index),
+						fillOpacity: 0.9,
+						strokeColor: '#ffffff',
+						strokeWeight: 2,
+						scale: 8,
+					}}
+					zIndex={2000}
+					title={config.debugMode ? `Speaker ${s.data.id} Center: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}` : undefined}
+				/>
+			);
+
+			return [polygon, marker];
 		});
 
-		setGoogleMapPolygonProps(polygonProps);
+		// Second pass: create lines connecting child speakers to their parents
+		const connectionLines = speakers.flatMap((s: any) => {
+			const childCenter = speakerCenters[s.data.id];
+
+			// Skip speakers with invalid centers or no parents
+			if (childCenter.lat === 0 && childCenter.lng === 0 || !s.data.parents || s.data.parents.length === 0) {
+				return [];
+			}
+
+			return s.data.parents.map((parentId: number) => {
+				// Skip if parent is hidden or doesn't exist in our center map
+				if (hideSpeakerPolygons.includes(parentId) || !speakerCenters[parentId]) {
+					return null;
+				}
+
+				const parentCenter = speakerCenters[parentId];
+
+				// Skip if parent has invalid center
+				if (parentCenter.lat === 0 && parentCenter.lng === 0) {
+					return null;
+				}
+
+				return (
+					<Polyline
+						key={`connection-${s.data.id}-${parentId}`}
+						path={[childCenter, parentCenter]}
+						options={{
+							strokeColor: "#ffffff",
+							strokeOpacity: 0.8,
+							strokeWeight: 2,
+							icons: [{
+								icon: {
+									path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+									scale: 3,
+									fillColor: "#ffffff",
+									fillOpacity: 1,
+									strokeWeight: 0
+								},
+								offset: '50%'
+							}]
+						}}
+					/>
+				);
+			}).filter(Boolean); // Filter out null connections
+		});
+
+		// Combine all elements and set state
+		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
 	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor]);
 
 	useEffect(() => {
@@ -154,7 +313,9 @@ const SpeakerPolygons = (props: Props) => {
 					</div>
 				</CustomMapControl>
 			)}
-			{Array.isArray(googleMapPolygonProps) && googleMapPolygonProps.map((p) => <Polygon {...p} />)}
+			{googleMapElements.map((element, index) => 
+				<React.Fragment key={index}>{element}</React.Fragment>
+			)}
 		</div>
 	);
 };
