@@ -163,15 +163,25 @@ export const useRecorder = ({
       }
 
       mediaRecorder.current.ondataavailable = async (event) => {
+        console.debug("🎯 END TIMING: ondataavailable event fired at", Date.now());
+        
         if (audioChunk.current) return;
         if (isStopped.current) return;
+        
+        console.debug("🎯 END TIMING: About to call stopRecording() at", Date.now());
         stopRecording();
+        console.debug("🎯 END TIMING: stopRecording() completed at", Date.now());
 
         audioChunk.current = event.data;
 
-        const audioBuffer = await loop.audioContext.current.decodeAudioData(
-          await new Blob([event.data], { type: "audio/wav" }).arrayBuffer()
-        );
+        console.debug("🎯 END TIMING: About to create blob for decoding at", Date.now());
+        const blobForDecoding = new Blob([event.data], { type: "audio/wav" });
+        const arrayBuffer = await blobForDecoding.arrayBuffer();
+        console.debug("🎯 END TIMING: Blob and arrayBuffer created at", Date.now());
+
+        console.debug("🎯 END TIMING: About to start audio decoding at", Date.now());
+        const audioBuffer = await loop.audioContext.current.decodeAudioData(arrayBuffer);
+        console.debug("🎯 END TIMING: Audio decoding completed at", Date.now());
 
         if (!audioBuffer || !duration)
           throw new Error("Something went wrong while decoding audio data");
@@ -182,6 +192,7 @@ export const useRecorder = ({
         let adjustedBuffer = audioBuffer;
 
         if (adjustedBuffer.duration > duration) {
+          console.debug("🎯 END TIMING: About to start audio trimming at", Date.now());
           const difference = adjustedBuffer.duration - duration;
           // 5% from start, rest from end
           adjustedBuffer = trimAudioBuffer(
@@ -190,6 +201,7 @@ export const useRecorder = ({
             audioBuffer.duration - difference * (90 / 100),
             loop.audioContext.current
           );
+          console.debug("🎯 END TIMING: Audio trimming completed at", Date.now());
           console.log("Trimmed audio buffer:", adjustedBuffer);
           isStopped.current = true;
         } else {
@@ -201,11 +213,25 @@ export const useRecorder = ({
           return;
         }
 
+        console.debug("🎯 END TIMING: About to create final audio blob at", Date.now());
         const audioBlob = createBlobFromAudioBuffer(adjustedBuffer);
+        console.debug("🎯 END TIMING: Final audio blob created at", Date.now());
 
-        setRecordedAudioBlob(audioBlob);
+        // OPTIMIZATION: Start loop immediately, defer React state update
+        console.debug("🎯 END TIMING: About to stop current loop at", Date.now());
         loop.stop();
+        console.debug("🎯 END TIMING: Current loop stopped at", Date.now());
+        
+        console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
         loop.start("recording-playback", audioBlob);
+        console.debug("🎯 END TIMING: Playback loop started at", Date.now());
+        
+        // Defer expensive React state update until after audio starts playing
+        console.debug("🎯 END TIMING: About to set recorded audio blob (deferred) at", Date.now());
+        setTimeout(() => {
+          setRecordedAudioBlob(audioBlob);
+          console.debug("🎯 END TIMING: setRecordedAudioBlob() completed (deferred) at", Date.now());
+        }, 0);
       };
 
       mediaRecorder.current.onstop = () => {
@@ -258,6 +284,8 @@ export const useRecorder = ({
   };
 
   const stopRecording = () => {
+    console.debug("🎯 END TIMING: stopRecording() called at", Date.now());
+    
     // Clear countdown timeout if it's still running
     if (countdownCleanupTimeout.current) {
       clearTimeout(countdownCleanupTimeout.current);
@@ -277,7 +305,9 @@ export const useRecorder = ({
     }
     
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
+      console.debug("🎯 END TIMING: About to call mediaRecorder.stop() at", Date.now());
       mediaRecorder.current.stop();
+      console.debug("🎯 END TIMING: mediaRecorder.stop() called at", Date.now());
       console.debug("Recording stopped");
     }
   };
