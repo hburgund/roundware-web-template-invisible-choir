@@ -26,6 +26,8 @@ export const useRecorder = ({
     useState<number>(0);
   const countdownEndTime = useRef<number | null>(null);
   const countdownCleanupTimeout = useRef<NodeJS.Timeout>();
+  const preInitializedStream = useRef<MediaStream | null>(null);
+  const preInitializedRecorder = useRef<MediaRecorder | null>(null);
 
   // just for checking permission start a small recording and stop it
   const checkMicrophonePermission = async () => {
@@ -85,12 +87,41 @@ export const useRecorder = ({
       countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
     });
 
+    // Pre-initialize MediaRecorder during countdown to eliminate delay at recording time
+    const preInitializeRecorder = async () => {
+      try {
+        console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
+        
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+          },
+        });
+        console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
+        
+        const recorder = new MediaRecorder(stream);
+        console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
+        
+        preInitializedStream.current = stream;
+        preInitializedRecorder.current = recorder;
+        
+      } catch (error) {
+        console.error("Error pre-initializing recorder:", error);
+        setIsPermissionDenied(true);
+      }
+    };
+    
+    // Start pre-initialization immediately (don't wait for requestAnimationFrame)
+    preInitializeRecorder();
+
     setTimeout(() => {
+      console.debug("🎯 TIMING: startRecording timeout fired at", Date.now());
       startRecording();
     }, startingInSeconds * 1000);
     
     // Set a single timeout to clear the countdown when recording starts
     countdownCleanupTimeout.current = setTimeout(() => {
+      console.debug("🎯 TIMING: Countdown cleanup timeout fired at", Date.now());
       setStartingRecordingInBeats(0);
       setStartingRecordingInSeconds(0);
       countdownEndTime.current = null;
@@ -99,19 +130,37 @@ export const useRecorder = ({
 
   const isStopped = useRef(false);
   const startRecording = async () => {
+    const startTime = Date.now();
+    console.debug("🎯 TIMING: startRecording() called at", startTime);
+    
     try {
       setRecordedAudioBlob(null);
       audioChunk.current = undefined;
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-        },
-      });
+      // Use pre-initialized recorder if available, otherwise fall back to old method
+      if (preInitializedRecorder.current && preInitializedStream.current) {
+        console.debug("🎯 TIMING: Using pre-initialized recorder at", Date.now());
+        mediaRecorder.current = preInitializedRecorder.current;
+        setRecorderStream(preInitializedStream.current);
+        
+        // Clear the pre-initialized refs so they can't be reused
+        preInitializedRecorder.current = null;
+        preInitializedStream.current = null;
+      } else {
+        console.debug("🎯 TIMING: Pre-initialized recorder not available, falling back to old method at", Date.now());
+        console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+          },
+        });
+        console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
-      setRecorderStream(stream);
+        setRecorderStream(stream);
 
-      mediaRecorder.current = new MediaRecorder(stream);
+        console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
+        mediaRecorder.current = new MediaRecorder(stream);
+      }
 
       mediaRecorder.current.ondataavailable = async (event) => {
         if (audioChunk.current) return;
@@ -161,28 +210,49 @@ export const useRecorder = ({
 
       mediaRecorder.current.onstop = () => {
         // stop
-        stream.getTracks().forEach((track) => {
-          track.stop();
-        });
+        if (mediaRecorder.current?.stream) {
+          mediaRecorder.current.stream.getTracks().forEach((track: MediaStreamTrack) => {
+            track.stop();
+          });
+        }
       };
 
       mediaRecorder.current.onstart = () => {
+        console.debug("🎯 TIMING: MediaRecorder onstart fired at", Date.now());
         console.debug("Recording started");
 
+        console.debug("🎯 TIMING: About to call loop.start('recording') at", Date.now());
         loop.start("recording");
+        console.debug("🎯 TIMING: loop.start('recording') completed at", Date.now());
 
         if (!duration) return;
       };
 
+      console.debug("🎯 TIMING: About to call loop.stop() at", Date.now());
       loop.stop();
+      console.debug("🎯 TIMING: loop.stop() completed at", Date.now());
 
       // extra 500ms for any other processing!
       const totalDuration = duration ? duration * 1000 + 500 : undefined;
       isStopped.current = false;
+      console.debug("🎯 TIMING: About to call mediaRecorder.start() at", Date.now());
       mediaRecorder.current.start(totalDuration);
+      console.debug("🎯 TIMING: mediaRecorder.start() call completed at", Date.now());
     } catch (error) {
       console.error("Error starting recording:", error);
       setIsPermissionDenied(true);
+      
+      // Clean up pre-initialized resources on error
+      if (preInitializedStream.current) {
+        preInitializedStream.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+        preInitializedStream.current = null;
+      }
+      if (preInitializedRecorder.current) {
+        preInitializedRecorder.current = null;
+      }
+      
       loop.stop();
     }
   };
@@ -194,6 +264,17 @@ export const useRecorder = ({
       countdownCleanupTimeout.current = undefined;
     }
     countdownEndTime.current = null;
+    
+    // Clean up pre-initialized resources if they weren't used
+    if (preInitializedStream.current) {
+      preInitializedStream.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      preInitializedStream.current = null;
+    }
+    if (preInitializedRecorder.current) {
+      preInitializedRecorder.current = null;
+    }
     
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.stop();

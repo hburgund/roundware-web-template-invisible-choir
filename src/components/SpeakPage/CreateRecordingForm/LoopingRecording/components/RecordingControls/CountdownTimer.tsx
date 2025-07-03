@@ -48,6 +48,7 @@ const CountdownTimer = () => {
       const remainingMs = countdownEndTime - now;
       
       if (remainingMs <= 0) {
+        console.log("🎯 TIMING: Countdown reached 0 at", Date.now());
         setCurrentCount(0);
         setBeatProgress(0);
         return;
