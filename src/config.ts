@@ -54,6 +54,7 @@ let config: IConfig = {
     baseRecordingLoopSelectionMethod: "all",
     speakerShape: "beechLeaf",
     speakerShapeScale: 1.05,
+    beatsPerLoop: 8,
   },
 
   map: {

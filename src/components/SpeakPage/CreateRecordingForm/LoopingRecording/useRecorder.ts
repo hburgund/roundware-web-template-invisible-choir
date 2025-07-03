@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useLoop } from "./useLoop";
 import { createBlobFromAudioBuffer, trimAudioBuffer } from "@/utils/index";
+import config from "@/config";
 
 export const useRecorder = ({
   duration,
@@ -21,7 +22,10 @@ export const useRecorder = ({
 
   const [startingRecordingInSeconds, setStartingRecordingInSeconds] =
     useState<number>(0);
-  const countdownInterval = useRef<NodeJS.Timeout>();
+  const [startingRecordingInBeats, setStartingRecordingInBeats] =
+    useState<number>(0);
+  const countdownEndTime = useRef<number | null>(null);
+  const countdownCleanupTimeout = useRef<NodeJS.Timeout>();
 
   // just for checking permission start a small recording and stop it
   const checkMicrophonePermission = async () => {
@@ -64,23 +68,29 @@ export const useRecorder = ({
     const startingInSeconds =
       ((loop.nextLoopPointAt.current ?? 0) - Date.now()) / 1000;
     setStartingRecordingInSeconds(startingInSeconds);
-    console.debug("Starting recording in", startingInSeconds + "s");
+    
+    // Calculate musical beats countdown
+    const beatsPerLoop = config.speak.beatsPerLoop;
+    const beatInterval = duration / beatsPerLoop; // duration of one beat in seconds
+    const startingInBeats = Math.ceil(startingInSeconds / beatInterval);
+    setStartingRecordingInBeats(startingInBeats);
+    
+    console.debug("Starting recording in", startingInSeconds + "s", `(${startingInBeats} beats)`);
+    console.debug("Beat interval:", beatInterval + "s");
 
-    setTimeout(() => {
+        setTimeout(() => {
       startRecording();
     }, startingInSeconds * 1000);
 
-    countdownInterval.current = setInterval(() => {
-      setStartingRecordingInSeconds((prev) => {
-        if (prev <= 1) {
-          if (countdownInterval.current) {
-            clearInterval(countdownInterval.current);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // Store when countdown should end, but don't use frequent intervals
+    countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
+    
+    // Set a single timeout to clear the countdown when recording starts
+    countdownCleanupTimeout.current = setTimeout(() => {
+      setStartingRecordingInBeats(0);
+      setStartingRecordingInSeconds(0);
+      countdownEndTime.current = null;
+    }, startingInSeconds * 1000);
   };
 
   const isStopped = useRef(false);
@@ -174,6 +184,13 @@ export const useRecorder = ({
   };
 
   const stopRecording = () => {
+    // Clear countdown timeout if it's still running
+    if (countdownCleanupTimeout.current) {
+      clearTimeout(countdownCleanupTimeout.current);
+      countdownCleanupTimeout.current = undefined;
+    }
+    countdownEndTime.current = null;
+    
     if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
       mediaRecorder.current.stop();
       console.debug("Recording stopped");
@@ -188,6 +205,8 @@ export const useRecorder = ({
     stopRecording,
     checkMicrophonePermission,
     startingRecordingInSeconds,
+    startingRecordingInBeats,
+    countdownEndTime,
     recorderStream,
   };
 };

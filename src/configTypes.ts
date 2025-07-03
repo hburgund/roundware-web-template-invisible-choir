@@ -79,6 +79,8 @@ export type IConfig = {
     speakerShape: "circle" | "beechLeaf";
     /** scale factor for expanding speaker shapes */
     speakerShapeScale: number;
+    /** number of beats per loop for countdown timing */
+    beatsPerLoop: number;
   };
   /** config for map */
   map: {
