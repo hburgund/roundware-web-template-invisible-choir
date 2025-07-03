@@ -52,12 +52,10 @@ export const useRecorder = ({
 
   // schedule recording to start from next loop point in timer
   const scheduleRecording = async () => {
-    const hasPermission = await checkMicrophonePermission();
-    if (!hasPermission) return;
+    // Permission is already checked when user clicks "Continue" in JoinChoir component
+    // No need to check again here - it only causes audio disruption
+    
     if (typeof duration !== "number") return;
-
-    loop.setMode("waiting-to-record");
-    setRecordedAudioBlob(null);
 
     console.debug(
       "Scheduling recording",
@@ -67,23 +65,29 @@ export const useRecorder = ({
 
     const startingInSeconds =
       ((loop.nextLoopPointAt.current ?? 0) - Date.now()) / 1000;
-    setStartingRecordingInSeconds(startingInSeconds);
     
     // Calculate musical beats countdown
     const beatsPerLoop = config.speak.beatsPerLoop;
     const beatInterval = duration / beatsPerLoop; // duration of one beat in seconds
     const startingInBeats = Math.ceil(startingInSeconds / beatInterval);
-    setStartingRecordingInBeats(startingInBeats);
     
     console.debug("Starting recording in", startingInSeconds + "s", `(${startingInBeats} beats)`);
     console.debug("Beat interval:", beatInterval + "s");
 
-        setTimeout(() => {
+    // Defer UI updates to avoid audio interference during critical button press moment
+    requestAnimationFrame(() => {
+      loop.setMode("waiting-to-record");
+      setRecordedAudioBlob(null);
+      setStartingRecordingInSeconds(startingInSeconds);
+      setStartingRecordingInBeats(startingInBeats);
+      
+      // Store when countdown should end
+      countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
+    });
+
+    setTimeout(() => {
       startRecording();
     }, startingInSeconds * 1000);
-
-    // Store when countdown should end, but don't use frequent intervals
-    countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
     
     // Set a single timeout to clear the countdown when recording starts
     countdownCleanupTimeout.current = setTimeout(() => {

@@ -1,7 +1,8 @@
-import { Typography, keyframes } from "@mui/material";
+import { Typography, keyframes, Box } from "@mui/material";
 import { useLoopContext } from "../../LoopContext";
 import config from "@/config";
 import { useEffect, useState } from "react";
+import BeatProgressPie from "./BeatProgressPie";
 
 const countdownAnimation = keyframes`
   0% {
@@ -25,6 +26,7 @@ const countdownAnimation = keyframes`
 const CountdownTimer = () => {
   const { recorder, speaker } = useLoopContext();
   const [currentCount, setCurrentCount] = useState(0);
+  const [beatProgress, setBeatProgress] = useState(0);
   
   // Calculate beat interval for animation timing
   const beatsPerLoop = config.speak.beatsPerLoop;
@@ -47,12 +49,20 @@ const CountdownTimer = () => {
       
       if (remainingMs <= 0) {
         setCurrentCount(0);
+        setBeatProgress(0);
         return;
       }
       
       const remainingSeconds = remainingMs / 1000;
       const remainingBeats = Math.ceil(remainingSeconds / beatInterval);
       setCurrentCount(Math.max(0, remainingBeats));
+      
+      // Calculate progress within the current beat
+      // How much time has elapsed since the current beat started
+      const timeIntoCurrentBeat = remainingSeconds % beatInterval;
+      // Progress from 0 (beat just started) to 1 (beat about to end)
+      const progress = (beatInterval - timeIntoCurrentBeat) / beatInterval;
+      setBeatProgress(Math.min(1, Math.max(0, progress)));
     };
 
     // Update immediately
@@ -79,17 +89,25 @@ const CountdownTimer = () => {
   }
 
   return (
-    <Typography
-      variant="h3"
-      sx={{
-        animation: `${countdownAnimation} ${animationDuration} ease-in-out infinite`,
-        color: "white",
-        fontWeight: "bold",
-        display: "inline-block",
-      }}
-    >
-      {currentCount}
-    </Typography>
+    <Box position="relative" display="inline-block">
+      {/* Beat progress pie chart */}
+      <BeatProgressPie progress={beatProgress} size={120} />
+      
+      {/* Countdown number */}
+      <Typography
+        variant="h3"
+        sx={{
+          animation: `${countdownAnimation} ${animationDuration} ease-in-out infinite`,
+          color: "white",
+          fontWeight: "bold",
+          display: "inline-block",
+          position: "relative",
+          zIndex: 2,
+        }}
+      >
+        {currentCount}
+      </Typography>
+    </Box>
   );
 };
 
