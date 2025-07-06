@@ -81,6 +81,15 @@ export type IConfig = {
     speakerShapeScale: number;
     /** number of beats per loop for countdown timing */
     beatsPerLoop: number;
+    /** click track configuration */
+    clickTrack: {
+      /** enable click track during recording */
+      enabled: boolean;
+      /** volume level for click track (0-1) */
+      volume: number;
+      /** directory path containing click track files */
+      directory: string;
+    };
   };
   /** config for map */
   map: {
