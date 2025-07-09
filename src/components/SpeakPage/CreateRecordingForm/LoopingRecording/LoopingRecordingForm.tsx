@@ -2,7 +2,7 @@ import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { Box, Button } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
@@ -17,6 +17,20 @@ const LoopingRecordingForm = () => {
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
 
   const history = useHistory();
+
+  // Watch for successful submission to show thank you dialog
+  useEffect(() => {
+    if (submission.status === "submitted") {
+      console.log("✅ Submission status changed to submitted, showing thank you dialog");
+      setShowThankYouConfirm(true);
+    }
+  }, [submission.status]);
+
+  // Create a retry function that bypasses legal agreement
+  const handleRetry = async () => {
+    console.log("🔄 Retrying submission without legal agreement");
+    await submission.start();
+  };
 
   return (
     <Box
@@ -52,17 +66,15 @@ const LoopingRecordingForm = () => {
       <SubmissionControls
         hasRecording={!!recorder.recordedAudioBlob}
         submissionStatus={submission.status}
+        errorDetails={submission.errorDetails}
         onLegalAccept={async () => {
-          try {
-            await submission.start();
-            // Wait for submission to fully complete before showing thank you dialog
-            setShowThankYouConfirm(true);
-          } catch (error) {
-            console.error("Submission failed:", error);
-            // Don't show thank you dialog if submission failed
-          }
+          console.log("📋 Legal agreement accepted, starting submission");
+          await submission.start();
+          // Thank you dialog will be shown via useEffect when status becomes "submitted"
         }}
         onLegalDecline={() => {}}
+        onReset={submission.reset}
+        onRetry={handleRetry}
       />
 
       <ConfirmationDialog

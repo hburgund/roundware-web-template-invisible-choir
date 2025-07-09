@@ -12,6 +12,127 @@ import { ISpeakerData } from "roundware-web-framework";
 import { generateBeechLeafShape } from "@/utils/speakerShapes";
 import { getNewSpeakerColorPair } from "@/utils/colors";
 
+// Enhanced error types for better user feedback
+interface SubmissionError {
+  type: 'network' | 'server' | 'validation' | 'unknown';
+  message: string;
+  originalError?: any;
+  retryable: boolean;
+}
+
+// Utility function for exponential backoff retry logic
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      // Don't retry on validation errors (4xx except 408, 429)
+      if ((error as any)?.status && (error as any).status >= 400 && (error as any).status < 500 && 
+          (error as any).status !== 408 && (error as any).status !== 429) {
+        throw error;
+      }
+      
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`Speaker creation attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
+
+// Utility function to classify and format errors for user display
+const classifyError = (error: any): SubmissionError => {
+  const errorStatus = (error as any)?.status;
+  const errorName = (error as any)?.name;
+  const errorMessage = (error as any)?.message;
+  
+  // Debug logging (can be removed once testing is complete)
+  console.log('🔍 Classifying error:', { errorStatus, errorName, errorMessage, error });
+  
+  // Network/connectivity errors (including RoundwareConnectionError)
+  if (!errorStatus || errorName === 'TypeError' || errorName === 'RoundwareConnectionError' || 
+      errorMessage?.includes('fetch') || errorMessage?.includes('unable to connect')) {
+    return {
+      type: 'network',
+      message: 'Unable to connect to the server. Please check your internet connection and try again.',
+      originalError: error,
+      retryable: true
+    };
+  }
+  
+  // Server errors (5xx)
+  if (errorStatus >= 500) {
+    return {
+      type: 'server',
+      message: 'The server is experiencing issues. Please try again in a few moments.',
+      originalError: error,
+      retryable: true
+    };
+  }
+  
+  // Client/validation errors (4xx)
+  if (errorStatus >= 400 && errorStatus < 500) {
+    let message = 'There was an issue with your recording submission.';
+    
+    switch (errorStatus) {
+      case 400:
+        message = 'Your recording data appears to be invalid. Please try recording again.';
+        break;
+      case 401:
+        message = 'You are not authorized to create speakers. Please refresh the page and try again.';
+        break;
+      case 403:
+        message = 'You do not have permission to create speakers in this location.';
+        break;
+      case 408:
+        message = 'The upload took too long. Please try again with a stable internet connection.';
+        break;
+      case 413:
+        message = 'Your recording file is too large. Please try recording a shorter clip.';
+        break;
+      case 422:
+        message = 'Your recording could not be processed. Please try recording again.';
+        break;
+      case 429:
+        message = 'Too many requests. Please wait a moment before trying again.';
+        break;
+      default:
+        message = `Upload failed (Error ${errorStatus}). Please try again.`;
+    }
+    
+    return {
+      type: 'validation',
+      message,
+      originalError: error,
+      retryable: errorStatus === 408 || errorStatus === 429
+    };
+  }
+  
+  // Unknown errors
+  return {
+    type: 'unknown',
+    message: 'An unexpected error occurred. Please try again.',
+    originalError: error,
+    retryable: true
+  };
+};
+
 // hook to handle saving of the recording to server
 export const useSubmission = ({
   location,
@@ -25,6 +146,9 @@ export const useSubmission = ({
   const [status, setStatus] = useState<
     "idle" | "submitting" | "submitted" | "error"
   >("idle");
+  
+  // Enhanced error state with more detail for UI
+  const [errorDetails, setErrorDetails] = useState<SubmissionError | null>(null);
 
   const draftRecording = useRoundwareDraft();
   const { tagLookup, roundware, updateSpeakers } = useRoundware();
@@ -37,6 +161,7 @@ export const useSubmission = ({
     // stop the audio
 
     setStatus("submitting");
+    setErrorDetails(null);
 
     if (!finalConfig.speak.uploadAsSpeaker) {
       // upload as ASSET:
@@ -95,138 +220,158 @@ export const useSubmission = ({
         setStatus("submitted");
         history.push(`/listen?eid=${envelope._envelopeId}`);
       } catch (err) {
+        const errorInfo = classifyError(err);
+        setErrorDetails(errorInfo);
         setStatus("error");
       }
     } else {
-      let speakerShape: Feature<MultiPolygon> | null = null;
-
-      if (finalConfig.speak.speakerShape === "circle") {
-        speakerShape = multiPolygon([
-          circle([location.lng, location.lat], 10, {
-            units: "meters",
-          }).geometry.coordinates,
-        ]);
-      } else if (finalConfig.speak.speakerShape === "beechLeaf") {
-        speakerShape = generateBeechLeafShape(location, {
-          minSize: 10,
-          maxSize: 10,
-        });
-      }
-
-      if (!speakerShape) {
-        throw new Error(
-          "Speaker shape is not defined. Please check the config."
-        );
-      }
-
-      const formData = new FormData();
-      formData.append("activeyn", "true");
-      formData.append("code", moment().format("DDMMYYHHmm"));
-      formData.append("maxvolume", "1.0");
-      formData.append("minvolume", "0.0");
-      formData.append("shape", JSON.stringify(speakerShape.geometry));
-
-      // Add cascading colors based on parent speakers (or random from config if no parents)
-      const colorPair = getNewSpeakerColorPair(baseSpeakers);
-      
-      if (finalConfig.debugMode) {
-        console.log("Speaker color selection:", {
-          parentCount: baseSpeakers.length,
-          parentColors: baseSpeakers.map(s => ({ id: s.id, fill_color: s.fill_color, border_color: s.border_color })),
-          selectedColors: colorPair
-        });
-      }
-      
-      formData.append("fill_color", colorPair.fill_color);
-      if (colorPair.border_color) {
-        formData.append("border_color", colorPair.border_color);
-      }
-
-      formData.append("file", recordedAudioBlob);
-      formData.append("attenuation_distance", "5");
-      formData.append("project_id", finalConfig.project.id.toString());
-      if (baseSpeakers.length > 0) {
-        baseSpeakers.forEach((speaker) => {
-          formData.append("parents", speaker.id.toString());
-        });
-      }
-
-      const response: { id: string } = await roundware.apiClient.post(
-        "/speakers/",
-        formData,
-        {
-          method: "POST",
-          contentType: "multipart/form-data",
-        }
-      );
-
-      console.info("Response: " + JSON.stringify(response, null, 2));
-
       try {
-        if (response && baseSpeakers.length > 0) {
-          await Promise.all(
-            baseSpeakers.map(async (s) => {
-              if (!s.shape) return;
-              // Ensure closestSpeaker.shape is defined and valid
-              const expandedShape = transformScale(
-                { type: "Feature", geometry: s.shape, properties: {} },
-                finalConfig.speak.speakerShapeScale
-              ) as Feature<MultiPolygon>;
+        let speakerShape: Feature<MultiPolygon> | null = null;
 
-              if (expandedShape) {
-                // Patch the closest speaker's shape
-                const patchResponse = await roundware.apiClient.patch(
-                  `/speakers/${s.id}/`,
-                  {
-                    shape: expandedShape.geometry,
-                  }
-                );
+        if (finalConfig.speak.speakerShape === "circle") {
+          speakerShape = multiPolygon([
+            circle([location.lng, location.lat], 10, {
+              units: "meters",
+            }).geometry.coordinates,
+          ]);
+        } else if (finalConfig.speak.speakerShape === "beechLeaf") {
+          speakerShape = generateBeechLeafShape(location, {
+            minSize: 10,
+            maxSize: 10,
+          });
+        }
 
-                console.info("Patch response:", patchResponse);
-                console.info("Closest speaker shape updated successfully");
-              } else {
-                console.error("Failed to expand closestSpeaker shape");
-              }
-            })
+        if (!speakerShape) {
+          throw new Error(
+            "Speaker shape is not defined. Please check the config."
           );
-        } else {
-          console.error("Invalid response or closestSpeaker data");
         }
-      } catch (error) {
-        console.error("Error updating closest speaker shape:", error);
-      }
 
-      if (!response) {
+        const formData = new FormData();
+        formData.append("activeyn", "true");
+        formData.append("code", moment().format("DDMMYYHHmm"));
+        formData.append("maxvolume", "1.0");
+        formData.append("minvolume", "0.0");
+        formData.append("shape", JSON.stringify(speakerShape.geometry));
+
+        // Add cascading colors based on parent speakers (or random from config if no parents)
+        const colorPair = getNewSpeakerColorPair(baseSpeakers);
+        
+        if (finalConfig.debugMode) {
+          console.log("Speaker color selection:", {
+            parentCount: baseSpeakers.length,
+            parentColors: baseSpeakers.map(s => ({ id: s.id, fill_color: s.fill_color, border_color: s.border_color })),
+            selectedColors: colorPair
+          });
+        }
+        
+        formData.append("fill_color", colorPair.fill_color);
+        if (colorPair.border_color) {
+          formData.append("border_color", colorPair.border_color);
+        }
+
+        formData.append("file", recordedAudioBlob);
+        formData.append("attenuation_distance", "5");
+        formData.append("project_id", finalConfig.project.id.toString());
+        if (baseSpeakers.length > 0) {
+          baseSpeakers.forEach((speaker) => {
+            formData.append("parents", speaker.id.toString());
+          });
+        }
+
+        // Enhanced speaker creation with retry logic and better error handling
+        const response: { id: string } = await retryWithBackoff(async () => {
+          const result = await roundware.apiClient.post(
+            "/speakers/",
+            formData,
+            {
+              method: "POST",
+              contentType: "multipart/form-data",
+            }
+          );
+          
+          // Validate response structure
+          if (!result || !result.id) {
+            throw new Error("Invalid response from server - missing speaker ID");
+          }
+          
+          return result;
+        }, 3, 1000);
+
+        console.info("Speaker created successfully:", JSON.stringify(response, null, 2));
+
+        // Update parent speakers (this part can fail without breaking the main flow)
+        try {
+          if (response && baseSpeakers.length > 0) {
+            await Promise.all(
+              baseSpeakers.map(async (s) => {
+                if (!s.shape) return;
+                // Ensure closestSpeaker.shape is defined and valid
+                const expandedShape = transformScale(
+                  { type: "Feature", geometry: s.shape, properties: {} },
+                  finalConfig.speak.speakerShapeScale
+                ) as Feature<MultiPolygon>;
+
+                if (expandedShape) {
+                  // Patch the closest speaker's shape
+                  const patchResponse = await roundware.apiClient.patch(
+                    `/speakers/${s.id}/`,
+                    {
+                      shape: expandedShape.geometry,
+                    }
+                  );
+
+                  console.info("Parent speaker updated:", patchResponse);
+                } else {
+                  console.error("Failed to expand parent speaker shape");
+                }
+              })
+            );
+          }
+        } catch (error) {
+          console.error("Error updating parent speaker shapes (non-critical):", error);
+          // Don't fail the whole submission for parent speaker update errors
+        }
+
+        // Update speakers on the map to show the new speaker and modified parent speakers
+        const speakerIdsToUpdate = [
+          parseInt(response.id), // New speaker
+          ...baseSpeakers.map(s => s.id) // Parent speakers that were modified
+        ];
+        
+        console.log("Updating speakers after recording submission:", speakerIdsToUpdate);
+        
+        try {
+          await updateSpeakers(speakerIdsToUpdate);
+          console.log("Successfully updated speakers after recording submission");
+        } catch (error) {
+          console.error("Failed to update speakers after recording submission (non-critical):", error);
+          // Don't fail the submission for speaker update errors
+        }
+
+        setStatus("submitted");
+        
+      } catch (error) {
+        console.error("Speaker creation failed:", error);
+        const errorInfo = classifyError(error);
+        // Debug logging (can be removed once testing is complete)
+        console.log('🚨 Setting error state:', { errorInfo, status: 'error' });
+        setErrorDetails(errorInfo);
         setStatus("error");
-        return;
       }
-
-      // Update speakers on the map to show the new speaker and modified parent speakers
-      const speakerIdsToUpdate = [
-        parseInt(response.id), // New speaker
-        ...baseSpeakers.map(s => s.id) // Parent speakers that were modified
-      ];
-      
-      console.log("Updating speakers after recording submission:", speakerIdsToUpdate);
-      
-      try {
-        await updateSpeakers(speakerIdsToUpdate);
-        console.log("Successfully updated speakers after recording submission");
-      } catch (error) {
-        console.error("Failed to update speakers after recording submission:", error);
-      }
-
-      // Remove automatic navigation - let the user control when to proceed via the thank you dialog
-      // history.push(
-      //   `/listen?latitude=${location.lat}&longitude=${location.lng}`
-      // );
-
-      setStatus("submitted");
     }
   }
+
+  const reset = () => {
+    console.log('🔄 Resetting submission state');
+    setStatus("idle");
+    setErrorDetails(null);
+  };
 
   return {
     status,
     start,
+    reset,
+    errorDetails, // Expose detailed error info for UI
   };
 };
