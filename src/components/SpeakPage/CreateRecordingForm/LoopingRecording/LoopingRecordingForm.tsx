@@ -15,6 +15,7 @@ const LoopingRecordingForm = () => {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
+  const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
 
   const history = useHistory();
 
@@ -25,6 +26,14 @@ const LoopingRecordingForm = () => {
       setShowThankYouConfirm(true);
     }
   }, [submission.status]);
+
+  // Watch for confirmed leaving to trigger navigation
+  useEffect(() => {
+    if (userConfirmedLeaving) {
+      console.log("🚪 User confirmed leaving - navigating to listen page");
+      history.push("/listen");
+    }
+  }, [userConfirmedLeaving, history]);
 
   // Create a retry function that bypasses legal agreement
   const handleRetry = async () => {
@@ -60,7 +69,7 @@ const LoopingRecordingForm = () => {
           onCheckPermission={recorder.checkMicrophonePermission}
         />
       ) : (
-        <RecordingControls />
+        <RecordingControls userConfirmedLeaving={userConfirmedLeaving} />
       )}
 
       <SubmissionControls
@@ -96,7 +105,8 @@ const LoopingRecordingForm = () => {
         onClose={() => setShowCloseConfirm(false)}
         onConfirm={() => {
           setShowCloseConfirm(false);
-          history.push("/listen");
+          setUserConfirmedLeaving(true); // This will trigger navigation via useEffect
+          console.log("🚪 User confirmed leaving - setting flag to bypass router prompt");
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Leave Choir"
