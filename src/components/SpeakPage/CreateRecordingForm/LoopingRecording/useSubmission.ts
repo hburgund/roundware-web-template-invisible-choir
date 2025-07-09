@@ -109,7 +109,7 @@ export const useSubmission = ({
       } else if (finalConfig.speak.speakerShape === "beechLeaf") {
         speakerShape = generateBeechLeafShape(location, {
           minSize: 10,
-          maxSize: 30,
+          maxSize: 10,
         });
       }
 
