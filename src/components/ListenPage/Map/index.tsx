@@ -102,23 +102,15 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 				lng: parseFloat(typeof urlLongitude == 'string' ? urlLongitude : roundware?.project?.location?.longitude!?.toString()),
 			},
 			zoom: parseInt(typeof urlZoom == 'string' ? urlZoom : '5'),
-			zoomControl: true,
+			disableDefaultUI: true, // Disable all default UI controls
+			zoomControl: true, // Re-enable only the zoom control
 			draggable: true,
-			mapTypeControl: false,
-			streetViewControl: false,
 			draggableCursor: null,
-			fullscreenControl: false,
 			zoomControlOptions: {
 				style: google.maps.ZoomControlStyle.SMALL,
 				position: google.maps.ControlPosition.RIGHT_CENTER,
 			},
-			rotateControl: false,
 			mapTypeId: 'styled_map',
-			mapTypeControlOptions: {
-				mapTypeIds: [google.maps.MapTypeId.SATELLITE, 'styled_map'],
-				style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-				position: google.maps.ControlPosition.BOTTOM_LEFT,
-			},
 			restriction,
 		});
 		map.addListener('zoom_changed', () => {
