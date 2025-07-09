@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import LegalAgreementForm from "@/components/LegalAgreementForm";
 import { useState } from "react";
+import { useLoopContext } from "../LoopContext";
 
 interface SubmissionError {
   type: 'network' | 'server' | 'validation' | 'unknown';
@@ -38,6 +39,7 @@ const SubmissionControls = ({
   onRetry,
 }: SubmissionControlsProps) => {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const { loop, recorder } = useLoopContext();
   
   // Debug logging (can be removed once testing is complete)
   console.log('🎯 SubmissionControls render:', { 
@@ -61,6 +63,8 @@ const SubmissionControls = ({
             variant="contained"
             color="primary"
             onClick={() => {
+              console.log("🔇 Stopping audio playback for submission");
+              loop.stop(); // Stop the review playback immediately
               setLegalModalOpen(true);
             }}
             size="large"
@@ -74,6 +78,11 @@ const SubmissionControls = ({
         <LegalAgreementForm
           onDecline={() => {
             setLegalModalOpen(false);
+            // Restart playback if user cancels legal agreement
+            if (recorder.recordedAudioBlob) {
+              console.log("🔄 Restarting audio playback after legal cancellation");
+              loop.start("recording-playback", recorder.recordedAudioBlob);
+            }
             onLegalDecline();
           }}
           onAccept={async () => {
@@ -110,6 +119,8 @@ const SubmissionControls = ({
                 color="primary"
                 onClick={async () => {
                   console.log('🔄 Retry button clicked - bypassing legal agreement');
+                  console.log("🔇 Stopping audio playback for retry");
+                  loop.stop(); // Stop any playback before retry
                   // Reset error state and retry directly (skip legal modal)
                   onReset?.();
                   await onRetry?.();
