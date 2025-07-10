@@ -31,13 +31,14 @@ const MicrophoneBlockedDialog = (props: Props) => {
 								<Typography 
 									variant="h6" 
 									component="h1" 
+									sx={{ color: 'black' }}
 								>
 									MICROPHONE BLOCKED
 								</Typography>
 							</Stack>
 							<Typography 
 								variant="body1"
-								sx={{ textAlign: 'center' }}
+								sx={{ textAlign: 'center', color: 'black' }}
 							>
 								To participate fully in the artwork we need access to your microphone. In the meantime, you can still listen to our choirs in your current location.
 							</Typography>

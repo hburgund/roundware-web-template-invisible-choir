@@ -22,6 +22,7 @@ const baseTheme = {
 			styleOverrides: {
 				paper: ({ theme }: { theme: Theme }) => ({
 					backgroundColor: white,
+					color: black,
 					'& .MuiDialogTitle-root': {
 						color: black,
 						fontWeight: 'bold'
@@ -30,7 +31,8 @@ const baseTheme = {
 						color: black
 					},
 					'& .MuiDialogContent-root': {
-						paddingBottom: 0
+						paddingBottom: 0,
+						color: black
 					},
 					'& .MuiDialogActions-root': {
 						justifyContent: 'flex-end',

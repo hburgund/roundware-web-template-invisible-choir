@@ -1,6 +1,6 @@
 import { Mic } from '@mui/icons-material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { Box, Button, Dialog, DialogActions, DialogContent, Tooltip, Skeleton, Fade, Fab, Stack } from '@mui/material';
+import { Box, Button, Dialog, DialogActions, DialogContent, Tooltip, Skeleton, Fade, Fab, Stack, DialogContentText } from '@mui/material';
 import { point } from '@turf/helpers';
 import { useRoundware } from '@/hooks/index';
 import { useState } from 'react';
@@ -80,7 +80,11 @@ const AddLoopVoiceButton = () => {
 			</Fade>
 
 			<Dialog open={showNoSpeakerMessage} onClose={() => setShowNoSpeakerMessage(false)}>
-				<DialogContent>Sorry, but there is no choir here for you to join. Please find a new location for your participation!</DialogContent>
+				<DialogContent>
+					<DialogContentText>
+						Sorry, but there is no choir here for you to join. Please find a new location for your participation!
+					</DialogContentText>
+				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setShowNoSpeakerMessage(false)} variant='contained' color='primary'>
 						OK

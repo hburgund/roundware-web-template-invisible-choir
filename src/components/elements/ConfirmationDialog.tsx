@@ -89,11 +89,11 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
             >
               {icon}
               
-              <Typography variant="h4" component="div" textAlign="center">
+              <Typography variant="h4" component="div" textAlign="center" sx={{ color: 'black' }}>
                 {title}
               </Typography>
               
-              <Typography variant="subtitle1" textAlign="center" sx={{ whiteSpace: 'pre-line' }}>
+              <Typography variant="subtitle1" textAlign="center" sx={{ whiteSpace: 'pre-line', color: 'black' }}>
                 {description}
               </Typography>
               

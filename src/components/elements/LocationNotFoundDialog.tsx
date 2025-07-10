@@ -16,10 +16,10 @@ const LocationNotFoundDialog = (props: Props) => {
 			<DialogContent>
 				<Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
 					<LocationOnOutlinedIcon />
-					<Typography variant="h6">
+					<Typography variant="h6" sx={{ color: 'black' }}>
 						LOCATION NOT FOUND!
 					</Typography>
-					<Typography sx={{ textAlign: 'center' }}>
+					<Typography sx={{ textAlign: 'center', color: 'black' }}>
 						Sorry we couldn't find your location. Please refresh you browser and try again.
 					</Typography>
 					<Button 

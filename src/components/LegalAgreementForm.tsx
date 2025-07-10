@@ -54,11 +54,11 @@ const LegalAgreementForm = ({ onAccept, onDecline }: LegalAgreementFormProps) =>
 							alignItems="center"
 							sx={{ width: '100%', px: 2 }}
 						>
-							<Typography variant="h4" component="div" textAlign="center">
+							<Typography variant="h4" component="div" textAlign="center" sx={{ color: 'black' }}>
 								Consent Agreement
 							</Typography>
 
-							<Typography variant="body1" textAlign="center" sx={{ whiteSpace: 'pre-line' }}>
+							<Typography variant="body1" textAlign="center" sx={{ whiteSpace: 'pre-line', color: 'black' }}>
 								{roundware.project.legalAgreement}
 							</Typography>
 

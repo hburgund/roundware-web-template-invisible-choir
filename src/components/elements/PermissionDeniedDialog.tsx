@@ -26,12 +26,14 @@ const PermissionDeniedDialog = (props: Props) => {
 								<Typography 
 									variant="h5" 
 									component="h1" 
+									sx={{ color: 'black' }}
 								>
 									SORRY!
 								</Typography>
 							</Stack>
 							<Typography 
 								variant="body1" 
+								sx={{ color: 'black' }}
 							>
 								To participate fully in the artwork experience we need access to your location. In the meantime, please see our Youtube channel from some of our favourite choirs.
 							</Typography>
