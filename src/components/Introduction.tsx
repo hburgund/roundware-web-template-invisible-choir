@@ -36,7 +36,7 @@ const Introduction: React.FC = () => {
   const handleTakePart = () => {
     if (project.data?.listen_enabled) {
       if (!config.listen.autoplay) {
-        history.push('/listen');
+        history.push('/listen', { source: 'intro' });
         return;
       }
       if (!roundware.mixer || !roundware.mixer?.playlist) {
@@ -52,13 +52,13 @@ const Introduction: React.FC = () => {
             });
             roundware.mixer.play();
             forceUpdate();
-            history.push('/listen');
+            history.push('/listen', { source: 'intro' });
           }
         });
       } else {
         roundware.mixer.play();
         forceUpdate();
-        history.push('/listen');
+        history.push('/listen', { source: 'intro' });
       }
     } else if (project.data?.speak_enabled && config.speak.recordingMethod === 'standard') {
       history.push('/speak');

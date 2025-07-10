@@ -8,9 +8,11 @@ import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
 import { useLoopContext, withLoopContext } from "./LoopContext";
+import { useRoundware } from "@/hooks";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location } = useLoopContext();
+  const { roundware } = useRoundware();
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
@@ -31,7 +33,7 @@ const LoopingRecordingForm = () => {
   useEffect(() => {
     if (userConfirmedLeaving) {
       console.log("🚪 User confirmed leaving - navigating to listen page");
-      history.push("/listen");
+      history.push("/listen", { source: 'recording' });
     }
   }, [userConfirmedLeaving, history]);
 
@@ -64,7 +66,7 @@ const LoopingRecordingForm = () => {
             setShowJoinChoirPage(false);
           }}
           onCancel={() => {
-            history.push("/listen");
+            history.push("/listen", { source: 'recording' });
           }}
           onCheckPermission={recorder.checkMicrophonePermission}
         />
@@ -119,10 +121,14 @@ const LoopingRecordingForm = () => {
       <ConfirmationDialog
         open={showThankYouConfirm}
         onClose={() => {
-          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
+          // Use current listener location instead of static query location
+          const currentLocation = roundware.listenerLocation;
+          history.push(`/listen?latitude=${currentLocation.latitude}&longitude=${currentLocation.longitude}`, { source: 'recording' });
         }}
         onConfirm={() => {
-          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
+          // Use current listener location instead of static query location
+          const currentLocation = roundware.listenerLocation;
+          history.push(`/listen?latitude=${currentLocation.latitude}&longitude=${currentLocation.longitude}`, { source: 'recording' });
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Thank You!"
