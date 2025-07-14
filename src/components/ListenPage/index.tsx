@@ -1,7 +1,11 @@
 import makeStyles from '@mui/styles/makeStyles';
 import React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import RoundwareMap from './Map';
+
+interface ListenPageLocationState {
+  source?: string;
+}
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -13,7 +17,7 @@ const useStyles = makeStyles((theme) => {
 
 const ListenPage = () => {
 	const classes = useStyles();
-	const location = useLocation();
+	const location = useLocation<ListenPageLocationState>();
 	
 	// Determine button text based on where user came from
 	// If they came from intro, show "LAUNCH", otherwise show "PLAY"

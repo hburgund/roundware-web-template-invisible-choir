@@ -280,8 +280,8 @@ export const useSubmission = ({
         }
 
         // Enhanced speaker creation with retry logic and better error handling
-        const response: { id: string } = await retryWithBackoff(async () => {
-          const result = await roundware.apiClient.post(
+        const response = await retryWithBackoff<{ id: string }>(async () => {
+          const result: any = await roundware.apiClient.post(
             "/speakers/",
             formData,
             {
@@ -291,12 +291,16 @@ export const useSubmission = ({
           );
           
           // Validate response structure
-          if (!result || !result.id) {
+          if (!result || typeof result.id !== 'string') {
             throw new Error("Invalid response from server - missing speaker ID");
           }
           
-          return result;
+          return { id: result.id };
         }, 3, 1000);
+
+        if (!response || typeof response.id !== 'string') {
+          throw new Error('Submission did not return an id');
+        }
 
         console.info("Speaker created successfully:", JSON.stringify(response, null, 2));
 
