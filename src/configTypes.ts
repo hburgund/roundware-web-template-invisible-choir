@@ -1,6 +1,5 @@
 // types for config file
 
-// @ts-ignore - SpeakerConfig exists in framework but may not be exported in index
 import { SpeakerConfig } from "roundware-web-framework";
 
 export type IAssetCardConfig = {
