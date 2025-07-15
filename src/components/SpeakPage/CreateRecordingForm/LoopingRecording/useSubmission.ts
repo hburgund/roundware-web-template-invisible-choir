@@ -23,25 +23,36 @@ interface SubmissionError {
 // Utility function for exponential backoff retry logic
 const retryWithBackoff = async <T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3,
+  maxRetries: number = 2,
   baseDelay: number = 1000
 ): Promise<T> => {
   let lastError: any;
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await operation();
+      const result = await operation();
+      
+      // If we get here, the operation succeeded
+      if (attempt > 0) {
+        console.log(`Speaker creation succeeded on attempt ${attempt + 1}`);
+      }
+      
+      return result;
     } catch (error) {
       lastError = error;
+      
+      console.log(`Speaker creation attempt ${attempt + 1} failed:`, error);
       
       // Don't retry on validation errors (4xx except 408, 429)
       if ((error as any)?.status && (error as any).status >= 400 && (error as any).status < 500 && 
           (error as any).status !== 408 && (error as any).status !== 429) {
+        console.log(`Not retrying due to validation error (${(error as any).status})`);
         throw error;
       }
       
       // If this was the last attempt, throw the error
       if (attempt === maxRetries - 1) {
+        console.log(`All ${maxRetries} attempts failed, giving up`);
         throw error;
       }
       
@@ -62,12 +73,10 @@ const classifyError = (error: any): SubmissionError => {
   const errorName = (error as any)?.name;
   const errorMessage = (error as any)?.message;
   
-  // Debug logging (can be removed once testing is complete)
-  console.log('🔍 Classifying error:', { errorStatus, errorName, errorMessage, error });
-  
   // Network/connectivity errors (including RoundwareConnectionError)
   if (!errorStatus || errorName === 'TypeError' || errorName === 'RoundwareConnectionError' || 
-      errorMessage?.includes('fetch') || errorMessage?.includes('unable to connect')) {
+      errorMessage?.includes('fetch') || errorMessage?.includes('unable to connect') ||
+      errorMessage?.includes('network') || errorMessage?.includes('timeout')) {
     return {
       type: 'network',
       message: 'Unable to connect to the server. Please check your internet connection and try again.',
@@ -76,7 +85,7 @@ const classifyError = (error: any): SubmissionError => {
     };
   }
   
-  // Server errors (5xx)
+  // Server errors (5xx) - these are retryable
   if (errorStatus >= 500) {
     return {
       type: 'server',
@@ -86,7 +95,7 @@ const classifyError = (error: any): SubmissionError => {
     };
   }
   
-  // Client/validation errors (4xx)
+  // Client/validation errors (4xx) - most are NOT retryable
   if (errorStatus >= 400 && errorStatus < 500) {
     let message = 'There was an issue with your recording submission.';
     
@@ -116,15 +125,18 @@ const classifyError = (error: any): SubmissionError => {
         message = `Upload failed (Error ${errorStatus}). Please try again.`;
     }
     
+    // Only retry on timeout (408) and rate limit (429) errors
+    const retryable = errorStatus === 408 || errorStatus === 429;
+    
     return {
       type: 'validation',
       message,
       originalError: error,
-      retryable: errorStatus === 408 || errorStatus === 429
+      retryable
     };
   }
   
-  // Unknown errors
+  // Unknown errors - assume retryable unless we can determine otherwise
   return {
     type: 'unknown',
     message: 'An unexpected error occurred. Please try again.',
@@ -158,6 +170,13 @@ export const useSubmission = ({
     if (!recordedAudioBlob) {
       return;
     }
+    
+    // Prevent multiple simultaneous submissions
+    if (status === "submitting") {
+      console.log("Submission already in progress, ignoring duplicate start() call");
+      return;
+    }
+    
     // stop the audio
 
     setStatus("submitting");
@@ -247,13 +266,6 @@ export const useSubmission = ({
           );
         }
 
-        const formData = new FormData();
-        formData.append("activeyn", "true");
-        formData.append("code", moment().format("DDMMYYHHmm"));
-        formData.append("maxvolume", "1.0");
-        formData.append("minvolume", "0.0");
-        formData.append("shape", JSON.stringify(speakerShape.geometry));
-
         // Add cascading colors based on parent speakers (or random from config if no parents)
         const colorPair = getNewSpeakerColorPair(baseSpeakers);
         
@@ -265,25 +277,33 @@ export const useSubmission = ({
           });
         }
         
-        formData.append("fill_color", colorPair.fill_color);
-        if (colorPair.border_color) {
-          formData.append("border_color", colorPair.border_color);
-        }
-
-        formData.append("file", recordedAudioBlob);
-        formData.append("attenuation_distance", "5");
-        formData.append("project_id", finalConfig.project.id.toString());
-        if (baseSpeakers.length > 0) {
-          baseSpeakers.forEach((speaker) => {
-            formData.append("parents", speaker.id.toString());
-          });
-        }
-
-        // Enhanced speaker creation with retry logic and better error handling
+        // Enhanced speaker creation with retry logic
         const response = await retryWithBackoff<{ id: string }>(async () => {
+          console.log("Making speaker creation API call...");
+          
+          // Create fresh FormData for each attempt (FormData can be consumed after first use)
+          const attemptFormData = new FormData();
+          attemptFormData.append("activeyn", "true");
+          attemptFormData.append("code", moment().format("DDMMYYHHmm"));
+          attemptFormData.append("maxvolume", "1.0");
+          attemptFormData.append("minvolume", "0.0");
+          attemptFormData.append("shape", JSON.stringify(speakerShape.geometry));
+          attemptFormData.append("fill_color", colorPair.fill_color);
+          if (colorPair.border_color) {
+            attemptFormData.append("border_color", colorPair.border_color);
+          }
+          attemptFormData.append("file", recordedAudioBlob);
+          attemptFormData.append("attenuation_distance", "3");
+          attemptFormData.append("project_id", finalConfig.project.id.toString());
+          if (baseSpeakers.length > 0) {
+            baseSpeakers.forEach((speaker) => {
+              attemptFormData.append("parents", speaker.id.toString());
+            });
+          }
+          
           const result: any = await roundware.apiClient.post(
             "/speakers/",
-            formData,
+            attemptFormData,
             {
               method: "POST",
               contentType: "multipart/form-data",
@@ -291,19 +311,17 @@ export const useSubmission = ({
           );
           
           // Validate response structure
-          if (!result || typeof result.id !== 'string') {
+          if (!result || (typeof result.id !== 'string' && typeof result.id !== 'number')) {
+            console.error("Invalid response structure:", result);
             throw new Error("Invalid response from server - missing speaker ID");
           }
           
-          return { id: result.id };
-        }, 3, 1000);
+          console.log("Speaker created successfully with ID:", result.id);
+          return { id: result.id.toString() };
+        }, 3, 5000);
 
-        if (!response || typeof response.id !== 'string') {
-          throw new Error('Submission did not return an id');
-        }
-
-        console.info("Speaker created successfully:", JSON.stringify(response, null, 2));
-
+        console.log("Speaker creation completed successfully:", JSON.stringify(response, null, 2));
+        
         // Update parent speakers (this part can fail without breaking the main flow)
         try {
           if (response && baseSpeakers.length > 0) {
@@ -358,8 +376,6 @@ export const useSubmission = ({
       } catch (error) {
         console.error("Speaker creation failed:", error);
         const errorInfo = classifyError(error);
-        // Debug logging (can be removed once testing is complete)
-        console.log('🚨 Setting error state:', { errorInfo, status: 'error' });
         setErrorDetails(errorInfo);
         setStatus("error");
       }
@@ -367,7 +383,6 @@ export const useSubmission = ({
   }
 
   const reset = () => {
-    console.log('🔄 Resetting submission state');
     setStatus("idle");
     setErrorDetails(null);
   };
