@@ -86,8 +86,8 @@ export type IConfig = {
       enabled: boolean;
       /** volume level for click track (0-1) */
       volume: number;
-      /** directory path containing click track files */
-      directory: string;
+      /** ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click) */
+      balanceRatio: number;
     };
   };
   /** config for map */

@@ -58,7 +58,7 @@ let config: IConfig = {
     clickTrack: {
       enabled: true,
       volume: 1.0,
-      directory: "/src/assets/audio/",
+      balanceRatio: 0.3, // Ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click)
     },
   },
 
