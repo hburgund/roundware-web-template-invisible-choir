@@ -22,7 +22,6 @@ const baseTheme = {
 			styleOverrides: {
 				paper: ({ theme }: { theme: Theme }) => ({
 					backgroundColor: white,
-					color: black,
 					'& .MuiDialogTitle-root': {
 						color: black,
 						fontWeight: 'bold'
@@ -57,6 +56,19 @@ const baseTheme = {
 					},
 					'&.location-permission-dialog': {
 						borderRadius: 20
+					},
+
+					// Style for FullScreenOverlay component to ensure white text and icons
+					'&[data-fullscreen-overlay="true"]': {
+						'& .MuiTypography-root': {
+							color: white
+						},
+						'& .MuiSvgIcon-root': {
+							color: white
+						},
+						'& .MuiIconButton-root': {
+							color: white
+						}
 					}
 				})
 			}

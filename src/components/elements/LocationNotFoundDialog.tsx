@@ -1,5 +1,5 @@
-import { Button, Dialog, DialogContent, Stack, Typography } from '@mui/material';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import FullScreenOverlay from './FullScreenOverlay';
 
 type Props = {
 	open: boolean;
@@ -8,29 +8,18 @@ type Props = {
 
 const LocationNotFoundDialog = (props: Props) => {
 	return (
-		<Dialog 
-			open={props.open} 
+		<FullScreenOverlay
+			open={props.open}
 			onClose={props.onClose}
-			fullScreen
-		>
-			<DialogContent>
-				<Stack spacing={2} alignItems="center" justifyContent="center" sx={{ height: '100%' }}>
-					<LocationOnOutlinedIcon />
-					<Typography variant="h6" sx={{ color: 'black' }}>
-						LOCATION NOT FOUND!
-					</Typography>
-					<Typography sx={{ textAlign: 'center', color: 'black' }}>
-						Sorry we couldn't find your location. Please refresh you browser and try again.
-					</Typography>
-					<Button 
-						variant="contained"
-						onClick={props.onClose}
-					>
-						GOT IT!
-					</Button>
-				</Stack>
-			</DialogContent>
-		</Dialog>
+			icon={<LocationOnOutlinedIcon />}
+			title="LOCATION NOT FOUND!"
+			description="Sorry we couldn't find your location. Please refresh you browser and try again."
+			primaryButton={{
+				text: "GOT IT!",
+				onClick: props.onClose
+			}}
+			showCloseButton={false}
+		/>
 	);
 };
 

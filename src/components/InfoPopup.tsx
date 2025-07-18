@@ -150,7 +150,8 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					backgroundPosition: 'center',
 					overflow: 'auto',
 					position: 'relative'
-				}
+				},
+				'data-fullscreen-overlay': 'true'
 			}}
 		>
 			<Box sx={{ 
