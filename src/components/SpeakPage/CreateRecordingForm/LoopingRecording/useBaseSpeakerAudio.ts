@@ -5,6 +5,54 @@ import { useEffect, useState } from "react";
 import { useLoop } from "./useLoop";
 import { ISpeakerData } from "roundware-web-framework";
 
+/**
+ * Helper function to find the top ancestor speaker
+ * 
+ * This function finds speakers whose parent is NOT in the current group of overlapping speakers.
+ * This identifies the "root" speakers in the current context.
+ * 
+ * @param speakers - Array of speaker objects with data.parents array
+ * @returns The top ancestor speaker, or null if no speakers provided
+ * 
+ * Logic:
+ * 1. For each speaker, check if any of its parents are in the current speaker group
+ * 2. Select speakers whose parents are NOT in the group (these are the "roots")
+ * 3. If multiple root speakers found, randomly select one
+ * 4. Returns the selected top ancestor speaker
+ */
+const findTopAncestorSpeaker = (speakers: any[]): any => {
+  if (speakers.length === 0) return null;
+  if (speakers.length === 1) return speakers[0];
+
+  // Get all speaker IDs in the current group for quick lookup
+  const currentSpeakerIds = new Set(speakers.map(s => s.data?.id));
+
+  // Find speakers whose parent is NOT in the current group
+  const rootSpeakers = speakers.filter(speaker => {
+    const speakerParents = speaker.data?.parents || [];
+    
+    // Check if any of this speaker's parents are in the current group
+    const hasParentInGroup = speakerParents.some((parentId: number) => currentSpeakerIds.has(parentId));
+    
+    // Return true if this speaker has NO parents in the current group (it's a root)
+    return !hasParentInGroup;
+  });
+
+  console.debug(`Top ancestor analysis: ${speakers.length} speakers (IDs: [${Array.from(currentSpeakerIds).join(', ')}]), found ${rootSpeakers.length} root speakers`);
+  rootSpeakers.forEach((speaker, index) => {
+    console.debug(`  Root speaker ${index + 1}: ID ${speaker.data?.id}, parents: [${speaker.data?.parents?.join(', ') || 'none'}]`);
+  });
+
+  // If there are multiple root speakers, randomly pick one
+  if (rootSpeakers.length > 1) {
+    const randomIndex = Math.floor(Math.random() * rootSpeakers.length);
+    console.debug(`Multiple root speakers found, randomly selecting index ${randomIndex}`);
+    return rootSpeakers[randomIndex];
+  }
+
+  return rootSpeakers[0] || null;
+};
+
 const getSpeakerAudioBuffer = async (
   uri: string,
   audioContext: AudioContext
@@ -177,10 +225,28 @@ export const useBaseSpeakerAudio = (
 
     roundware.mixer.speakerEngine.calculateVolumesByLocation();
 
-    let baseSpeakersTemp =
-      finalConfig.speak.baseRecordingLoopSelectionMethod === "all"
-        ? sts
-        : [roundware.mixer.speakerEngine.latestBaseTrack];
+    let baseSpeakersTemp: any[];
+    
+    switch (finalConfig.speak.baseRecordingLoopSelectionMethod) {
+      case "all":
+        baseSpeakersTemp = sts;
+        console.debug(`Base loop selection: "all" - using ${sts.length} speakers`);
+        break;
+      case "topAncestor":
+        const topAncestor = findTopAncestorSpeaker(sts);
+        baseSpeakersTemp = topAncestor ? [topAncestor] : sts;
+        console.debug(`Base loop selection: "topAncestor" - found top ancestor: ${topAncestor?.data?.id}, using ${baseSpeakersTemp.length} speakers`);
+        if (!topAncestor && sts.length > 0) {
+          console.warn(`No top ancestor found, falling back to first available speaker`);
+          baseSpeakersTemp = [sts[0]];
+        }
+        break;
+      case "oldest":
+      default:
+        baseSpeakersTemp = [roundware.mixer.speakerEngine.latestBaseTrack];
+        console.debug(`Base loop selection: "oldest" - using latest base track`);
+        break;
+    }
 
     (async () => {
       let finalBuffer: AudioBuffer;

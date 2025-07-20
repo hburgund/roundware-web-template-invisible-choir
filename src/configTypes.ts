@@ -73,7 +73,7 @@ export type IConfig = {
     /** upload as speaker */
     uploadAsSpeaker: boolean;
     /** base loop */
-    baseRecordingLoopSelectionMethod: "all" | "oldest";
+    baseRecordingLoopSelectionMethod: "all" | "oldest" | "topAncestor";
     /** speaker shape */
     speakerShape: "circle" | "beechLeaf";
     /** scale factor for expanding speaker shapes */

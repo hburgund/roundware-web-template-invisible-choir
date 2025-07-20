@@ -51,7 +51,7 @@ let config: IConfig = {
     defaultSpeakTags: [],
     recordingMethod: "looping",
     uploadAsSpeaker: true,
-    baseRecordingLoopSelectionMethod: "all",
+    baseRecordingLoopSelectionMethod: "topAncestor", // "all" | "oldest" | "topAncestor"
     speakerShape: "beechLeaf",
     speakerShapeScale: 1.05,
     beatsPerLoop: 8,
