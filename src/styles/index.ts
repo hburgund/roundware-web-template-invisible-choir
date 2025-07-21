@@ -102,6 +102,10 @@ const baseTheme = {
 						paddingRight: theme.spacing(3.5),
 						paddingY: theme.spacing(0),
 						borderRadius: theme.spacing(2)
+					},
+					'&.MuiButton-dialog': {
+						position: 'relative',
+						zIndex: 10,
 					}
 				})
 			},

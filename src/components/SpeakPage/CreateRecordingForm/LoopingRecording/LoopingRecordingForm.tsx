@@ -10,6 +10,7 @@ import SubmissionControls from "./components/SubmissionControls";
 import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 import { useRoundware } from "@/hooks";
+import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
@@ -92,6 +93,15 @@ const LoopingRecordingForm = () => {
         flexDirection: "column",
       }}
     >
+      {recorder.isPermissionDenied && (
+        <MicrophoneBlockedDialog
+          open={recorder.isPermissionDenied}
+          onClose={() => {
+            recorder.setIsPermissionDenied(false);
+            setShowJoinChoirPage(true);
+          }}
+        />
+      )}
       {showJoinChoirPage ? (
         <JoinChoir
           onContinue={() => {
