@@ -6,10 +6,10 @@ const DebugPage = () => {
 	return (
 		<Dialog open={true}>
 			<LegalAgreementForm
-				onAccept={(e) => {
+				onAccept={() => {
 					debugger;
 				}}
-				onDecline={(e) => {
+				onDecline={() => {
 					debugger;
 				}}
 			/>
