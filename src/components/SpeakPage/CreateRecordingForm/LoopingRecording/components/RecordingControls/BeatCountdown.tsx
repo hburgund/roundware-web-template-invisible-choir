@@ -5,15 +5,19 @@ import config from "@/config";
 interface BeatCountdownProps {
   onComplete: () => void;
   isVisible: boolean;
+  duration?: number; // Loop duration in seconds
 }
 
-const BeatCountdown = ({ onComplete, isVisible }: BeatCountdownProps) => {
+const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) => {
   const [currentBeat, setCurrentBeat] = useState(4);
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(false);
 
   const beatsPerLoop = config.speak.beatsPerLoop;
   const countdownBeats = 4; // Always 4 beats for countdown
+
+  // Calculate beat interval based on loop duration and BPM (double-time for eighth notes)
+  const beatInterval = duration ? (duration / beatsPerLoop) * 500 : 500; // Convert to milliseconds, half the time for eighth notes
 
   useEffect(() => {
     if (!isVisible || isActiveRef.current) return;
@@ -22,7 +26,6 @@ const BeatCountdown = ({ onComplete, isVisible }: BeatCountdownProps) => {
     setCurrentBeat(countdownBeats);
     setProgress(0);
 
-    const beatInterval = 1000; // 1 second per beat (120 BPM equivalent)
     let beatCount = countdownBeats;
 
     const beatTimer = setInterval(() => {

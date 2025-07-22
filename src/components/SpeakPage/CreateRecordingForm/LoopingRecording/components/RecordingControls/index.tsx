@@ -59,6 +59,7 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
           <BeatCountdown
             isVisible={loop.mode === "countdown-to-record"}
             onComplete={recorder.startRecordingAfterCountdown}
+            duration={speaker.duration}
           />
         </Box>
       </Box>
