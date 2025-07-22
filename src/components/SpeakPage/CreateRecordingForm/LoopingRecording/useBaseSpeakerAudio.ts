@@ -348,7 +348,7 @@ export const useBaseSpeakerAudio = (
           }
         }
 
-                // Mix single speaker with click track if available
+        // Mix single speaker with click track if available
         if (clickTrackBuffer) {
           // Use configurable balance ratio for click track mixing
           const clickTrackRatio = finalConfig.speak.clickTrack.balanceRatio;
