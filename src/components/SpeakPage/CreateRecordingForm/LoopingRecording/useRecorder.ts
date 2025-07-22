@@ -84,42 +84,18 @@ export const useRecorder = ({
     }
   };
 
-  // schedule recording to start from next loop point in timer
-  const scheduleRecording = async () => {
-    // Permission is already checked when user clicks "Continue" in JoinChoir component
-    // No need to check again here - it only causes audio disruption
-    
+  // Start the discrete recording process
+  const startRecordingProcess = async () => {
     if (typeof duration !== "number") return;
 
-    console.debug(
-      "Scheduling recording",
-      loop.nextLoopPointAt.current,
-      Date.now()
-    );
+    console.debug("Starting discrete recording process");
 
-    const startingInSeconds =
-      ((loop.nextLoopPointAt.current ?? 0) - Date.now()) / 1000;
-    
-    // Calculate musical beats countdown
-    const beatsPerLoop = config.speak.beatsPerLoop;
-    const beatInterval = duration / beatsPerLoop; // duration of one beat in seconds
-    const startingInBeats = Math.ceil(startingInSeconds / beatInterval);
-    
-    console.debug("Starting recording in", startingInSeconds + "s", `(${startingInBeats} beats)`);
-    console.debug("Beat interval:", beatInterval + "s");
+    // Step 1: Stop current playback and show "Preparing to record..."
+    loop.stop();
+    loop.setMode("preparing-to-record");
+    setRecordedAudioBlob(null);
 
-    // Defer UI updates to avoid audio interference during critical button press moment
-    requestAnimationFrame(() => {
-      loop.setMode("waiting-to-record");
-      setRecordedAudioBlob(null);
-      setStartingRecordingInSeconds(startingInSeconds);
-      setStartingRecordingInBeats(startingInBeats);
-      
-      // Store when countdown should end
-      countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
-    });
-
-    // Pre-initialize MediaRecorder during countdown to eliminate delay at recording time
+    // Step 2: Pre-initialize MediaRecorder during preparation
     const preInitializeRecorder = async () => {
       try {
         console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
@@ -174,21 +150,25 @@ export const useRecorder = ({
       }
     };
     
-    // Start pre-initialization immediately (don't wait for requestAnimationFrame)
+    // Start pre-initialization immediately
     preInitializeRecorder();
 
+    // Step 3: After a short delay, start the 4-beat countdown (no audio)
     setTimeout(() => {
-      console.debug("🎯 TIMING: startRecording timeout fired at", Date.now());
-      startRecording();
-    }, startingInSeconds * 1000);
+      loop.setMode("countdown-to-record");
+      // Don't start audio playback during countdown - just show the visual countdown
+    }, 2000); // 2 seconds of "Preparing to record..."
+  };
+
+  // Start recording after countdown completes
+  const startRecordingAfterCountdown = async () => {
+    console.debug("Countdown completed, starting recording");
     
-    // Set a single timeout to clear the countdown when recording starts
-    countdownCleanupTimeout.current = setTimeout(() => {
-      console.debug("🎯 TIMING: Countdown cleanup timeout fired at", Date.now());
-      setStartingRecordingInBeats(0);
-      setStartingRecordingInSeconds(0);
-      countdownEndTime.current = null;
-    }, startingInSeconds * 1000);
+    // Stop the countdown playback
+    loop.stop();
+    
+    // Start the actual recording
+    await startRecording();
   };
 
   const isStopped = useRef(false);
@@ -307,21 +287,23 @@ export const useRecorder = ({
         const audioBlob = createBlobFromAudioBuffer(adjustedBuffer);
         console.debug("🎯 END TIMING: Final audio blob created at", Date.now());
 
-        // OPTIMIZATION: Start loop immediately, defer React state update
-        console.debug("🎯 END TIMING: About to stop current loop at", Date.now());
-        loop.stop();
-        console.debug("🎯 END TIMING: Current loop stopped at", Date.now());
+        // Show processing state (loop is already stopped at exact loop point)
+        console.debug("🎯 END TIMING: Setting processing mode at", Date.now());
+        loop.setMode("processing-recording");
         
-        console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
-        loop.start("recording-playback", audioBlob);
-        console.debug("🎯 END TIMING: Playback loop started at", Date.now());
-        
-        // Defer expensive React state update until after audio starts playing
-        console.debug("🎯 END TIMING: About to set recorded audio blob (deferred) at", Date.now());
+        // Process the recording with a delay to show the processing state
         setTimeout(() => {
-          setRecordedAudioBlob(audioBlob);
-          console.debug("🎯 END TIMING: setRecordedAudioBlob() completed (deferred) at", Date.now());
-        }, 0);
+          console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
+          loop.start("recording-playback", audioBlob);
+          console.debug("🎯 END TIMING: Playback loop started at", Date.now());
+          
+          // Defer expensive React state update until after audio starts playing
+          console.debug("🎯 END TIMING: About to set recorded audio blob (deferred) at", Date.now());
+          setTimeout(() => {
+            setRecordedAudioBlob(audioBlob);
+            console.debug("🎯 END TIMING: setRecordedAudioBlob() completed (deferred) at", Date.now());
+          }, 0);
+        }, 1500); // Show processing for 1.5 seconds
       };
 
       mediaRecorder.current.onstop = () => {
@@ -354,6 +336,14 @@ export const useRecorder = ({
       console.debug("🎯 TIMING: About to call mediaRecorder.start() at", Date.now());
       mediaRecorder.current.start(totalDuration);
       console.debug("🎯 TIMING: mediaRecorder.start() call completed at", Date.now());
+      
+      // Schedule the base loop to stop exactly when recording should end (not when MediaRecorder stops)
+      if (duration) {
+        setTimeout(() => {
+          console.debug("🎯 TIMING: Stopping base loop at exact loop point at", Date.now());
+          loop.stop();
+        }, duration * 1000);
+      }
     } catch (error) {
       console.error("Error starting recording:", error);
       setIsPermissionDenied(true);
@@ -406,7 +396,8 @@ export const useRecorder = ({
     recordedAudioBlob,
     isPermissionDenied,
     setIsPermissionDenied,
-    scheduleRecording,
+    startRecordingProcess,
+    startRecordingAfterCountdown,
     stopRecording,
     checkMicrophonePermission,
     startingRecordingInSeconds,

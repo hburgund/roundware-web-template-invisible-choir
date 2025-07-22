@@ -6,6 +6,8 @@ import StepIndicator from "../StepIndicator";
 import { memo } from "react";
 import AnimatedCircle from "./AnimatedCircle";
 import ControlButton from "./ControlButton";
+import BeatCountdown from "./BeatCountdown";
+import ProcessingOverlay from "../ProcessingOverlay";
 import { useDimensions } from "./hooks";
 
 interface RecordingControlsProps {
@@ -51,10 +53,18 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
           <ControlButton
             mode={loop.mode}
             onPlayClick={() => loop.start("playing-speaker")}
-            onRecordClick={recorder.scheduleRecording}
+            onRecordClick={recorder.startRecordingProcess}
+          />
+          <BeatCountdown
+            isVisible={loop.mode === "countdown-to-record"}
+            onComplete={recorder.startRecordingAfterCountdown}
           />
         </Box>
       </Box>
+      <ProcessingOverlay
+        isVisible={loop.mode === "processing-recording"}
+        message="Processing recording..."
+      />
       <Box
         sx={{
           position: "absolute",
@@ -69,10 +79,14 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
             ? "Press play to start rehearsing"
             : loop.mode === "playing-speaker"
             ? "Press record when ready to sing"
-            : loop.mode === "waiting-to-record"
-            ? "Get ready"
+            : loop.mode === "preparing-to-record"
+            ? "Preparing to record..."
+            : loop.mode === "countdown-to-record"
+            ? "Get ready to record..."
             : loop.mode === "recording"
-            ? ""
+            ? "Recording..."
+            : loop.mode === "processing-recording"
+            ? "Processing recording..."
             : ""}
         </Typography>
       </Box>

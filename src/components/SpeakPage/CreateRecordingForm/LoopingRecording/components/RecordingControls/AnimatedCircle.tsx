@@ -16,7 +16,12 @@ const AnimatedCircle = memo(
     const requestRef = useRef<number>();
 
     useEffect(() => {
-      if (mode !== "idle" && duration) {
+      // Only animate for modes that have active playback
+      const shouldAnimate = mode === "playing-speaker" || 
+                           mode === "recording" || 
+                           mode === "recording-playback";
+      
+      if (shouldAnimate && duration) {
         const animate = () => {
           const elapsedTime = Date.now() - (startedAtTime.current || 0);
           const durationMs = duration * 1000;
@@ -42,10 +47,14 @@ const AnimatedCircle = memo(
         mode={
           mode === "idle"
             ? "rehearse"
-            : mode === "waiting-to-record"
+            : mode === "preparing-to-record"
+            ? "rehearse"
+            : mode === "countdown-to-record"
             ? "rehearse"
             : mode === "recording"
             ? "recording"
+            : mode === "processing-recording"
+            ? "review"
             : mode === "playing-speaker"
             ? "rehearse"
             : mode === "recording-playback" || mode === "loading"

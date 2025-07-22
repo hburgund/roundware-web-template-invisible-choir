@@ -93,7 +93,7 @@ const LoopingRecordingForm = () => {
         onClose={() => setShowRerecordConfirm(false)}
         onConfirm={() => {
           setShowRerecordConfirm(false);
-          recorder.scheduleRecording();
+          recorder.startRecordingProcess();
         }}
         icon={<ReplayIcon sx={{ fontSize: 40 }} />}
         title="Re-record"

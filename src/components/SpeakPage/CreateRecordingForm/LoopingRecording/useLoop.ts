@@ -15,8 +15,10 @@ export const useLoop = () => {
   const [mode, setMode] = useState<
     | "idle"
     | "playing-speaker"
-    | "waiting-to-record"
+    | "preparing-to-record"
+    | "countdown-to-record"
     | "recording"
+    | "processing-recording"
     | "recording-playback"
     | "loading"
   >("idle");
@@ -71,11 +73,13 @@ export const useLoop = () => {
 
     const SPEAKER_VOLUMES: Record<typeof mode, number> = {
       "playing-speaker": 1,
-      "waiting-to-record": 1,
+      "preparing-to-record": 0,
+      "countdown-to-record": 1,
       "recording-playback": 0.5,
       recording: 0.5,
       idle: 1,
       loading: 0,
+      "processing-recording": 0,
     };
 
     const finalSpeakerVolume = SPEAKER_VOLUMES[newMode || mode];
