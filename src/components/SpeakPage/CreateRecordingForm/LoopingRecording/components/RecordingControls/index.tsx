@@ -48,6 +48,7 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
               mode={loop.mode}
               startedAtTime={loop.startedAtTime}
               duration={speaker.duration}
+              isRecording={loop.mode === "recording"}
             />
           </Box>
           <ControlButton

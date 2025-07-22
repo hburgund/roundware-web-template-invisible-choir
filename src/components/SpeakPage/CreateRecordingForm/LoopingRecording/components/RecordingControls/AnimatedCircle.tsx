@@ -8,10 +8,11 @@ interface AnimatedCircleProps {
   mode: ReturnType<typeof useLoop>["mode"];
   startedAtTime: React.MutableRefObject<number | null>;
   duration: number;
+  isRecording?: boolean;
 }
 
 const AnimatedCircle = memo(
-  ({ dimensions, mode, startedAtTime, duration }: AnimatedCircleProps) => {
+  ({ dimensions, mode, startedAtTime, duration, isRecording = false }: AnimatedCircleProps) => {
     const [progress, setProgress] = useState(0);
     const requestRef = useRef<number>();
 
@@ -25,8 +26,22 @@ const AnimatedCircle = memo(
         const animate = () => {
           const elapsedTime = Date.now() - (startedAtTime.current || 0);
           const durationMs = duration * 1000;
-          const loopProgress = (elapsedTime % durationMs) / durationMs;
-          setProgress(loopProgress);
+          
+          // For recording mode, stop at exactly one loop
+          if (mode === "recording" && isRecording) {
+            const recordingProgress = Math.min(elapsedTime / durationMs, 1);
+            setProgress(recordingProgress);
+            
+            // Stop animation when recording completes one loop
+            if (recordingProgress >= 1) {
+              return;
+            }
+          } else {
+            // For other modes, loop continuously
+            const loopProgress = (elapsedTime % durationMs) / durationMs;
+            setProgress(loopProgress);
+          }
+          
           requestRef.current = requestAnimationFrame(animate);
         };
         requestRef.current = requestAnimationFrame(animate);
@@ -39,7 +54,7 @@ const AnimatedCircle = memo(
       } else {
         setProgress(0);
       }
-    }, [mode, duration, startedAtTime]);
+    }, [mode, duration, startedAtTime, isRecording]);
 
     return (
       <ProgressRing
