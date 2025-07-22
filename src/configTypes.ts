@@ -89,6 +89,8 @@ export type IConfig = {
       /** ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click) */
       balanceRatio: number;
     };
+    /** disable real-time effects during recording for better reliability */
+    micRecordingEffects: boolean;
   };
   /** config for map */
   map: {
