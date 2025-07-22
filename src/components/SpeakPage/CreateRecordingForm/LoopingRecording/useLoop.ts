@@ -94,14 +94,26 @@ export const useLoop = () => {
       "playing-speaker": 1,
       "preparing-to-record": 0,
       "countdown-to-record": 1,
-      "recording-playback": 0.5,
+      "recording-playback": 0.1, // Lower base loop volume for review
       recording: 0.5,
       idle: 1,
       loading: 0,
       "processing-recording": 0,
     };
 
+    const RECORDED_VOLUMES: Record<typeof mode, number> = {
+      "playing-speaker": 0,
+      "preparing-to-record": 0,
+      "countdown-to-record": 0,
+      "recording-playback": 1.8, // Higher user recording volume for review
+      recording: 0,
+      idle: 0,
+      loading: 0,
+      "processing-recording": 0,
+    };
+
     const finalSpeakerVolume = SPEAKER_VOLUMES[newMode || mode];
+    const finalRecordedVolume = RECORDED_VOLUMES[newMode || mode];
     const fadeDuration = 0.3;
 
     speakerSource.current.connect(speakerGain);
@@ -136,7 +148,7 @@ export const useLoop = () => {
         recordedAudioSource.current.start();
 
         recorderGain.gain.linearRampToValueAtTime(
-          finalSpeakerVolume,
+          finalRecordedVolume,
           audioContext.current.currentTime + fadeDuration
         );
 
