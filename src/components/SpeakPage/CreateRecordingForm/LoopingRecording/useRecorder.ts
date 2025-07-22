@@ -88,7 +88,7 @@ export const useRecorder = ({
   const startRecordingProcess = async () => {
     if (typeof duration !== "number") return;
 
-    console.debug("Starting discrete recording process");
+
 
     // Step 1: Stop current playback and show "Preparing to record..."
     loop.stop();
@@ -98,7 +98,7 @@ export const useRecorder = ({
     // Step 2: Pre-initialize MediaRecorder during preparation
     const preInitializeRecorder = async () => {
       try {
-        console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
+
         
         // Check if we already have microphone permission
         const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
@@ -162,8 +162,6 @@ export const useRecorder = ({
 
   // Start recording after countdown completes
   const startRecordingAfterCountdown = async () => {
-    console.debug("Countdown completed, starting recording");
-    
     // Stop the countdown playback
     loop.stop();
     

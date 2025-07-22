@@ -7,6 +7,8 @@ export const useLoop = () => {
   const [isStarted, setIsStarted] = useState(false);
 
   const speakerAudioBuffer = useRef<AudioBuffer | null>(null);
+  const speakerAudioBufferWithClick = useRef<AudioBuffer | null>(null);
+  const speakerAudioBufferWithoutClick = useRef<AudioBuffer | null>(null);
   const speakerSource = useRef<AudioBufferSourceNode | null>(null);
   const recordedAudioSource = useRef<AudioBufferSourceNode | null>(null);
 
@@ -27,6 +29,22 @@ export const useLoop = () => {
 
   const nextLoopPointAt = useRef<number | null>(null);
 
+  const setSpeakerBuffers = (withClick: AudioBuffer, withoutClick: AudioBuffer) => {
+    speakerAudioBufferWithClick.current = withClick;
+    speakerAudioBufferWithoutClick.current = withoutClick;
+    // Default to the version with click for backward compatibility
+    speakerAudioBuffer.current = withClick;
+  };
+
+  const getSpeakerBufferForMode = (currentMode: typeof mode) => {
+    // Use version without click for playback modes
+    if (currentMode === "recording-playback") {
+      return speakerAudioBufferWithoutClick.current || speakerAudioBuffer.current;
+    }
+    // Use version with click for recording modes
+    return speakerAudioBufferWithClick.current || speakerAudioBuffer.current;
+  };
+
   const calculateNextPoint = () => {
     if (!speakerAudioBuffer.current) return;
     nextLoopPointAt.current =
@@ -39,9 +57,6 @@ export const useLoop = () => {
   };
 
   async function start(newMode?: typeof mode, recordedAudioBlob?: Blob) {
-    const startTime = Date.now();
-    console.debug("🎯 TIMING: loop.start() called at", startTime, "with mode:", newMode);
-    console.debug("start", newMode, recordedAudioBlob);
     
     if (newMode) {
       if (newMode === "recording-playback") {
@@ -56,16 +71,20 @@ export const useLoop = () => {
     }
     if (isLoading || !speakerAudioBuffer.current) return;
 
-    console.debug("🎯 TIMING: About to resume AudioContext at", Date.now());
     await audioContext.current.resume();
-    console.debug("🎯 TIMING: AudioContext resumed at", Date.now());
-
-    console.debug("Starting loop");
     setIsStarted(true);
-
-    console.debug("🎯 TIMING: Creating new audio sources at", Date.now());
     speakerSource.current = audioContext.current.createBufferSource();
-    speakerSource.current.buffer = speakerAudioBuffer.current;
+    
+    // Choose the appropriate buffer based on the mode
+    const targetMode = newMode || mode;
+    const appropriateBuffer = getSpeakerBufferForMode(targetMode);
+    
+    if (!appropriateBuffer) {
+      console.error("No appropriate speaker buffer available for mode:", targetMode);
+      return;
+    }
+    
+    speakerSource.current.buffer = appropriateBuffer;
     const speakerGain = audioContext.current.createGain();
 
     // speaker gain to 0.5 if there is a recorded audio blob
@@ -83,7 +102,6 @@ export const useLoop = () => {
     };
 
     const finalSpeakerVolume = SPEAKER_VOLUMES[newMode || mode];
-    console.debug("finalSpeakerVolume", finalSpeakerVolume, newMode);
     const fadeDuration = 0.3;
 
     speakerSource.current.connect(speakerGain);
@@ -92,7 +110,6 @@ export const useLoop = () => {
     speakerSource.current.loop = true;
 
     if (recordedAudioBlob) {
-      console.debug("Starting loop with recordedAudioBlob");
       recordedAudioSource.current = audioContext.current.createBufferSource();
       const blob = await recordedAudioBlob.arrayBuffer();
 
@@ -134,48 +151,33 @@ export const useLoop = () => {
         startedAtTime.current = Date.now();
         setMode("recording-playback");
       });
-    } else {
-      recordedAudioSource.current = null;
-      console.debug("🎯 TIMING: About to calculate next point at", Date.now());
-      calculateNextPoint();
-      console.debug("🎯 TIMING: About to start speaker source at", Date.now());
-      speakerSource.current.start();
-      startedAtTime.current = Date.now();
-      console.debug("🎯 TIMING: Speaker source started at", Date.now());
-      console.debug("speakerSource.current.start()");
-    }
+          } else {
+        recordedAudioSource.current = null;
+        calculateNextPoint();
+        speakerSource.current.start();
+        startedAtTime.current = Date.now();
+      }
 
     speakerGain.gain.linearRampToValueAtTime(
       finalSpeakerVolume,
       audioContext.current.currentTime + fadeDuration
     );
-    
-    console.debug("🎯 TIMING: loop.start() completed at", Date.now());
   }
 
   function stop() {
-    const stopTime = Date.now();
-    console.debug("🎯 TIMING: loop.stop() called at", stopTime);
-    
     if (interval.current) {
       // @ts-ignore
       clearInterval(interval.current);
-      console.debug("🎯 TIMING: Cleared loop interval at", Date.now());
     }
     if (speakerSource.current) {
-      console.debug("🎯 TIMING: About to stop speaker source at", Date.now());
       speakerSource.current.stop();
       speakerSource.current.disconnect();
-      console.debug("🎯 TIMING: Speaker source stopped at", Date.now());
     }
     if (recordedAudioSource.current) {
-      console.debug("🎯 TIMING: About to stop recorded source at", Date.now());
       recordedAudioSource.current.stop();
       recordedAudioSource.current.disconnect();
       recordedAudioSource.current = null;
-      console.debug("🎯 TIMING: Recorded source stopped at", Date.now());
     }
-    console.debug("🎯 TIMING: loop.stop() completed at", Date.now());
   }
 
   useEffect(() => {
@@ -192,6 +194,7 @@ export const useLoop = () => {
     setMode,
     start,
     stop,
+    setSpeakerBuffers,
     nextLoopPointAt,
     speakerAudioBuffer,
     audioContext,
