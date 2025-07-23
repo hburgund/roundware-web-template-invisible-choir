@@ -174,7 +174,15 @@ const baseTheme = {
 					}
 				}
 			}
-		}
+		},
+		MuiTooltip: {
+			defaultProps: {
+				PopperProps: {
+					style: { zIndex: 1000 }
+				}
+			}
+		},
+
 	},
 };
 
