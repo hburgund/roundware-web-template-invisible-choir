@@ -12,6 +12,7 @@ import { Fade } from "@mui/material";
 import { useState } from "react";
 import JoinChoirBackground from "./JoinChoirBackground";
 import JoinChoirSteps from "./JoinChoirSteps";
+import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
 
 interface JoinChoirProps {
   onContinue: () => void;
