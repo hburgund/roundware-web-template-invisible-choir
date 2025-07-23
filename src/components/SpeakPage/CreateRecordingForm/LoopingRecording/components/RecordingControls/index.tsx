@@ -64,8 +64,8 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
         </Box>
       </Box>
       <ProcessingOverlay
-        isVisible={loop.mode === "processing-recording"}
-        message="Processing recording..."
+        isVisible={loop.mode === "processing-recording" || loop.mode === "preparing-to-record"}
+        message={loop.mode === "preparing-to-record" ? "Preparing to record..." : "Processing recording..."}
       />
       <Box
         sx={{
