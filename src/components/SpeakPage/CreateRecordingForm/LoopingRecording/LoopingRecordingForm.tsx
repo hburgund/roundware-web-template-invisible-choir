@@ -11,6 +11,7 @@ import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 import { useRoundware } from "@/hooks";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
+import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 
 const LoopingRecordingForm = () => {
@@ -20,6 +21,7 @@ const LoopingRecordingForm = () => {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
+  const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
 
   const history = useHistory();
@@ -109,6 +111,9 @@ const LoopingRecordingForm = () => {
           onClose={() => {
             recorder.setIsPermissionDenied(false);
             setShowJoinChoirPage(true);
+          }}
+          onNeedHelp={() => {
+            setShowMicrophoneHelp(true);
           }}
         />
       )}
@@ -220,6 +225,11 @@ const LoopingRecordingForm = () => {
       <ProcessingOverlay
         isVisible={loop.mode === "processing-recording" || loop.mode === "preparing-to-record"}
         message={loop.mode === "preparing-to-record" ? "Preparing to record..." : "Processing recording..."}
+      />
+
+      <MicrophoneInstructionsDialog
+        open={showMicrophoneHelp}
+        onClose={() => setShowMicrophoneHelp(false)}
       />
     </Box>
   );

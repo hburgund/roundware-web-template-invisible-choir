@@ -1,0 +1,153 @@
+import React, { useState } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Typography, Box } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import HelpCenterIcon from '@mui/icons-material/HelpCenter';
+import LockIcon from '@mui/icons-material/Lock';
+import { isChrome, isFirefox, isSafari, isEdge } from 'react-device-detect';
+
+type Props = {
+	open: boolean;
+	onClose: () => void;
+};
+
+const MicrophoneInstructionsDialog = (props: Props) => {
+
+
+	return (
+		<Dialog
+			open={props.open}
+			onClose={props.onClose}
+			maxWidth="sm"
+			fullWidth
+			PaperProps={{
+				sx: {
+					borderRadius: 2,
+					position: 'relative'
+				}
+			}}
+		>
+			<Box sx={{ position: 'absolute', right: 8, top: 8, zIndex: 1 }}>
+				<IconButton onClick={props.onClose} size="small">
+					<CloseIcon />
+				</IconButton>
+			</Box>
+
+			<DialogTitle sx={{ pt: 4, pb: 1, textAlign: 'center' }}>
+				<Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+					<HelpCenterIcon sx={{ fontSize: 40,}} />
+				</Box>
+				<Typography variant="h5" component="div">
+					Microphone Help
+				</Typography>
+			</DialogTitle>
+
+			<DialogContent sx={{ px: 3, pb: 2 }}>
+				<Box sx={{ textAlign: 'center' }}>
+					<Box sx={{ textAlign: 'left', maxWidth: 400, mx: 'auto', mt: 3 }}>
+						{isChrome ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Click the site controls icon <img src="//storage.googleapis.com/support-kms-prod/S76Rs1BC1QDxT8zpF3tATLDsc5oxceWYIPHN" width="18" height="18" alt="Site controls" style={{ verticalAlign: 'middle' }} /> next to the URL.
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Select "Site settings."
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Under Permissions, find "Microphone."
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Change it to "Allow" (or "Allow this time.")
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									5. Refresh the page.
+								</Typography>
+							</>
+						) : isEdge ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Click the site controls <LockIcon sx={{ fontSize: 18, verticalAlign: 'middle' }} /> lock icon next to the website URL at the top.
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Click "Permissions for this site."
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Find "Microphone."
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Change it to "Allow."
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									5. Refresh the page.
+								</Typography>
+							</>
+						) : isFirefox ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Click the three lines menu (☰) in the top right
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Go to Settings {'>'} Privacy & Security {'>'} Permissions {'>'} Microphone
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Click 'Settings' and find this website
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Change it from 'Block' to 'Allow'
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									5. Refresh the page and try again
+								</Typography>
+							</>
+						) : isSafari ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Go to Safari {'>'} Preferences {'>'} Websites {'>'} Microphone
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Find this website in the list
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Change it from 'Deny' to 'Allow'
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									4. Refresh the page and try again
+								</Typography>
+							</>
+						) : (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Open your browser settings
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Look for 'Privacy', 'Permissions', or 'Site Settings'
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Find 'Microphone' settings
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Find this website and change it from 'Block' to 'Allow'
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									5. Refresh the page and try again
+								</Typography>
+							</>
+						)}
+					</Box>
+				</Box>
+			</DialogContent>
+
+			<DialogActions sx={{ px: 3, pb: 3, justifyContent: 'center' }}>
+				<Button
+					variant="contained"
+					onClick={props.onClose}
+					size="large"
+					sx={{ minWidth: 120 }}
+				>
+					Got it!
+				</Button>
+			</DialogActions>
+		</Dialog>
+	);
+};
+
+export default MicrophoneInstructionsDialog; 
