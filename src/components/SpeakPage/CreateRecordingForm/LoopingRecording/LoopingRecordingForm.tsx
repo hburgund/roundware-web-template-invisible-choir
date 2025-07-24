@@ -11,6 +11,7 @@ import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 import { useRoundware } from "@/hooks";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
+import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
@@ -93,6 +94,15 @@ const LoopingRecordingForm = () => {
         flexDirection: "column",
       }}
     >
+      {recorder.isAudioDeviceMissing && (
+        <AudioRequiredDialog
+          open={recorder.isAudioDeviceMissing}
+          onClose={() => {
+            recorder.setIsAudioDeviceMissing(false);
+            setShowJoinChoirPage(true);
+          }}
+        />
+      )}
       {recorder.isPermissionDenied && (
         <MicrophoneBlockedDialog
           open={recorder.isPermissionDenied}

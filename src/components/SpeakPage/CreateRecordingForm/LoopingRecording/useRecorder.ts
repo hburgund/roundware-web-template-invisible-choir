@@ -17,6 +17,7 @@ export const useRecorder = ({
   const [recordedAudioBlob, setRecordedAudioBlob] = useState<Blob | null>(null);
 
   const [isPermissionDenied, setIsPermissionDenied] = useState(false);
+  const [isAudioDeviceMissing, setIsAudioDeviceMissing] = useState(false);
 
   const [recorderStream, setRecorderStream] = useState<MediaStream>();
 
@@ -29,8 +30,34 @@ export const useRecorder = ({
   const preInitializedStream = useRef<MediaStream | null>(null);
   const preInitializedRecorder = useRef<MediaRecorder | null>(null);
 
+  // Check if device has audio capabilities
+  const checkAudioDeviceCapabilities = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+      const hasSpeakers = devices.some(device => device.kind === 'audiooutput');
+      
+      if (!hasMicrophone || !hasSpeakers) {
+        setIsAudioDeviceMissing(true);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      setIsAudioDeviceMissing(true);
+      return false;
+    }
+  };
+
   // Check microphone permission status using the proper API
   const checkMicrophonePermission = async () => {
+    
+    // First check if device has audio capabilities
+    const hasAudioCapabilities = await checkAudioDeviceCapabilities();
+    if (!hasAudioCapabilities) {
+      return false;
+    }
+
     try {
       // First check if we already have permission
       const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
@@ -331,6 +358,23 @@ export const useRecorder = ({
       }
     } catch (error) {
       console.error("Error starting recording:", error);
+      
+      // Check if this is an audio device issue
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('notfound') || 
+            errorMessage.includes('not supported') || 
+            errorMessage.includes('not allowed') ||
+            errorMessage.includes('permission denied')) {
+          // This might be an audio device issue, check capabilities
+          const hasAudioCapabilities = await checkAudioDeviceCapabilities();
+          if (!hasAudioCapabilities) {
+            // Audio device issue - don't set permission denied
+            return;
+          }
+        }
+      }
+      
       setIsPermissionDenied(true);
       
       // Clean up pre-initialized resources on error
@@ -427,6 +471,8 @@ export const useRecorder = ({
     recordedAudioBlob,
     isPermissionDenied,
     setIsPermissionDenied,
+    isAudioDeviceMissing,
+    setIsAudioDeviceMissing,
     startRecordingProcess,
     startRecordingAfterCountdown,
     stopRecording,
