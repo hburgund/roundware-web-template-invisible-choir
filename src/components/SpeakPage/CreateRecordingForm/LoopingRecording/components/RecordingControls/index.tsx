@@ -1,5 +1,5 @@
 import PermissionDeniedDialog from "@/components/elements/PermissionDeniedDialog";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography, CircularProgress } from "@mui/material";
 import { Prompt } from "react-router-dom";
 import { useLoopContext } from "../../LoopContext";
 import StepIndicator from "../StepIndicator";
@@ -18,7 +18,26 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
   const { loop, recorder, submission, speaker } = useLoopContext();
   const dimensions = useDimensions();
 
-  if (!speaker.duration) return null;
+  // Show loading state until speaker is ready
+  if (!speaker.duration) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100%",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        <Typography variant="h5" sx={{ color: "white", textAlign: "center" }}>
+          Generating sing-along loop...
+        </Typography>
+        <CircularProgress sx={{ color: "white" }} />
+      </Box>
+    );
+  }
 
   return (
     <Stack spacing={8} height={"100%"}>
