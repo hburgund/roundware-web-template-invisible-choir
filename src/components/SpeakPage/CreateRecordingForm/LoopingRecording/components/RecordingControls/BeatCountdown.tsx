@@ -12,12 +12,77 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
   const [currentBeat, setCurrentBeat] = useState(4);
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(false);
+  const clickSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const beatsPerLoop = config.speak.beatsPerLoop;
   const countdownBeats = 4; // Always 4 beats for countdown
 
   // Calculate beat interval based on loop duration and BPM (double-time for eighth notes)
   const beatInterval = duration ? (duration / beatsPerLoop) * 500 : 500; // Convert to milliseconds, half the time for eighth notes
+
+  // Load click track buffer
+  const loadClickTrack = async (): Promise<AudioBuffer | null> => {
+    if (!config.speak.clickTrack.enabled || !duration) {
+      return null;
+    }
+
+    try {
+      // Import click track files
+      const clickTrackModules = import.meta.glob('/src/assets/audio/*.wav', { eager: true });
+      
+      // Find click track file that matches the duration
+      const tolerance = 0.2; // 200ms tolerance
+      const clickFiles = Object.entries(clickTrackModules).map(([path, module]) => {
+        const filename = path.split('/').pop()!;
+        const url = (module as any).default || (module as any);
+        return { filename, url };
+      });
+
+      for (const { filename, url } of clickFiles) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) continue;
+          
+          const arrayBuffer = await response.arrayBuffer();
+          const audioContext = new AudioContext();
+          const buffer = await audioContext.decodeAudioData(arrayBuffer);
+          
+          // Check if this click file duration matches our target (within tolerance)
+          if (Math.abs(buffer.duration - duration) <= tolerance) {
+            return buffer;
+          }
+        } catch (error) {
+          console.debug(`Error loading click track ${filename}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading click track:', error);
+    }
+    
+    return null;
+  };
+
+  // Start click track playback
+  const startClickTrack = (clickBuffer: AudioBuffer) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    
+    const audioContext = audioContextRef.current;
+    const source = audioContext.createBufferSource();
+    const gainNode = audioContext.createGain();
+    
+    source.buffer = clickBuffer;
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Set volume based on config
+    gainNode.gain.value = config.speak.clickTrack.volume;
+    
+    source.start();
+    return source;
+  };
 
   useEffect(() => {
     if (!isVisible || isActiveRef.current) return;
@@ -27,6 +92,15 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
     setProgress(0);
 
     let beatCount = countdownBeats;
+    let clickBuffer: AudioBuffer | null = null;
+
+    // Load and start click track
+    loadClickTrack().then((buffer) => {
+      if (buffer) {
+        clickBuffer = buffer;
+        clickSourceRef.current = startClickTrack(buffer);
+      }
+    });
 
     const beatTimer = setInterval(() => {
       beatCount--;
@@ -51,8 +125,18 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
       clearInterval(beatTimer);
       clearInterval(progressInterval);
       isActiveRef.current = false;
+      
+      // Stop click track playback
+      if (clickSourceRef.current) {
+        try {
+          clickSourceRef.current.stop();
+        } catch (error) {
+          // Ignore errors when stopping already stopped source
+        }
+        clickSourceRef.current = null;
+      }
     };
-  }, [isVisible, onComplete]);
+  }, [isVisible, onComplete, duration]);
 
   if (!isVisible) return null;
 
