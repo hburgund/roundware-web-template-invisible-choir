@@ -57,17 +57,49 @@ const getSpeakerAudioBuffer = async (
   uri: string,
   audioContext: AudioContext
 ) => {
-  // Handle relative URIs by converting to absolute URLs for production
-  let absoluteUri = uri;
-  if (uri.startsWith('/') && !uri.startsWith('//')) {
-    // This is a relative path, convert to absolute URL using the Roundware server
-    absoluteUri = `${finalConfig.project.serverUrl}${uri}`;
+  try {
+    console.log('[getSpeakerAudioBuffer] Starting to load audio from:', uri);
+    
+    // Handle relative URIs by converting to absolute URLs for production
+    let absoluteUri = uri;
+    if (uri.startsWith('/') && !uri.startsWith('//')) {
+      // This is a relative path, convert to absolute URL using the Roundware server
+      absoluteUri = `${finalConfig.project.serverUrl}${uri}`;
+      console.log('[getSpeakerAudioBuffer] Converted to absolute URI:', absoluteUri);
+    }
+    
+    console.log('[getSpeakerAudioBuffer] Fetching audio data...');
+    const response = await fetch(absoluteUri);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    console.log('[getSpeakerAudioBuffer] Converting to array buffer...');
+    const arrayBuffer = await response.arrayBuffer();
+    console.log('[getSpeakerAudioBuffer] Array buffer size:', arrayBuffer.byteLength);
+    
+    // Check if AudioContext is ready
+    if (audioContext.state === 'suspended') {
+      console.log('[getSpeakerAudioBuffer] AudioContext is suspended, attempting to resume...');
+      try {
+        await audioContext.resume();
+        console.log('[getSpeakerAudioBuffer] AudioContext resumed successfully');
+      } catch (error) {
+        console.error('[getSpeakerAudioBuffer] Failed to resume AudioContext:', error);
+        // Continue anyway - decodeAudioData might still work
+      }
+    }
+    
+    console.log('[getSpeakerAudioBuffer] Decoding audio data...');
+    const buffer = await audioContext.decodeAudioData(arrayBuffer);
+    console.log('[getSpeakerAudioBuffer] Audio decoded successfully, duration:', buffer.duration);
+    
+    return buffer;
+  } catch (error) {
+    console.error('[getSpeakerAudioBuffer] Error loading audio:', error);
+    throw error;
   }
-  
-  const response = await fetch(absoluteUri);
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = await audioContext.decodeAudioData(arrayBuffer);
-  return buffer;
 };
 
 // Automatically discover all WAV files in the click track directory at build time
@@ -207,18 +239,54 @@ export const useBaseSpeakerAudio = (
   const [baseLoopWithoutClick, setBaseLoopWithoutClick] = useState<AudioBuffer | null>(null);
 
   useEffect(() => {
-    if (!roundware.mixer) return;
-    roundware.mixer.initContext();
-    if (!roundware.speakers().length) return;
+    console.log('[useBaseSpeakerAudio] useEffect triggered with lat:', lat, 'lng:', lng);
+    console.log('[useBaseSpeakerAudio] roundware.mixer exists:', !!roundware.mixer);
+    console.log('[useBaseSpeakerAudio] roundware.speakers().length:', roundware.speakers().length);
+    console.log('[useBaseSpeakerAudio] roundware.mixer.speakerEngine exists:', !!roundware.mixer?.speakerEngine);
+    console.log('[useBaseSpeakerAudio] roundware.mixer.speakerEngine.speakers.length:', roundware.mixer?.speakerEngine?.speakers?.length);
+    
+    if (!roundware.mixer) {
+      console.log('[useBaseSpeakerAudio] No roundware mixer available');
+      return;
+    }
+    
+    console.log('[useBaseSpeakerAudio] Starting audio preparation...');
+    
+    try {
+      console.log('[useBaseSpeakerAudio] About to call roundware.mixer.initContext()');
+      roundware.mixer.initContext();
+      console.log('[useBaseSpeakerAudio] roundware.mixer.initContext() completed successfully');
+    } catch (error) {
+      console.error('[useBaseSpeakerAudio] Failed to init mixer context:', error);
+      return;
+    }
+    
+    if (!roundware.speakers().length) {
+      console.log('[useBaseSpeakerAudio] No speakers available');
+      return;
+    }
 
-    if (!roundware.mixer.speakerEngine?.speakers?.length) return;
+    if (!roundware.mixer.speakerEngine?.speakers?.length) {
+      console.log('[useBaseSpeakerAudio] No speaker engine speakers available');
+      return;
+    }
 
+    console.log('[useBaseSpeakerAudio] Creating listener point...');
     const listenerPoint = point([lng, lat]);
+    console.log('[useBaseSpeakerAudio] Listener point created:', listenerPoint);
 
-    roundware.mixer.speakerEngine.updateParams({
-      listenerPoint,
-    });
+    try {
+      console.log('[useBaseSpeakerAudio] About to call updateParams...');
+      roundware.mixer.speakerEngine.updateParams({
+        listenerPoint,
+      });
+      console.log('[useBaseSpeakerAudio] updateParams completed successfully');
+    } catch (error) {
+      console.error('[useBaseSpeakerAudio] Failed to update speaker engine params:', error);
+      return;
+    }
 
+    console.log('[useBaseSpeakerAudio] Filtering speakers...');
     const sts = roundware.mixer.speakerEngine.speakers.filter((st) => {
       return (
         st.outerBoundaryContains(listenerPoint) ||
@@ -226,8 +294,18 @@ export const useBaseSpeakerAudio = (
       );
     });
 
-    roundware.mixer.speakerEngine.calculateVolumesByLocation();
+    console.log('[useBaseSpeakerAudio] Found', sts.length, 'speakers at location');
 
+    try {
+      console.log('[useBaseSpeakerAudio] About to call calculateVolumesByLocation...');
+      roundware.mixer.speakerEngine.calculateVolumesByLocation();
+      console.log('[useBaseSpeakerAudio] calculateVolumesByLocation completed successfully');
+    } catch (error) {
+      console.error('[useBaseSpeakerAudio] Failed to calculate volumes:', error);
+      return;
+    }
+
+    console.log('[useBaseSpeakerAudio] Selecting base speakers...');
     let baseSpeakersTemp: any[];
     
     switch (finalConfig.speak.baseRecordingLoopSelectionMethod) {
@@ -251,199 +329,249 @@ export const useBaseSpeakerAudio = (
         break;
     }
 
+    if (!baseSpeakersTemp.length) {
+      console.error('[useBaseSpeakerAudio] No base speakers selected');
+      return;
+    }
+
+    console.log('[useBaseSpeakerAudio] Starting async audio preparation with', baseSpeakersTemp.length, 'speakers');
+    console.log('[useBaseSpeakerAudio] About to enter async function...');
+
     (async () => {
-      let finalBuffer: AudioBuffer;
-      let bufferWithClick: AudioBuffer | null = null;
-      let bufferWithoutClick: AudioBuffer | null = null;
+      console.log('[useBaseSpeakerAudio] Async function started');
+      try {
+        // Ensure AudioContext is ready for mobile Safari
+        console.log('[useBaseSpeakerAudio] Checking AudioContext state:', loop.audioContext.current.state);
+        if (loop.audioContext.current.state === 'suspended') {
+          console.log('[useBaseSpeakerAudio] AudioContext is suspended, attempting to resume...');
+          try {
+            await loop.audioContext.current.resume();
+            console.log('[useBaseSpeakerAudio] AudioContext resumed successfully');
+          } catch (error) {
+            console.error('[useBaseSpeakerAudio] Failed to resume AudioContext:', error);
+            // Continue anyway - some operations might still work
+          }
+        }
 
-      if (baseSpeakersTemp.length > 1) {
-        // Load all speaker audio buffers
-        const speakerBuffers = await Promise.all(
-          baseSpeakersTemp.map(async (st: any) => {
-            const uri = (st as { uri: string }).uri;
-            
-            const buffer = await getSpeakerAudioBuffer(uri, loop.audioContext.current);
-            const volume = (
-              st as {
-                volumeByLocation: (arg0: any) => number;
+        let finalBuffer: AudioBuffer;
+        let bufferWithClick: AudioBuffer | null = null;
+        let bufferWithoutClick: AudioBuffer | null = null;
+
+        if (baseSpeakersTemp.length > 1) {
+          console.log('[useBaseSpeakerAudio] Loading multiple speaker buffers...');
+          
+          // Load all speaker audio buffers
+          const speakerBuffers = await Promise.all(
+            baseSpeakersTemp.map(async (st: any, index: number) => {
+              try {
+                const uri = (st as { uri: string }).uri;
+                console.log(`[useBaseSpeakerAudio] Loading speaker ${index + 1}/${baseSpeakersTemp.length}:`, uri);
+                
+                const buffer = await getSpeakerAudioBuffer(uri, loop.audioContext.current);
+                const volume = (
+                  st as {
+                    volumeByLocation: (arg0: any) => number;
+                  }
+                ).volumeByLocation(listenerPoint.geometry);
+                
+                console.log(`[useBaseSpeakerAudio] Speaker ${index + 1} loaded successfully, volume:`, volume);
+                
+                return {
+                  buffer,
+                  volume,
+                  type: 'speaker' as const,
+                };
+              } catch (error) {
+                console.error(`[useBaseSpeakerAudio] Failed to load speaker ${index + 1}:`, error);
+                throw error;
               }
-            ).volumeByLocation(listenerPoint.geometry);
-            
-            return {
-              buffer,
-              volume,
-              type: 'speaker' as const,
-            };
-          })
-        );
+            })
+          );
 
-        // Load click track buffer if enabled
-        let clickTrackBuffer: { buffer: AudioBuffer; volume: number; type: 'click' } | null = null;
-        if (finalConfig.speak.clickTrack.enabled) {
-          try {
-            const clickBuffer = await getClickTrackBuffer(
-              speakerBuffers[0].buffer.duration,
-              loop.audioContext.current
-            );
-            if (clickBuffer) {
-              // Use configurable balance ratio for click track volume
-              const clickVolume = finalConfig.speak.clickTrack.volume * finalConfig.speak.clickTrack.balanceRatio;
+          console.log('[useBaseSpeakerAudio] All speaker buffers loaded, processing...');
+
+          // Load click track buffer if enabled
+          let clickTrackBuffer: { buffer: AudioBuffer; volume: number; type: 'click' } | null = null;
+          if (finalConfig.speak.clickTrack.enabled) {
+            try {
+              console.log('[useBaseSpeakerAudio] Loading click track...');
+              const clickBuffer = await getClickTrackBuffer(
+                speakerBuffers[0].buffer.duration,
+                loop.audioContext.current
+              );
+              if (clickBuffer) {
+                // Use configurable balance ratio for click track volume
+                const clickVolume = finalConfig.speak.clickTrack.volume * finalConfig.speak.clickTrack.balanceRatio;
+                
+                clickTrackBuffer = {
+                  buffer: clickBuffer,
+                  volume: clickVolume,
+                  type: 'click' as const,
+                };
+                console.log('[useBaseSpeakerAudio] Click track loaded successfully');
+              }
+            } catch (error) {
+              console.error(`Error loading click track:`, error);
+            }
+          }
+
+          // Create version without click track (just speakers, no click track)
+          console.log('[useBaseSpeakerAudio] Creating buffer without click...');
+          const bufferWithoutClick = speakerBuffers.reduce(
+            (acc: AudioBuffer, { buffer, volume }: any) => {
+              const ratio = volume / speakerBuffers.reduce((sum, { volume }) => sum + volume, 0);
+              const normalizedRatio = Math.max(0.1, Math.min(1.0, ratio * 5));
               
-              clickTrackBuffer = {
-                buffer: clickBuffer,
-                volume: clickVolume,
-                type: 'click' as const,
-              };
+              const mixed = mix(acc, buffer, (a: number, b: number) => {
+                return a + b * normalizedRatio;
+              });
+              return mixed;
+            },
+            loop.audioContext.current.createBuffer(
+              speakerBuffers[0].buffer.numberOfChannels,
+              speakerBuffers[0].buffer.length,
+              speakerBuffers[0].buffer.sampleRate
+            )
+          );
 
-            }
-          } catch (error) {
-            console.error(`Error loading click track:`, error);
+          // Create version with click track
+          console.log('[useBaseSpeakerAudio] Creating buffer with click...');
+          const allAudioSources = clickTrackBuffer 
+            ? [...speakerBuffers, clickTrackBuffer]
+            : speakerBuffers;
+
+          const totalVolume = allAudioSources.reduce(
+            (acc: number, { volume }: any) => acc + volume,
+            0
+          );
+
+          const bufferWithClick = allAudioSources.reduce(
+            (acc: AudioBuffer, { buffer, volume }: any) => {
+              const ratio = volume / totalVolume;
+              const normalizedRatio = Math.max(0.1, Math.min(1.0, ratio * 5));
+              
+              const mixed = mix(acc, buffer, (a: number, b: number) => {
+                return a + b * normalizedRatio;
+              });
+              return mixed;
+            },
+            loop.audioContext.current.createBuffer(
+              allAudioSources[0].buffer.numberOfChannels,
+              allAudioSources[0].buffer.length,
+              allAudioSources[0].buffer.sampleRate
+            )
+          );
+
+          // Store both versions
+          setBaseLoopWithClick(bufferWithClick);
+          setBaseLoopWithoutClick(bufferWithoutClick);
+          
+          // Use the version with click for the main buffer (for recording)
+          finalBuffer = bufferWithClick;
+
+        } else {
+          console.log('[useBaseSpeakerAudio] Loading single speaker buffer...');
+          
+          // Single speaker case - create both with and without click track
+          const speakerUri = (baseSpeakersTemp[0] as any as { uri: string }).uri;
+          console.log('[useBaseSpeakerAudio] Loading speaker URI:', speakerUri);
+          
+          const speakerBuffer = await getSpeakerAudioBuffer(speakerUri, loop.audioContext.current);
+          console.log('[useBaseSpeakerAudio] Single speaker buffer loaded successfully');
+          
+          // Create version without click track (balanceRatio = 0.0)
+          // Create a copy of the speaker buffer to avoid modifying the original
+          const speakerBufferCopy1 = loop.audioContext.current.createBuffer(
+            speakerBuffer.numberOfChannels,
+            speakerBuffer.length,
+            speakerBuffer.sampleRate
+          );
+          // Copy the speaker buffer data
+          for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
+            const originalData = speakerBuffer.getChannelData(channel);
+            const copyData = speakerBufferCopy1.getChannelData(channel);
+            copyData.set(originalData);
           }
-        }
-
-        // Create version without click track (just speakers, no click track)
-        const bufferWithoutClick = speakerBuffers.reduce(
-          (acc: AudioBuffer, { buffer, volume }: any) => {
-            const ratio = volume / speakerBuffers.reduce((sum, { volume }) => sum + volume, 0);
-            const normalizedRatio = Math.max(0.1, Math.min(1.0, ratio * 5));
-            
-            const mixed = mix(acc, buffer, (a: number, b: number) => {
-              return a + b * normalizedRatio;
-            });
-            return mixed;
-          },
-          loop.audioContext.current.createBuffer(
-            speakerBuffers[0].buffer.numberOfChannels,
-            speakerBuffers[0].buffer.length,
-            speakerBuffers[0].buffer.sampleRate
-          )
-        );
-
-        // Create version with click track
-        const allAudioSources = clickTrackBuffer 
-          ? [...speakerBuffers, clickTrackBuffer]
-          : speakerBuffers;
-
-        const totalVolume = allAudioSources.reduce(
-          (acc: number, { volume }: any) => acc + volume,
-          0
-        );
-
-        const bufferWithClick = allAudioSources.reduce(
-          (acc: AudioBuffer, { buffer, volume }: any) => {
-            const ratio = volume / totalVolume;
-            const normalizedRatio = Math.max(0.1, Math.min(1.0, ratio * 5));
-            
-            const mixed = mix(acc, buffer, (a: number, b: number) => {
-              return a + b * normalizedRatio;
-            });
-            return mixed;
-          },
-          loop.audioContext.current.createBuffer(
-            allAudioSources[0].buffer.numberOfChannels,
-            allAudioSources[0].buffer.length,
-            allAudioSources[0].buffer.sampleRate
-          )
-        );
-
-        // Store both versions
-        setBaseLoopWithClick(bufferWithClick);
-        setBaseLoopWithoutClick(bufferWithoutClick);
-        
-
-        
-        // Use the version with click for the main buffer (for recording)
-        finalBuffer = bufferWithClick;
-
-      } else {
-        // Single speaker case - create both with and without click track
-        const speakerUri = (baseSpeakersTemp[0] as any as { uri: string }).uri;
-        
-        const speakerBuffer = await getSpeakerAudioBuffer(speakerUri, loop.audioContext.current);
-        
-        // Create version without click track (balanceRatio = 0.0)
-        // Create a copy of the speaker buffer to avoid modifying the original
-        const speakerBufferCopy1 = loop.audioContext.current.createBuffer(
-          speakerBuffer.numberOfChannels,
-          speakerBuffer.length,
-          speakerBuffer.sampleRate
-        );
-        // Copy the speaker buffer data
-        for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
-          const originalData = speakerBuffer.getChannelData(channel);
-          const copyData = speakerBufferCopy1.getChannelData(channel);
-          copyData.set(originalData);
-        }
-        
-        bufferWithoutClick = speakerBufferCopy1;
-        if (finalConfig.speak.clickTrack.enabled) {
-          try {
-            const clickTrackBuffer = await getClickTrackBuffer(
-              speakerBuffer.duration,
-              loop.audioContext.current
-            );
-            if (clickTrackBuffer) {
-              // Use balanceRatio = 0.0 to effectively silence the click track
-              bufferWithoutClick = mix(speakerBufferCopy1, clickTrackBuffer, 0.0);
+          
+          bufferWithoutClick = speakerBufferCopy1;
+          if (finalConfig.speak.clickTrack.enabled) {
+            try {
+              console.log('[useBaseSpeakerAudio] Loading click track for single speaker...');
+              const clickTrackBuffer = await getClickTrackBuffer(
+                speakerBuffer.duration,
+                loop.audioContext.current
+              );
+              if (clickTrackBuffer) {
+                // Use balanceRatio = 0.0 to effectively silence the click track
+                bufferWithoutClick = mix(speakerBufferCopy1, clickTrackBuffer, 0.0);
+                console.log('[useBaseSpeakerAudio] Click track mixed into buffer without click');
+              }
+            } catch (error) {
+              console.error(`Error creating version without click track:`, error);
             }
-          } catch (error) {
-            console.error(`Error creating version without click track:`, error);
           }
-        }
-        
-        // Create version with click track (speaker audio + click track)
-        // Create another copy of the speaker buffer
-        const speakerBufferCopy2 = loop.audioContext.current.createBuffer(
-          speakerBuffer.numberOfChannels,
-          speakerBuffer.length,
-          speakerBuffer.sampleRate
-        );
-        // Copy the speaker buffer data
-        for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
-          const originalData = speakerBuffer.getChannelData(channel);
-          const copyData = speakerBufferCopy2.getChannelData(channel);
-          copyData.set(originalData);
-        }
-        
-        bufferWithClick = speakerBufferCopy2;
-        if (finalConfig.speak.clickTrack.enabled) {
-          try {
-            const clickTrackBuffer = await getClickTrackBuffer(
-              speakerBuffer.duration,
-              loop.audioContext.current
-            );
-            if (clickTrackBuffer) {
-              // Use configurable balance ratio for click track mixing
-              bufferWithClick = mix(speakerBufferCopy2, clickTrackBuffer, finalConfig.speak.clickTrack.balanceRatio);
+          
+          // Create version with click track (speaker audio + click track)
+          // Create another copy of the speaker buffer
+          const speakerBufferCopy2 = loop.audioContext.current.createBuffer(
+            speakerBuffer.numberOfChannels,
+            speakerBuffer.length,
+            speakerBuffer.sampleRate
+          );
+          // Copy the speaker buffer data
+          for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
+            const originalData = speakerBuffer.getChannelData(channel);
+            const copyData = speakerBufferCopy2.getChannelData(channel);
+            copyData.set(originalData);
+          }
+          
+          bufferWithClick = speakerBufferCopy2;
+          if (finalConfig.speak.clickTrack.enabled) {
+            try {
+              const clickTrackBuffer = await getClickTrackBuffer(
+                speakerBuffer.duration,
+                loop.audioContext.current
+              );
+              if (clickTrackBuffer) {
+                // Use configurable balance ratio for click track mixing
+                bufferWithClick = mix(speakerBufferCopy2, clickTrackBuffer, finalConfig.speak.clickTrack.balanceRatio);
+                console.log('[useBaseSpeakerAudio] Click track mixed into buffer with click');
+              }
+            } catch (error) {
+              console.error(`Error adding click track:`, error);
             }
-          } catch (error) {
-            console.error(`Error adding click track:`, error);
           }
+          
+          // Store both versions
+          setBaseLoopWithClick(bufferWithClick);
+          setBaseLoopWithoutClick(bufferWithoutClick);
+          
+          // Use the version with click for the main buffer (for recording)
+          finalBuffer = bufferWithClick;
         }
-        
-        // Store both versions
-        setBaseLoopWithClick(bufferWithClick);
-        setBaseLoopWithoutClick(bufferWithoutClick);
-        
 
+        console.log('[useBaseSpeakerAudio] Audio preparation complete, setting buffers...');
+
+        // Use the local buffer variables directly instead of waiting for state updates
+        if (bufferWithClick && bufferWithoutClick) {
+          loop.setSpeakerBuffers(bufferWithClick, bufferWithoutClick);
+          console.log('[useBaseSpeakerAudio] Speaker buffers set successfully');
+        } else {
+          // Fallback for backward compatibility
+          loop.speakerAudioBuffer.current = finalBuffer;
+          console.log('[useBaseSpeakerAudio] Using fallback speaker buffer');
+        }
+
+        setBaseSpeakers(baseSpeakersTemp.map((s: any) => s?.data as ISpeakerData));
+        loop.setIsLoading(false);
+        setAudioDuration(finalBuffer.duration);
         
-        // Use the version with click for the main buffer (for recording)
-        finalBuffer = bufferWithClick;
+        console.log('[useBaseSpeakerAudio] Audio preparation completed successfully');
+      } catch (error) {
+        console.error('[useBaseSpeakerAudio] Error during audio preparation:', error);
+        // Set loading to false even on error to prevent infinite loading
+        loop.setIsLoading(false);
       }
-
-
-
-      // Use the local buffer variables directly instead of waiting for state updates
-      if (bufferWithClick && bufferWithoutClick) {
-        loop.setSpeakerBuffers(bufferWithClick, bufferWithoutClick);
-      } else {
-        // Fallback for backward compatibility
-        loop.speakerAudioBuffer.current = finalBuffer;
-      }
-
-      setBaseSpeakers(baseSpeakersTemp.map((s: any) => s?.data as ISpeakerData));
-      loop.setIsLoading(false);
-      setAudioDuration(finalBuffer.duration);
     })();
   }, [lat, lng, roundware]);
 

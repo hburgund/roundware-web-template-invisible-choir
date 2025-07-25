@@ -16,7 +16,7 @@ import JoinChoirSteps from "./JoinChoirSteps";
 interface JoinChoirProps {
   onContinue: () => void;
   onCancel: () => void;
-  onCheckPermission: () => Promise<boolean>;
+  onCheckPermission?: () => Promise<boolean>; // Made optional since we no longer use it
 }
 
 const JoinChoir = ({
@@ -27,8 +27,8 @@ const JoinChoir = ({
   const [isConsentChecked, setIsConsentChecked] = useState(false);
 
   const handleContinue = async () => {
-    const hasPermission = await onCheckPermission();
-    if (!hasPermission) return;
+    // Only check consent, don't request microphone permission yet
+    // Microphone permission will be requested when user actually starts recording
     onContinue();
   };
 
