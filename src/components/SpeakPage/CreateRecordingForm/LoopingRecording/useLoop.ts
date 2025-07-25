@@ -192,6 +192,35 @@ export const useLoop = () => {
     }
   }
 
+  // Comprehensive cleanup function for when leaving the recording session
+  const cleanupAllAudioResources = () => {
+    console.log("🧹 Cleaning up all audio resources");
+    
+    // Stop all audio playback
+    stop();
+    
+    // Clear any pending timers
+    if (interval.current) {
+      // @ts-ignore
+      clearInterval(interval.current);
+      interval.current = null;
+    }
+    
+    // Reset state
+    setMode("idle");
+    setIsStarted(false);
+    setIsLoading(false);
+    startedAtTime.current = null;
+    nextLoopPointAt.current = null;
+    
+    // Clear audio buffers (optional - they might be needed if user returns)
+    // speakerAudioBuffer.current = null;
+    // speakerAudioBufferWithClick.current = null;
+    // speakerAudioBufferWithoutClick.current = null;
+    
+    console.log("✅ All audio resources cleaned up");
+  };
+
   useEffect(() => {
     return () => {
       stop();
@@ -206,6 +235,7 @@ export const useLoop = () => {
     setMode,
     start,
     stop,
+    cleanupAllAudioResources,
     setSpeakerBuffers,
     nextLoopPointAt,
     speakerAudioBuffer,
