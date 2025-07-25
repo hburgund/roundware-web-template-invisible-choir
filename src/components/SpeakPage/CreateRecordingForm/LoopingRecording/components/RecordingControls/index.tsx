@@ -3,7 +3,7 @@ import { Box, Stack, Typography, CircularProgress } from "@mui/material";
 import { Prompt } from "react-router-dom";
 import { useLoopContext } from "../../LoopContext";
 import StepIndicator from "../StepIndicator";
-import { memo } from "react";
+import { memo, useRef, useEffect } from "react";
 import AnimatedCircle from "./AnimatedCircle";
 import ControlButton from "./ControlButton";
 import BeatCountdown from "./BeatCountdown";
@@ -17,6 +17,23 @@ interface RecordingControlsProps {
 const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsProps) => {
   const { loop, recorder, submission, speaker } = useLoopContext();
   const dimensions = useDimensions();
+  const beatCountdownRef = useRef<any>(null);
+
+  // Helper to forcibly stop click track
+  const stopCountdownClick = () => {
+    if (beatCountdownRef.current && beatCountdownRef.current.stopClickTrack) {
+      beatCountdownRef.current.stopClickTrack();
+      console.log('[RecordingControls] Forcibly stopped countdown click track');
+    }
+  };
+
+  // Stop countdown click track when user confirms leaving
+  useEffect(() => {
+    if (userConfirmedLeaving) {
+      console.log('[RecordingControls] User confirmed leaving - stopping countdown click track');
+      stopCountdownClick();
+    }
+  }, [userConfirmedLeaving]);
 
   // Show loading state until speaker is ready
   if (!speaker.duration) {
@@ -38,6 +55,25 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
       </Box>
     );
   }
+
+  // Ensure AudioContext is resumed on user gesture
+  const handlePlayClick = async () => {
+    if (loop.audioContext.current.state !== 'running') {
+      await loop.audioContext.current.resume();
+      console.log('[RecordingControls] AudioContext resumed on play', loop.audioContext.current.state);
+    }
+    stopCountdownClick();
+    loop.start("playing-speaker");
+  };
+
+  const handleRecordClick = async () => {
+    if (loop.audioContext.current.state !== 'running') {
+      await loop.audioContext.current.resume();
+      console.log('[RecordingControls] AudioContext resumed on record', loop.audioContext.current.state);
+    }
+    stopCountdownClick();
+    recorder.startRecordingProcess();
+  };
 
   return (
     <Stack spacing={8} height={"100%"}>
@@ -72,13 +108,15 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
           </Box>
           <ControlButton
             mode={loop.mode}
-            onPlayClick={() => loop.start("playing-speaker")}
-            onRecordClick={recorder.startRecordingProcess}
+            onPlayClick={handlePlayClick}
+            onRecordClick={handleRecordClick}
           />
           <BeatCountdown
+            ref={beatCountdownRef}
             isVisible={loop.mode === "countdown-to-record"}
             onComplete={recorder.startRecordingAfterCountdown}
             duration={speaker.duration}
+            audioContext={loop.audioContext.current}
           />
         </Box>
       </Box>

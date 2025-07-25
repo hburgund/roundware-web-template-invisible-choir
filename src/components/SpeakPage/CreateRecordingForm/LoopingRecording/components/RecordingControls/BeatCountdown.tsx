@@ -1,19 +1,21 @@
 import { Box, Typography } from "@mui/material";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
 import config from "@/config";
 
 interface BeatCountdownProps {
   onComplete: () => void;
   isVisible: boolean;
   duration?: number; // Loop duration in seconds
+  audioContext: AudioContext; // Use the existing audio context from the main loop
+  onClickTrackStarted?: () => void; // Optional callback for parent to forcibly stop click
 }
 
-const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) => {
+// Expose a stopClickTrack method to parent via ref
+const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContext, onClickTrackStarted }: BeatCountdownProps, ref) => {
   const [currentBeat, setCurrentBeat] = useState(4);
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(false);
-  const clickSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const singleClickBufferRef = useRef<AudioBuffer | null>(null);
 
   const beatsPerLoop = config.speak.beatsPerLoop;
   const countdownBeats = 4; // Always 4 beats for countdown
@@ -21,90 +23,116 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
   // Calculate beat interval based on loop duration and BPM (double-time for eighth notes)
   const beatInterval = duration ? (duration / beatsPerLoop) * 500 : 500; // Convert to milliseconds, half the time for eighth notes
 
-  // Load click track buffer
-  const loadClickTrack = async (): Promise<AudioBuffer | null> => {
-    if (!config.speak.clickTrack.enabled || !duration) {
+  // Load single click sound
+  const loadSingleClick = async (): Promise<AudioBuffer | null> => {
+    if (!config.speak.clickTrack.enabled) {
       return null;
     }
 
     try {
-      // Import click track files
-      const clickTrackModules = import.meta.glob('/src/assets/audio/*.wav', { eager: true });
+      console.log('[BeatCountdown] Loading single click sound...');
       
-      // Find click track file that matches the duration
-      const tolerance = 0.2; // 200ms tolerance
-      const clickFiles = Object.entries(clickTrackModules).map(([path, module]) => {
-        const filename = path.split('/').pop()!;
-        const url = (module as any).default || (module as any);
-        return { filename, url };
-      });
-
-      for (const { filename, url } of clickFiles) {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) continue;
-          
-          const arrayBuffer = await response.arrayBuffer();
-          const audioContext = new AudioContext();
-          const buffer = await audioContext.decodeAudioData(arrayBuffer);
-          
-          // Check if this click file duration matches our target (within tolerance)
-          if (Math.abs(buffer.duration - duration) <= tolerance) {
-            return buffer;
-          }
-        } catch (error) {
-          console.debug(`Error loading click track ${filename}:`, error);
-        }
+      // Use import.meta.glob to get the processed URL from Vite
+      const clickSingleModules = import.meta.glob('/src/assets/audio/click-single.wav', { eager: true });
+      
+      if (!clickSingleModules['/src/assets/audio/click-single.wav']) {
+        console.error('[BeatCountdown] click-single.wav not found in assets');
+        return null;
       }
+      
+      const url = (clickSingleModules['/src/assets/audio/click-single.wav'] as any).default;
+      console.log('[BeatCountdown] Single click URL:', url);
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error('[BeatCountdown] Failed to load click-single.wav:', response.status, response.statusText);
+        return null;
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = await audioContext.decodeAudioData(arrayBuffer);
+      console.log('[BeatCountdown] Single click loaded successfully, duration:', buffer.duration);
+      return buffer;
     } catch (error) {
-      console.error('Error loading click track:', error);
+      console.error('[BeatCountdown] Error loading single click:', error);
+      return null;
     }
-    
-    return null;
   };
 
-  // Start click track playback
-  const startClickTrack = (clickBuffer: AudioBuffer) => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
+  // Play single click sound
+  const playSingleClick = useCallback((clickBuffer: AudioBuffer) => {
+    try {
+      const source = audioContext.createBufferSource();
+      const gainNode = audioContext.createGain();
+      
+      source.buffer = clickBuffer;
+      source.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      gainNode.gain.value = config.speak.clickTrack.volume;
+      
+      source.start();
+      console.log('[BeatCountdown] Single click played');
+    } catch (error) {
+      console.error('[BeatCountdown] Error playing single click:', error);
     }
-    
-    const audioContext = audioContextRef.current;
-    const source = audioContext.createBufferSource();
-    const gainNode = audioContext.createGain();
-    
-    source.buffer = clickBuffer;
-    source.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Set volume based on config
-    gainNode.gain.value = config.speak.clickTrack.volume;
-    
-    source.start();
-    return source;
-  };
+  }, [audioContext]);
+
+  // Stop click track playback (for cleanup)
+  const stopClickTrack = useCallback(() => {
+    // No need to stop individual clicks as they're short sounds
+    console.log('[BeatCountdown] Click track stopped');
+  }, []);
+
+  // Expose stopClickTrack to parent
+  useImperativeHandle(ref, () => ({ stopClickTrack }), [stopClickTrack]);
 
   useEffect(() => {
     if (!isVisible || isActiveRef.current) return;
-
     isActiveRef.current = true;
     setCurrentBeat(countdownBeats);
     setProgress(0);
-
     let beatCount = countdownBeats;
-    let clickBuffer: AudioBuffer | null = null;
-
-    // Load and start click track
-    loadClickTrack().then((buffer) => {
-      if (buffer) {
-        clickBuffer = buffer;
-        clickSourceRef.current = startClickTrack(buffer);
+    let cancelled = false;
+    
+    (async () => {
+      // Resume context on user gesture
+      if (audioContext.state !== 'running') {
+        try {
+          await audioContext.resume();
+          console.log('[BeatCountdown] AudioContext resumed', audioContext.state);
+        } catch (e) {
+          console.warn('[BeatCountdown] Failed to resume AudioContext', e);
+        }
       }
-    });
-
+      
+      // Load single click sound
+      singleClickBufferRef.current = await loadSingleClick();
+      if (cancelled) return;
+      
+      if (singleClickBufferRef.current) {
+        console.log('[BeatCountdown] Single click loaded, countdown ready');
+        
+        // Play a test click to ensure audio is working
+        console.log('[BeatCountdown] Playing test click...');
+        playSingleClick(singleClickBufferRef.current);
+        
+        // Small delay to ensure audio is ready before starting countdown
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (onClickTrackStarted) onClickTrackStarted();
+      } else {
+        console.warn('[BeatCountdown] No single click available for countdown');
+      }
+    })();
+    
     const beatTimer = setInterval(() => {
       beatCount--;
       setCurrentBeat(beatCount);
+      
+      // Play single click at each beat (4, 3, 2, 1, but not 0)
+      if (beatCount > 0 && singleClickBufferRef.current) {
+        playSingleClick(singleClickBufferRef.current);
+      }
       
       if (beatCount <= 0) {
         clearInterval(beatTimer);
@@ -112,31 +140,22 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
         return;
       }
     }, beatInterval);
-
-    // Progress animation
+    
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
-        const newProgress = prev + (100 / (countdownBeats * 10)); // 10 updates per beat
+        const newProgress = prev + (100 / (countdownBeats * 10));
         return newProgress >= 100 ? 100 : newProgress;
       });
     }, beatInterval / 10);
-
+    
     return () => {
+      cancelled = true;
       clearInterval(beatTimer);
       clearInterval(progressInterval);
       isActiveRef.current = false;
-      
-      // Stop click track playback
-      if (clickSourceRef.current) {
-        try {
-          clickSourceRef.current.stop();
-        } catch (error) {
-          // Ignore errors when stopping already stopped source
-        }
-        clickSourceRef.current = null;
-      }
+      stopClickTrack();
     };
-  }, [isVisible, onComplete, duration]);
+  }, [isVisible, onComplete, duration, audioContext, playSingleClick, stopClickTrack, onClickTrackStarted]);
 
   if (!isVisible) return null;
 
@@ -185,7 +204,6 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
             )`,
           }}
         />
-        
         <Typography
           variant="h1"
           sx={{
@@ -199,7 +217,6 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
           {currentBeat}
         </Typography>
       </Box>
-      
       <Typography
         variant="body1"
         sx={{
@@ -213,6 +230,6 @@ const BeatCountdown = ({ onComplete, isVisible, duration }: BeatCountdownProps) 
       </Typography>
     </Box>
   );
-};
+});
 
 export default BeatCountdown; 
