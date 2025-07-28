@@ -7,7 +7,6 @@ import { memo, useRef, useEffect } from "react";
 import AnimatedCircle from "./AnimatedCircle";
 import ControlButton from "./ControlButton";
 import BeatCountdown from "./BeatCountdown";
-import ProcessingOverlay from "../ProcessingOverlay";
 import { useDimensions } from "./hooks";
 
 interface RecordingControlsProps {
@@ -120,10 +119,6 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
           />
         </Box>
       </Box>
-      <ProcessingOverlay
-        isVisible={loop.mode === "processing-recording" || loop.mode === "preparing-to-record"}
-        message={loop.mode === "preparing-to-record" ? "Preparing to record..." : "Processing recording..."}
-      />
       <Box
         sx={{
           position: "absolute",

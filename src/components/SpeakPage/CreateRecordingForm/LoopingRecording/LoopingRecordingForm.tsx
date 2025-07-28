@@ -7,6 +7,7 @@ import { useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
+import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 import { useRoundware } from "@/hooks";
 
@@ -188,6 +189,11 @@ const LoopingRecordingForm = () => {
           <Close />
         </Button>
       )}
+
+      <ProcessingOverlay
+        isVisible={loop.mode === "processing-recording" || loop.mode === "preparing-to-record"}
+        message={loop.mode === "preparing-to-record" ? "Preparing to record..." : "Processing recording..."}
+      />
     </Box>
   );
 };
