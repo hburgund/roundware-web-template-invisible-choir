@@ -217,17 +217,6 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
           {currentBeat}
         </Typography>
       </Box>
-      <Typography
-        variant="body1"
-        sx={{
-          color: "white",
-          marginTop: 2,
-          textAlign: "center",
-          textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-        }}
-      >
-        Get ready to record...
-      </Typography>
     </Box>
   );
 });
