@@ -138,6 +138,7 @@ let config: IConfig = {
     assetTypeDisplay: ["audio", "photo", "text"],
 
     assetDisplay: "circle",
+    rangeCircleOverlayVisible: true,
   },
 
   ui: {

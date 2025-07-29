@@ -7,6 +7,7 @@ import useDimensions from 'react-cool-dimensions';
 import { Coordinates, GeoListenMode } from 'roundware-web-framework/dist/index';
 import { useRoundware } from '../../../hooks';
 import Crosshair from './Crosshair';
+import config from '@/config';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -118,7 +119,7 @@ const RangeCircleOverlay = ({ updateLocation }: { updateLocation: (newLocation: 
 	}, [map, width, isPlaying]);
 
 	return (
-		<Box className={classes.circleOverlay} style={{ visibility: geoListenMode === GeoListenMode.MANUAL && isPlaying ? 'inherit' : 'hidden' }}>
+		<Box className={classes.circleOverlay} style={{ visibility: geoListenMode === GeoListenMode.MANUAL && isPlaying && config.map.rangeCircleOverlayVisible ? 'inherit' : 'hidden' }}>
 			<div ref={observe} className={classes.circle} />
 			<Crosshair />
 		</Box>

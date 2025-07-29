@@ -202,6 +202,9 @@ export type IConfig = {
 
     /** asset display */
     assetDisplay: "pin" | "circle" | "polygon";
+    
+    /** whether to show the range circle overlay in map mode */
+    rangeCircleOverlayVisible: boolean;
   };
   /** config for ui */
   ui: {
