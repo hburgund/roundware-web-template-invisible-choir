@@ -139,8 +139,17 @@ const walkingModeButton = () => {
 
 	const requestLocationPermission = async () => {
 		try {
-			// will ask for permission
-			roundware.geoPosition.enable();
+			// Check if we already have permission before calling enable()
+			const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+			
+			if (permissionStatus.state === 'granted') {
+				// Permission already granted - don't call enable() again
+				console.log('Location permission already granted, skipping enable() call');
+			} else {
+				// Permission not granted - request it
+				console.log('Requesting location permission');
+				roundware.geoPosition.enable();
+			}
 
 			// wait for user location
 			const location = await roundware.geoPosition.waitForInitialGeolocation();
