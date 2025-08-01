@@ -25,7 +25,7 @@ import AddLoopVoiceButton from './AddLoopVoiceButton';
 import { GeoListenMode } from 'roundware-web-framework';
 import MapControlIcons from './MapControlIcons';
 import { isAndroid, isIOS } from 'react-device-detect';
-import FloorplanOverlay from '@/Floorplan/FloorplanOverlay';
+import FloorplanOverlay from './FloorplanOverlay';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -179,7 +179,12 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
 						<MapControlIcons />
-						{map && <FloorplanOverlay map={map} />}
+						{map && (
+							<FloorplanOverlay 
+								map={map} 
+								useProjectLocation={true}
+							/>
+						)}
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
 						{map && roundware.mixer?.playlist && <WalkingModeButton />}
