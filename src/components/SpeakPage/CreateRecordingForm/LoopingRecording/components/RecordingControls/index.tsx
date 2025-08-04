@@ -26,6 +26,14 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
     }
   };
 
+  // Pre-load click sound when recording interface loads to avoid timing issues
+  useEffect(() => {
+    if (speaker.duration && loop.audioContext.current) {
+      console.log('[RecordingControls] Pre-loading click sound for countdown...');
+      // This will be handled by BeatCountdown component when it mounts
+    }
+  }, [speaker.duration, loop.audioContext.current]);
+
   // Stop countdown click track when user confirms leaving
   useEffect(() => {
     if (userConfirmedLeaving) {

@@ -83,6 +83,19 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
     console.log('[BeatCountdown] Click track stopped');
   }, []);
 
+  // Pre-load click sound when component mounts to avoid timing issues
+  useEffect(() => {
+    if (audioContext && !singleClickBufferRef.current) {
+      console.log('[BeatCountdown] Pre-loading click sound...');
+      loadSingleClick().then(buffer => {
+        singleClickBufferRef.current = buffer;
+        console.log('[BeatCountdown] Click sound pre-loaded successfully');
+      }).catch(error => {
+        console.error('[BeatCountdown] Error pre-loading click sound:', error);
+      });
+    }
+  }, [audioContext]);
+
   // Expose stopClickTrack to parent
   useImperativeHandle(ref, () => ({ stopClickTrack }), [stopClickTrack]);
 
@@ -105,19 +118,24 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
         }
       }
       
-      // Load single click sound
-      singleClickBufferRef.current = await loadSingleClick();
+      // Use pre-loaded click sound if available, otherwise load it
+      if (!singleClickBufferRef.current) {
+        console.log('[BeatCountdown] Loading click sound for countdown...');
+        singleClickBufferRef.current = await loadSingleClick();
+      }
+      
       if (cancelled) return;
       
       if (singleClickBufferRef.current) {
-        console.log('[BeatCountdown] Single click loaded, countdown ready');
+        console.log('[BeatCountdown] Click sound ready, countdown starting');
         
         // Play a test click to ensure audio is working
         console.log('[BeatCountdown] Playing test click...');
         playSingleClick(singleClickBufferRef.current);
         
-        // Small delay to ensure audio is ready before starting countdown
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Longer delay to ensure audio is fully ready before starting countdown
+        // This is especially important on mobile Safari
+        await new Promise(resolve => setTimeout(resolve, 200));
         
         if (onClickTrackStarted) onClickTrackStarted();
       } else {
