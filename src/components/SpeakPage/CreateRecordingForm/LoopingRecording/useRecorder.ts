@@ -98,70 +98,26 @@ export const useRecorder = ({
       try {
         console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
         
-        // Check if we already have microphone permission
-        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+        // Permission should already be granted from JoinChoir screen
+        // Just get the stream directly without permission checks
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+          },
+        });
+        console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
         
-        if (permissionStatus.state === 'granted') {
-          // Permission already granted - proceed with getUserMedia
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
-          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
-          
-          const recorder = new MediaRecorder(stream);
-          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-          
-          // Store the pre-initialized resources
-          preInitializedStream.current = stream;
-          preInitializedRecorder.current = recorder;
-          console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
-        } else if (permissionStatus.state === 'denied') {
-          // Permission denied - don't try to get user media
-          console.error("Microphone permission denied during pre-initialization");
-          setIsPermissionDenied(true);
-        } else {
-          // Permission not determined - request it
-          console.debug("🎯 TIMING: Permission not determined, requesting during pre-initialization at", Date.now());
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
-          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
-          
-          const recorder = new MediaRecorder(stream);
-          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-          
-          // Store the pre-initialized resources
-          preInitializedStream.current = stream;
-          preInitializedRecorder.current = recorder;
-          console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
-        }
+        const recorder = new MediaRecorder(stream);
+        console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
+        
+        // Store the pre-initialized resources
+        preInitializedStream.current = stream;
+        preInitializedRecorder.current = recorder;
+        console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
         
       } catch (error) {
-        // Fallback for browsers that don't support permissions API
-        console.log('Permissions API not supported during pre-initialization, falling back to getUserMedia');
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
-          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
-          
-          const recorder = new MediaRecorder(stream);
-          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-          
-          // Store the pre-initialized resources
-          preInitializedStream.current = stream;
-          preInitializedRecorder.current = recorder;
-          console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
-        } catch (getUserMediaError) {
-          console.error("Error pre-initializing recorder:", getUserMediaError);
-          setIsPermissionDenied(true);
-        }
+        console.error("Error pre-initializing recorder:", error);
+        setIsPermissionDenied(true);
       }
     };
     

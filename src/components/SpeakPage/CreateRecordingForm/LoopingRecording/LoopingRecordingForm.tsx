@@ -102,6 +102,13 @@ const LoopingRecordingForm = () => {
             cleanupRecordingSession();
             history.push("/listen", { source: 'recording' });
           }}
+          onPermissionDenied={() => {
+            console.log("🎤 Microphone permission denied on Join Choir page");
+            // Show permission denied dialog or handle appropriately
+            // For now, just go back to listen page
+            cleanupRecordingSession();
+            history.push("/listen", { source: 'recording' });
+          }}
         />
       ) : (
         <RecordingControls userConfirmedLeaving={userConfirmedLeaving} />
