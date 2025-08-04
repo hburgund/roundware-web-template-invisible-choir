@@ -16,6 +16,7 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
   const [progress, setProgress] = useState(0);
   const isActiveRef = useRef(false);
   const singleClickBufferRef = useRef<AudioBuffer | null>(null);
+  const countdownStartedRef = useRef(false);
 
   const beatsPerLoop = config.speak.beatsPerLoop;
   const countdownBeats = 4; // Always 4 beats for countdown
@@ -59,29 +60,13 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
     }
   };
 
-  // Play single click sound
-  const playSingleClick = useCallback((clickBuffer: AudioBuffer) => {
-    try {
-      const source = audioContext.createBufferSource();
-      const gainNode = audioContext.createGain();
-      
-      source.buffer = clickBuffer;
-      source.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      gainNode.gain.value = config.speak.clickTrack.volume;
-      
-      source.start();
-      console.log('[BeatCountdown] Single click played');
-    } catch (error) {
-      console.error('[BeatCountdown] Error playing single click:', error);
-    }
-  }, [audioContext]);
+
 
   // Stop click track playback (for cleanup)
-  const stopClickTrack = useCallback(() => {
+  const stopClickTrack = () => {
     // No need to stop individual clicks as they're short sounds
     console.log('[BeatCountdown] Click track stopped');
-  }, []);
+  };
 
   // Pre-load click sound when component mounts to avoid timing issues
   useEffect(() => {
@@ -96,16 +81,59 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
     }
   }, [audioContext]);
 
-  // Expose stopClickTrack to parent
-  useImperativeHandle(ref, () => ({ stopClickTrack }), [stopClickTrack]);
-
+  // Reset countdown state when visibility changes
   useEffect(() => {
-    if (!isVisible || isActiveRef.current) return;
+    if (!isVisible) {
+      isActiveRef.current = false;
+      countdownStartedRef.current = false;
+      effectRunRef.current = false;
+      setCurrentBeat(countdownBeats);
+      setProgress(0);
+    }
+  }, [isVisible]);
+
+  // Expose stopClickTrack to parent
+  useImperativeHandle(ref, () => ({ stopClickTrack }), []);
+
+  // Use a ref to track the current effect run to prevent multiple countdowns
+  const effectRunRef = useRef(false);
+  
+  useEffect(() => {
+    // Only run this effect once when isVisible becomes true
+    if (!isVisible || effectRunRef.current) return;
+    
+    // Ensure we have the required dependencies
+    if (!duration || !audioContext) {
+      console.log('[BeatCountdown] Missing required dependencies, skipping countdown');
+      return;
+    }
+    
+    console.log('[BeatCountdown] Starting countdown...');
+    effectRunRef.current = true;
     isActiveRef.current = true;
+    countdownStartedRef.current = true;
     setCurrentBeat(countdownBeats);
     setProgress(0);
     let beatCount = countdownBeats;
     let cancelled = false;
+    
+    // Play single click sound - defined inside the effect to avoid dependency issues
+    const playSingleClick = (clickBuffer: AudioBuffer) => {
+      try {
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
+        
+        source.buffer = clickBuffer;
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        gainNode.gain.value = config.speak.clickTrack.volume;
+        
+        source.start();
+        console.log('[BeatCountdown] Single click played');
+      } catch (error) {
+        console.error('[BeatCountdown] Error playing single click:', error);
+      }
+    };
     
     (async () => {
       // Resume context on user gesture
@@ -144,6 +172,11 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
     })();
     
     const beatTimer = setInterval(() => {
+      if (cancelled) {
+        clearInterval(beatTimer);
+        return;
+      }
+      
       beatCount--;
       setCurrentBeat(beatCount);
       
@@ -154,12 +187,20 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
       
       if (beatCount <= 0) {
         clearInterval(beatTimer);
-        onComplete();
+        if (!cancelled) {
+          console.log('[BeatCountdown] Countdown completed, calling onComplete');
+          onComplete();
+        }
         return;
       }
     }, beatInterval);
     
     const progressInterval = setInterval(() => {
+      if (cancelled) {
+        clearInterval(progressInterval);
+        return;
+      }
+      
       setProgress((prev) => {
         const newProgress = prev + (100 / (countdownBeats * 10));
         return newProgress >= 100 ? 100 : newProgress;
@@ -171,9 +212,10 @@ const BeatCountdown = forwardRef(({ onComplete, isVisible, duration, audioContex
       clearInterval(beatTimer);
       clearInterval(progressInterval);
       isActiveRef.current = false;
-      stopClickTrack();
+      countdownStartedRef.current = false;
+      effectRunRef.current = false;
     };
-  }, [isVisible, onComplete, duration, audioContext, playSingleClick, stopClickTrack, onClickTrackStarted]);
+  }, [isVisible]); // Only depend on isVisible
 
   if (!isVisible) return null;
 
