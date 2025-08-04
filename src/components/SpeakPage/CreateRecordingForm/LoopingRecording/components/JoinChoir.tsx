@@ -17,19 +17,101 @@ interface JoinChoirProps {
   onContinue: () => void;
   onCancel: () => void;
   onCheckPermission?: () => Promise<boolean>; // Made optional since we no longer use it
+  onPermissionDenied?: () => void; // Callback for when permission is denied
 }
 
 const JoinChoir = ({
   onContinue,
   onCancel,
   onCheckPermission,
+  onPermissionDenied,
 }: JoinChoirProps) => {
   const [isConsentChecked, setIsConsentChecked] = useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
 
   const handleContinue = async () => {
-    // Only check consent, don't request microphone permission yet
-    // Microphone permission will be requested when user actually starts recording
-    onContinue();
+    console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
+    if (!isConsentChecked) return;
+    
+    // Check if we're on HTTPS (required for getUserMedia in most browsers)
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      console.error('[JoinChoir] getUserMedia requires HTTPS (except on localhost)');
+      alert('Microphone access requires HTTPS. Please use https:// or localhost.');
+      return;
+    }
+    
+    console.log('[JoinChoir] Starting permission request...');
+    setIsRequestingPermission(true);
+    
+    try {
+      // Request microphone permission early to avoid timing issues during countdown
+      console.log('[JoinChoir] Requesting microphone permission...');
+      
+      // Check if permissions API is supported
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+          
+          if (permissionStatus.state === 'granted') {
+            console.log('[JoinChoir] Microphone permission already granted');
+            onContinue();
+            return;
+          } else if (permissionStatus.state === 'denied') {
+            console.warn('[JoinChoir] Permissions API reports denied, but trying getUserMedia anyway...');
+            // Don't return here - try getUserMedia as a fallback
+            // Sometimes the permissions API can be wrong or outdated
+            // If getUserMedia fails, we'll handle it in the catch block below
+          }
+          // If state is 'prompt', continue to request permission below
+        } catch (permissionError) {
+          console.warn('[JoinChoir] Permissions API not supported or failed, falling back to getUserMedia:', permissionError);
+          // Continue to getUserMedia fallback
+        }
+      } else {
+        console.log('[JoinChoir] Permissions API not supported, using getUserMedia directly');
+      }
+      
+      // Permission not determined or permissions API not supported - request it
+      console.log('[JoinChoir] Requesting microphone permission from user...');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      });
+      
+      // Stop the stream immediately since we just need permission
+      stream.getTracks().forEach(track => track.stop());
+      console.log('[JoinChoir] Microphone permission granted');
+      onContinue();
+      
+    } catch (error) {
+      console.error('[JoinChoir] Error requesting microphone permission:', error);
+      console.error('[JoinChoir] Error details:', {
+        name: (error as any)?.name,
+        message: (error as any)?.message,
+        stack: (error as any)?.stack
+      });
+      
+      // Show more specific error message to user
+      const errorName = (error as any)?.name;
+      if (errorName === 'NotAllowedError') {
+        setPermissionError('Microphone permission was denied. Please allow microphone access in your browser settings and try again.');
+      } else if (errorName === 'NotFoundError') {
+        setPermissionError('No microphone found. Please connect a microphone and try again.');
+      } else if (errorName === 'NotSupportedError') {
+        setPermissionError('Microphone access is not supported in this browser. Please try a different browser.');
+      } else {
+        setPermissionError('Failed to access microphone. Please check your browser settings and try again.');
+      }
+      
+      onPermissionDenied?.();
+    } finally {
+      console.log('[JoinChoir] Permission request completed, setting isRequestingPermission to false');
+      setIsRequestingPermission(false);
+    }
   };
 
   return (
@@ -85,12 +167,36 @@ const JoinChoir = ({
             }
           />
         </Stack>
+        {permissionError && (
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'error.main', color: 'white', borderRadius: 1, maxWidth: 400, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              {permissionError}
+            </Typography>
+            <Typography variant="caption" sx={{ display: 'block', mb: 2 }}>
+              To enable microphone access:
+              <br />1. Click the microphone icon in your browser's address bar
+              <br />2. Select "Allow" for microphone access
+              <br />3. Click "Try Again" below
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setPermissionError(null);
+                setIsRequestingPermission(false);
+              }}
+              sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+            >
+              Try Again
+            </Button>
+          </Box>
+        )}
         <Button
           variant="contained"
-          disabled={!isConsentChecked}
+          disabled={!isConsentChecked || isRequestingPermission}
           onClick={handleContinue}
         >
-          Continue
+          {isRequestingPermission ? "Requesting Permission..." : "Continue"}
         </Button>
         <Button variant="text" onClick={onCancel}>
           Cancel
