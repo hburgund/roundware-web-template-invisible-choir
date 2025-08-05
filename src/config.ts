@@ -6,7 +6,7 @@ import { merge } from "lodash";
 // Refer the type object below for info and comments on each config option
 let config: IConfig = {
   locale: "en",
-  debugMode: false,
+  debugMode: true,
 
   project: {
     apiUrl: "https://dev.roundware.com/api/2",
@@ -33,7 +33,7 @@ let config: IConfig = {
       loopPointUpdateProbability: 0.8,
       slotConsiderationProbability: 0.5,
       prefetchDistanceMeters: 5,
-      loopFractions: [1/8, 1/4, 1/2, 5/8, 3/4, 1/1],
+      loopFractions: [1 / 8, 1 / 4, 1 / 2, 5 / 8, 3 / 4, 1 / 1],
       effects: {
         delayTimeInMs: 50,
         feedback: 0.5,
@@ -54,6 +54,12 @@ let config: IConfig = {
     baseRecordingLoopSelectionMethod: "all",
     speakerShape: "beechLeaf",
     speakerShapeScale: 1.05,
+    beatsPerLoop: 8,
+    clickTrack: {
+      enabled: true,
+      volume: 1.0,
+      directory: "/src/assets/audio/",
+    },
   },
 
   map: {
@@ -84,6 +90,40 @@ let config: IConfig = {
       strokeWeight: 2,
       strokeOpacity: 0.5,
       fillOpacity: 0.25,
+    },
+    speakerConnectorStyles: {
+      // === CURVE BEHAVIOR (applies to both arc and bezier) ===
+      curveType: "bezier",
+      curveIntensity: [0.05, 0.5],
+      organicVariations: true,
+      noiseIntensity: 0.0,
+
+      // === BEZIER-SPECIFIC SETTINGS ===
+      bezier: {
+        controlPoints: 2,
+        waveIntensity: [0.2, 0.6],
+        asymmetry: 0,
+        complexity: "wavy",
+        waveAmplitude: 0.0,
+      },
+
+      // === MARKER STYLING ===
+      markers: {
+        size: 2,
+        borderColor: "#ffffff",
+        borderWeight: 1,
+        fill: "auto",
+        opacity: 0.5,
+        zIndex: 2000,
+      },
+
+      // === LINE STYLING ===
+      lines: {
+        weight: 1,
+        color: "#ffffff",
+        opacity: 0.3,
+        zIndex: 1000,
+      },
     },
     useListenMapBounds: false,
     showBoundsMarkers: false,
