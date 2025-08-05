@@ -4,9 +4,11 @@ import { Box, Button, Dialog, DialogActions, DialogContent, Tooltip, Skeleton, F
 import { point } from '@turf/helpers';
 import { useRoundware } from '@/hooks/index';
 import { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 
 const AddLoopVoiceButton = () => {
 	const { roundware, forceUpdate } = useRoundware();
+	const history = useHistory();
 
 	const [showNoSpeakerMessage, setShowNoSpeakerMessage] = useState(false);
 	const [showLaunch, setShowLaunch] = useState(true);
@@ -26,11 +28,10 @@ const AddLoopVoiceButton = () => {
 		if (sts && sts.length > 0 && sts[0].volumeByLocation(point([lng, lat]).geometry) !== sts[0].minVolume) {
 			roundware.mixer.stop();
 			forceUpdate();
-			// history.push({
-			// 	pathname: '/speak',
-			// 	search: `?lat=${lat}&lng=${lng}`,
-			// });
-			window.location.href = `/speak?lat=${lat}&lng=${lng}`;
+			history.push({
+				pathname: '/speak',
+				search: `?lat=${lat}&lng=${lng}`,
+			});
 		} else {
 			setShowNoSpeakerMessage(true);
 		}

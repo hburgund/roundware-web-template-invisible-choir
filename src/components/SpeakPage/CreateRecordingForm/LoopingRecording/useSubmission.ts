@@ -10,6 +10,7 @@ import { IAssetData } from "roundware-web-framework";
 import { ITag } from "roundware-web-framework";
 import { ISpeakerData } from "roundware-web-framework";
 import { generateBeechLeafShape } from "@/utils/speakerShapes";
+import { getNewSpeakerColorPair } from "@/utils/colors";
 
 // hook to handle saving of the recording to server
 export const useSubmission = ({
@@ -26,7 +27,7 @@ export const useSubmission = ({
   >("idle");
 
   const draftRecording = useRoundwareDraft();
-  const { tagLookup, roundware } = useRoundware();
+  const { tagLookup, roundware, updateSpeakers } = useRoundware();
   const history = useHistory();
 
   async function start() {
@@ -125,11 +126,29 @@ export const useSubmission = ({
       formData.append("minvolume", "0.0");
       formData.append("shape", JSON.stringify(speakerShape.geometry));
 
+      // Add cascading colors based on parent speakers (or random from config if no parents)
+      const colorPair = getNewSpeakerColorPair(baseSpeakers);
+      
+      if (finalConfig.debugMode) {
+        console.log("Speaker color selection:", {
+          parentCount: baseSpeakers.length,
+          parentColors: baseSpeakers.map(s => ({ id: s.id, fill_color: s.fill_color, border_color: s.border_color })),
+          selectedColors: colorPair
+        });
+      }
+      
+      formData.append("fill_color", colorPair.fill_color);
+      if (colorPair.border_color) {
+        formData.append("border_color", colorPair.border_color);
+      }
+
       formData.append("file", recordedAudioBlob);
       formData.append("attenuation_distance", "5");
       formData.append("project_id", finalConfig.project.id.toString());
       if (baseSpeakers.length > 0) {
-        formData.append("parents", baseSpeakers.map((s) => s.id).join(","));
+        baseSpeakers.forEach((speaker) => {
+          formData.append("parents", speaker.id.toString());
+        });
       }
 
       const response: { id: string } = await roundware.apiClient.post(
@@ -141,7 +160,7 @@ export const useSubmission = ({
         }
       );
 
-      console.error("Response: " + JSON.stringify(response, null, 2));
+      console.info("Response: " + JSON.stringify(response, null, 2));
 
       try {
         if (response && baseSpeakers.length > 0) {
@@ -163,8 +182,8 @@ export const useSubmission = ({
                   }
                 );
 
-                console.error("Patch response:", patchResponse);
-                console.error("Closest speaker shape updated successfully");
+                console.info("Patch response:", patchResponse);
+                console.info("Closest speaker shape updated successfully");
               } else {
                 console.error("Failed to expand closestSpeaker shape");
               }
@@ -182,7 +201,25 @@ export const useSubmission = ({
         return;
       }
 
-      window.location.href = `/listen?latitude=${location.lat}&longitude=${location.lng}`;
+      // Update speakers on the map to show the new speaker and modified parent speakers
+      const speakerIdsToUpdate = [
+        parseInt(response.id), // New speaker
+        ...baseSpeakers.map(s => s.id) // Parent speakers that were modified
+      ];
+      
+      console.log("Updating speakers after recording submission:", speakerIdsToUpdate);
+      
+      try {
+        await updateSpeakers(speakerIdsToUpdate);
+        console.log("Successfully updated speakers after recording submission");
+      } catch (error) {
+        console.error("Failed to update speakers after recording submission:", error);
+      }
+
+      // Remove automatic navigation - let the user control when to proceed via the thank you dialog
+      // history.push(
+      //   `/listen?latitude=${location.lat}&longitude=${location.lng}`
+      // );
 
       setStatus("submitted");
     }

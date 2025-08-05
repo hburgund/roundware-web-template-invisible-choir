@@ -37,7 +37,10 @@ export const useLoop = () => {
   };
 
   async function start(newMode?: typeof mode, recordedAudioBlob?: Blob) {
+    const startTime = Date.now();
+    console.debug("🎯 TIMING: loop.start() called at", startTime, "with mode:", newMode);
     console.debug("start", newMode, recordedAudioBlob);
+    
     if (newMode) {
       if (newMode === "recording-playback") {
         setMode("loading");
@@ -51,11 +54,14 @@ export const useLoop = () => {
     }
     if (isLoading || !speakerAudioBuffer.current) return;
 
+    console.debug("🎯 TIMING: About to resume AudioContext at", Date.now());
     await audioContext.current.resume();
+    console.debug("🎯 TIMING: AudioContext resumed at", Date.now());
 
     console.debug("Starting loop");
     setIsStarted(true);
 
+    console.debug("🎯 TIMING: Creating new audio sources at", Date.now());
     speakerSource.current = audioContext.current.createBufferSource();
     speakerSource.current.buffer = speakerAudioBuffer.current;
     const speakerGain = audioContext.current.createGain();
@@ -126,9 +132,12 @@ export const useLoop = () => {
       });
     } else {
       recordedAudioSource.current = null;
+      console.debug("🎯 TIMING: About to calculate next point at", Date.now());
       calculateNextPoint();
+      console.debug("🎯 TIMING: About to start speaker source at", Date.now());
       speakerSource.current.start();
       startedAtTime.current = Date.now();
+      console.debug("🎯 TIMING: Speaker source started at", Date.now());
       console.debug("speakerSource.current.start()");
     }
 
@@ -136,22 +145,33 @@ export const useLoop = () => {
       finalSpeakerVolume,
       audioContext.current.currentTime + fadeDuration
     );
+    
+    console.debug("🎯 TIMING: loop.start() completed at", Date.now());
   }
 
   function stop() {
+    const stopTime = Date.now();
+    console.debug("🎯 TIMING: loop.stop() called at", stopTime);
+    
     if (interval.current) {
       // @ts-ignore
       clearInterval(interval.current);
+      console.debug("🎯 TIMING: Cleared loop interval at", Date.now());
     }
     if (speakerSource.current) {
+      console.debug("🎯 TIMING: About to stop speaker source at", Date.now());
       speakerSource.current.stop();
       speakerSource.current.disconnect();
+      console.debug("🎯 TIMING: Speaker source stopped at", Date.now());
     }
     if (recordedAudioSource.current) {
+      console.debug("🎯 TIMING: About to stop recorded source at", Date.now());
       recordedAudioSource.current.stop();
       recordedAudioSource.current.disconnect();
       recordedAudioSource.current = null;
+      console.debug("🎯 TIMING: Recorded source stopped at", Date.now());
     }
+    console.debug("🎯 TIMING: loop.stop() completed at", Date.now());
   }
 
   useEffect(() => {

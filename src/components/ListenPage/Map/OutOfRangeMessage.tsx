@@ -28,7 +28,7 @@ export function coordsToPoints({ latitude, longitude }: { latitude: number; long
 }
 
 const OutOfRangeMessage = (props: Props) => {
-	const { roundware } = useRoundware();
+	const { roundware, lastSpeakerUpdateTime } = useRoundware();
 
 	const show = useMemo(() => {
 		if (!roundware.project.data?.out_of_range_message || !isNumber(roundware.project.outOfRangeDistance)) {
@@ -63,27 +63,31 @@ const OutOfRangeMessage = (props: Props) => {
 
 		roundware.speakers().forEach((speaker) => {
 			if (speaker.shape) {
-				const polygonLines = polygonToLineString(speaker.shape) as FeatureCollection<LineString | MultiLineString> | LineString | MultiLineString;
-				if (polygonLines.type === 'FeatureCollection') {
-					polygonLines.features.forEach((line) => {
-						if (line.geometry.type === 'LineString') {
-							lines.push(line.geometry);
-						} else if (line.geometry.type === 'MultiLineString') {
-							line.geometry.coordinates.forEach((coord) => {
-								lines.push({ type: 'LineString', coordinates: coord });
-							});
-						}
-					});
-				}
+				try {
+					const polygonLines = polygonToLineString(speaker.shape) as FeatureCollection<LineString | MultiLineString> | LineString | MultiLineString;
+					if (polygonLines.type === 'FeatureCollection') {
+						polygonLines.features.forEach((line) => {
+							if (line.geometry.type === 'LineString') {
+								lines.push(line.geometry);
+							} else if (line.geometry.type === 'MultiLineString') {
+								line.geometry.coordinates.forEach((coord) => {
+									lines.push({ type: 'LineString', coordinates: coord });
+								});
+							}
+						});
+					}
 
-				if (polygonLines.type === 'LineString') {
-					lines.push(polygonLines);
-				}
+					if (polygonLines.type === 'LineString') {
+						lines.push(polygonLines);
+					}
 
-				if (polygonLines.type === 'MultiLineString') {
-					polygonLines.coordinates.forEach((coord) => {
-						lines.push({ type: 'LineString', coordinates: coord });
-					});
+					if (polygonLines.type === 'MultiLineString') {
+						polygonLines.coordinates.forEach((coord) => {
+							lines.push({ type: 'LineString', coordinates: coord });
+						});
+					}
+				} catch (error) {
+					console.warn(`Speaker ${speaker.id} has invalid geometry, skipping out-of-range calculation:`, error);
 				}
 			}
 		});
@@ -105,7 +109,7 @@ const OutOfRangeMessage = (props: Props) => {
 		}
 
 		return true;
-	}, [roundware.project.data?.out_of_range_message, roundware.project.outOfRangeDistance, roundware.listenerLocation, roundware.speakers()]);
+	}, [roundware.project.data?.out_of_range_message, roundware.project.outOfRangeDistance, roundware.listenerLocation, roundware.speakers(), lastSpeakerUpdateTime]);
 
 	if (show) {
 		return (

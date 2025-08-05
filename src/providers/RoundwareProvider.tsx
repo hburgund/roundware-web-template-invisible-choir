@@ -39,6 +39,7 @@ const RoundwareProvider = (props: PropTypes) => {
 	const [playingAssets, setPlayingAssets] = useState<IRoundwareContext[`playingAssets`]>([]);
 
 	const [hideSpeakerPolygons, setHideSpeakerPolygons] = useState<IRoundwareContext[`hideSpeakerPolygons`]>(config.features.speakerToggleIds?.[0] ? [config.features.speakerToggleIds?.[0]] : []);
+	const [lastSpeakerUpdateTime, setLastSpeakerUpdateTime] = useState<Date>(new Date());
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -145,10 +146,342 @@ const RoundwareProvider = (props: PropTypes) => {
 			return true;
 		});
 	};
+
+	/**
+	 * Gets existing speaker group assignments from the current speaker engine.
+	 * This preserves the original group logic from roundware-web-framework.
+	 * Returns a Map where keys are speaker IDs and values are group IDs.
+	 */
+	const getExistingSpeakerGroups = (): Map<number, number> => {
+		const groupMap = new Map<number, number>();
+		
+		if (roundware?.mixer?.speakerEngine?.speakers) {
+			roundware.mixer.speakerEngine.speakers.forEach(track => {
+				if (track.data && track.data.id && track.groupId !== undefined) {
+					groupMap.set(track.data.id, track.groupId);
+				}
+			});
+		}
+		
+		if (config.debugMode) {
+			console.log('Existing speaker groups preserved:', Array.from(groupMap.entries()));
+		}
+		
+		return groupMap;
+	};
+
 	// tells the provider to update assetData dependencies with the roundware _assetData source
 	const updateAssets: IRoundwareContext[`updateAssets`] = (assetData) => {
 		const filteredAssets = filterAssets(assetData || roundware.assetData || []);
 		setFilteredAssets(filteredAssets);
+	};
+
+	// tells the provider to update specific speakers or all speakers
+	/**
+	 * Updates speaker data and refreshes the audio engine to reflect changes in speaker geometry/properties.
+	 * Can be called with specific speaker IDs (for immediate updates after recording submission) 
+	 * or without IDs (for periodic updates to catch changes from other users).
+	 * Uses surgical speaker track replacement to ensure spatial audio calculations use updated data.
+	 * Now properly calculates speaker groups based on parent/child relationships for synchronization.
+	 */
+	const updateSpeakers: IRoundwareContext[`updateSpeakers`] = async (speakerIds) => {
+		try {
+			let newSpeakers: any[] = [];
+			let updatedSpeakers: any[] = [];
+			
+			if (speakerIds && speakerIds.length > 0) {
+				// Targeted update: fetch specific speakers that were just updated
+				if (config.debugMode) {
+					console.log(`Updating specific speakers: ${speakerIds.join(', ')}`);
+					console.log(`Current speakers count before update: ${Array.isArray(roundware.speakers()) ? roundware.speakers().length : 'N/A'}`);
+				}
+				
+				const speakerPromises = speakerIds.map(async (id) => {
+					try {
+						if (!roundware?.apiClient) {
+							throw new Error('API client not available');
+						}
+						return await roundware.apiClient.get(`/speakers/${id}/`, {
+							project_id: roundware.project.projectId,
+						});
+					} catch (error) {
+						console.error(`Failed to fetch speaker ${id}:`, error);
+						return null;
+					}
+				});
+
+				const fetchedSpeakers = await Promise.all(speakerPromises);
+				const validSpeakers = fetchedSpeakers.filter(Boolean);
+
+				if (validSpeakers.length === 0) {
+					console.warn('No valid speakers received from API');
+					return;
+				}
+
+				// Update the underlying speaker data in roundware.speakers() array
+				const currentSpeakers = roundware.speakers();
+				
+				if (!Array.isArray(currentSpeakers)) {
+					console.error('Current speakers is not an array, cannot update');
+					return;
+				}
+				
+				// Separate new vs existing speakers for proper handling
+				validSpeakers.forEach((updatedSpeaker: any) => {
+					if (!updatedSpeaker || !updatedSpeaker.id) {
+						console.warn('Invalid speaker data received, skipping');
+						return;
+					}
+					const existingIndex = currentSpeakers.findIndex((s) => s.id === updatedSpeaker.id);
+					if (existingIndex !== -1) {
+						// Update existing speaker
+						currentSpeakers[existingIndex] = updatedSpeaker;
+						updatedSpeakers.push(updatedSpeaker);
+					} else {
+						// Add new speaker
+						currentSpeakers.push(updatedSpeaker);
+						newSpeakers.push(updatedSpeaker);
+					}
+				});
+
+			} else {
+				// Periodic update: fetch all speakers and compare with current ones
+				try {
+					const allSpeakers = await roundware.apiClient.get('/speakers/', {
+						project_id: roundware.project.projectId,
+						activeyn: true,
+					});
+
+					if (config.debugMode) {
+						console.log('Fetched all speakers for comparison:', Array.isArray(allSpeakers) ? allSpeakers.length : 0);
+					}
+
+					if (!Array.isArray(allSpeakers)) {
+						console.warn('Invalid speakers data from API');
+						return;
+					}
+
+					const currentSpeakers = roundware.speakers();
+					
+					if (!Array.isArray(currentSpeakers)) {
+						if (config.debugMode) {
+							console.warn('Current speakers is not an array, skipping comparison');
+						}
+						return;
+					}
+					
+					// Check for new speakers
+					newSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
+						if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
+						
+						return !currentSpeakers.find((current) => current.id === fetchedSpeaker.id);
+					});
+					
+					// Check for updated speakers (compare shapes or other properties)
+					updatedSpeakers = allSpeakers.filter((fetchedSpeaker: any) => {
+						if (!fetchedSpeaker || !fetchedSpeaker.id) return false;
+						
+						const current = currentSpeakers.find((c) => c.id === fetchedSpeaker.id);
+						if (!current) return false;
+						
+						// Compare shape data (main thing that gets updated)
+						try {
+							return JSON.stringify(current.shape) !== JSON.stringify(fetchedSpeaker.shape);
+						} catch (error) {
+							if (config.debugMode) {
+								console.warn(`Error comparing shapes for speaker ${fetchedSpeaker.id}:`, error);
+							}
+							return false;
+						}
+					});
+
+					if (newSpeakers.length === 0 && updatedSpeakers.length === 0) {
+						// No changes detected
+						return;
+					}
+
+					if (config.debugMode) {
+						console.log(`Found ${newSpeakers.length} new speakers and ${updatedSpeakers.length} updated speakers`);
+					}
+					
+					// Update the underlying speaker data
+					[...newSpeakers, ...updatedSpeakers].forEach((speaker: any) => {
+						const existingIndex = currentSpeakers.findIndex((s) => s.id === speaker.id);
+						if (existingIndex !== -1) {
+							// Update existing speaker
+							currentSpeakers[existingIndex] = speaker;
+						} else {
+							// Add new speaker
+							currentSpeakers.push(speaker);
+						}
+					});
+
+				} catch (error) {
+					console.error('Failed to fetch speakers for periodic update:', error);
+					return;
+				}
+			}
+
+			// Surgical approach: update existing speakers, add new speakers to correct groups
+			if (roundware.mixer?.speakerEngine && (newSpeakers.length > 0 || updatedSpeakers.length > 0)) {
+				const speakerEngine = roundware.mixer.speakerEngine;
+				
+				// Helper function to find the correct group ID for a new speaker based on its parents
+				const findGroupIdForNewSpeaker = (speakerData: any): number => {
+					if (!speakerData.parents || !Array.isArray(speakerData.parents) || speakerData.parents.length === 0) {
+						// No parents - create its own group
+						return speakerData.id;
+					}
+					
+					// Find the group ID of the first parent that exists in the speaker engine
+					for (const parentId of speakerData.parents) {
+						const parentTrack = speakerEngine.speakers.find((track: any) => track.data.id === parentId);
+						if (parentTrack && parentTrack.groupId !== undefined) {
+							if (config.debugMode) {
+								console.log(`New speaker ${speakerData.id} joining group ${parentTrack.groupId} from parent ${parentId}`);
+							}
+							return parentTrack.groupId;
+						}
+					}
+					
+					// Fallback: if no parent found in engine, use speaker's own ID
+					if (config.debugMode) {
+						console.log(`New speaker ${speakerData.id} parents not found in engine, creating new group`);
+					}
+					return speakerData.id;
+				};
+				
+				// Handle updated speakers - just update their data, preserve group ID and buffers
+				if (updatedSpeakers.length > 0) {
+					if (config.debugMode) {
+						console.log(`Updating ${updatedSpeakers.length} existing speakers in engine`);
+					}
+					
+					updatedSpeakers.forEach((updatedSpeaker: any) => {
+						const speakerIndex = speakerEngine.speakers.findIndex(
+							(s: any) => s.data.id === updatedSpeaker.id
+						);
+						
+						if (speakerIndex >= 0) {
+							const existingTrack = speakerEngine.speakers[speakerIndex];
+							
+							if (config.debugMode) {
+								console.log(`Updating speaker ${updatedSpeaker.id} data, preserving group ${existingTrack.groupId}`);
+							}
+							
+							// Store the current buffer and group state before updating
+							const wasBufferLoaded = !!existingTrack.buffer;
+							const currentBuffer = existingTrack.buffer;
+							const currentRequest = existingTrack.request;
+							const currentGroupId = existingTrack.groupId;
+							
+							// Get the SpeakerTrack constructor from the existing instance
+							const SpeakerTrack = Object.getPrototypeOf(existingTrack).constructor;
+							
+							// Create new instance with updated data but preserve group ID
+							const newSpeakerTrack = new SpeakerTrack({
+								data: updatedSpeaker,
+								audioContext: existingTrack.audioContext || speakerEngine.audioContext,
+								config: existingTrack.config || {},
+								groupId: currentGroupId // Preserve existing group ID
+							});
+							
+							// Restore buffer if it existed
+							if (wasBufferLoaded && currentBuffer) {
+								newSpeakerTrack.buffer = currentBuffer;
+								newSpeakerTrack.request = currentRequest;
+								if (config.debugMode) {
+									console.log(`Restored buffer to updated speaker ${updatedSpeaker.id}`);
+								}
+							}
+							
+							// Replace with the new track
+							speakerEngine.speakers[speakerIndex] = newSpeakerTrack;
+						} else {
+							console.warn(`Could not find speaker ${updatedSpeaker.id} in engine to update`);
+						}
+					});
+				}
+				
+				// Handle new speakers - add them to the correct group based on parent relationships
+				if (newSpeakers.length > 0) {
+					if (config.debugMode) {
+						console.log(`Adding ${newSpeakers.length} new speakers to audio engine`);
+					}
+					
+					// Get existing speaker tracks for reference
+					const existingSpeakerTracks = speakerEngine.speakers || [];
+					
+					if (existingSpeakerTracks.length > 0) {
+						// Use existing speaker track as template
+						const templateTrack = existingSpeakerTracks[0];
+						const SpeakerTrack = Object.getPrototypeOf(templateTrack).constructor;
+						
+						// Create SpeakerTrack instances for new speakers with correct group IDs
+						const newSpeakerTracks = newSpeakers.map((data: any) => {
+							const groupId = findGroupIdForNewSpeaker(data);
+							
+							return new SpeakerTrack({
+								data,
+								audioContext: speakerEngine.audioContext,
+								config: roundware.mixer.mixParams.speakerConfig!,
+								groupId: groupId,
+							});
+						});
+						
+						// Add new speaker tracks to the engine
+						speakerEngine.speakers.push(...newSpeakerTracks);
+						
+						if (config.debugMode) {
+							console.log(`Successfully added ${newSpeakerTracks.length} speaker tracks to engine`);
+						}
+					} else {
+						console.warn('No existing speaker tracks found to use as template for new speakers');
+					}
+				}
+				
+				// Force spatial audio recalculation after updates
+				try {
+					// First, recalculate volumes for all speakers
+					if (typeof (speakerEngine as any).calculateVolumesByLocation === 'function') {
+						(speakerEngine as any).calculateVolumesByLocation();
+						if (config.debugMode) {
+							console.log('Called calculateVolumesByLocation() on speaker engine');
+						}
+					}
+					
+					// Then trigger updateParams() with current listener location to force full recalculation
+					if (typeof (speakerEngine as any).updateParams === 'function' && (speakerEngine as any).mixParams) {
+						const currentMixParams = (speakerEngine as any).mixParams;
+						if (currentMixParams) {
+							(speakerEngine as any).updateParams(currentMixParams);
+							if (config.debugMode) {
+								console.log('Called updateParams() on speaker engine to force spatial recalculation');
+							}
+						}
+					}
+				} catch (engineError) {
+					console.error('Speaker engine spatial recalculation failed:', engineError);
+				}
+				
+				if (config.debugMode) {
+					console.log(`Speaker update completed. New speakers: ${newSpeakers.length}, Updated speakers: ${updatedSpeakers.length}`);
+					console.log(`Total speakers in engine after update: ${speakerEngine.speakers.length}`);
+					console.log(`Total speakers in roundware.speakers() after update: ${roundware.speakers().length}`);
+				}
+			}
+
+			// Update timestamp for all updates that have changes
+			if (newSpeakers.length > 0 || updatedSpeakers.length > 0) {
+				setLastSpeakerUpdateTime(new Date());
+			}
+			
+			// Always trigger a force update to ensure UI components re-render
+			forceUpdate();
+		} catch (error) {
+			console.error('Failed to update speakers:', error);
+			forceUpdate();
+		}
 	};
 
 	useEffect(() => {
@@ -236,6 +569,61 @@ const RoundwareProvider = (props: PropTypes) => {
 		}
 	}, [roundware?.project]);
 
+	// Log original speaker groups when speaker engine is first available
+	useEffect(() => {
+		if (roundware?.mixer?.speakerEngine?.speakers && Array.isArray(roundware.mixer.speakerEngine.speakers) && roundware.mixer.speakerEngine.speakers.length > 0) {
+			if (config.debugMode) {
+				console.log('=== ORIGINAL SPEAKER GROUPS (before recalculation) ===');
+				
+				// Log raw speaker data with parent relationships
+				const speakersData = roundware.speakers();
+				console.log('Raw speaker data from API:', speakersData.map(s => ({
+					id: s.id,
+					parents: s.parents || 'none',
+					// Include any other relevant fields you want to see
+				})));
+				
+				// Log original group IDs from speaker engine
+				const originalGroups = roundware.mixer.speakerEngine.speakers.map(track => ({
+					speakerId: track.data.id,
+					originalGroupId: track.groupId,
+					hasParents: track.data.parents ? track.data.parents.length > 0 : false,
+					parents: track.data.parents || []
+				}));
+				console.log('Original speaker engine group assignments:', originalGroups);
+				
+				// Group by original group ID to see the structure
+				const groupedByOriginalId = new Map();
+				originalGroups.forEach(speaker => {
+					if (!groupedByOriginalId.has(speaker.originalGroupId)) {
+						groupedByOriginalId.set(speaker.originalGroupId, []);
+					}
+					groupedByOriginalId.get(speaker.originalGroupId).push(speaker.speakerId);
+				});
+				console.log('Original groups structure:', Array.from(groupedByOriginalId.entries()));
+				console.log('=== END ORIGINAL SPEAKER GROUPS ===');
+			}
+		}
+	}, [roundware?.mixer?.speakerEngine?.speakers]);
+
+	// Set up periodic speaker updates using configurable interval
+	// This helps catch speakers added by other users
+	useEffect(() => {
+		if (!roundware?.project) return;
+
+		const interval = setInterval(() => {
+			// Only update speakers if we have an active connection and speakers loaded
+			if (roundware && Array.isArray(roundware.speakers())) {
+				if (config.debugMode) {
+					console.log('Periodic speaker update check...');
+				}
+				updateSpeakers();
+			}
+		}, config.listen.speakerUpdateInterval);
+
+		return () => clearInterval(interval);
+	}, [roundware?.project]);	
+
 	const geoListenMode = (roundware?.mixer && roundware?.mixer?.mixParams?.geoListenMode) || GeoListenMode?.DISABLED;
 	const setGeoListenMode = (modeName: GeoListenModeType) => {
 		roundware.enableGeolocation(modeName);
@@ -292,6 +680,7 @@ const RoundwareProvider = (props: PropTypes) => {
 				forceUpdate,
 				setGeoListenMode,
 				updateAssets,
+				updateSpeakers,
 				setDescriptionFilter,
 				resetFilters,
 				// computed properties
@@ -299,6 +688,7 @@ const RoundwareProvider = (props: PropTypes) => {
 				assetsReady,
 				hideSpeakerPolygons,
 				setHideSpeakerPolygons,
+				lastSpeakerUpdateTime,
 			}}
 		>
 			{props.children}

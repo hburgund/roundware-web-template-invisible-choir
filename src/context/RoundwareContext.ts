@@ -41,6 +41,7 @@ export interface IRoundwareContext {
 	forceUpdate: React.DispatchWithoutAction;
 	setGeoListenMode: (modeName: GeoListenModeType) => void;
 	updateAssets: (assetData?: IAssetData[]) => void;
+	updateSpeakers: (speakerIds?: number[]) => Promise<void>;
 	resetFilters: () => void;
 	// computed properties
 	assetPage: IAssetData[];
@@ -49,6 +50,9 @@ export interface IRoundwareContext {
 	// hide speaker polygons for these
 	hideSpeakerPolygons: number[];
 	setHideSpeakerPolygons: React.Dispatch<React.SetStateAction<number[]>>;
+	
+	// timestamp of last speaker update to trigger re-renders
+	lastSpeakerUpdateTime: Date | null;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

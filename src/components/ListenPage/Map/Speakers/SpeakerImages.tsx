@@ -15,7 +15,7 @@ const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 const SpeakerImages = (props: Props) => {
-	const { roundware, hideSpeakerPolygons } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
 
 	const overlayProps: (GroundOverlayProps & {
 		key: string;
@@ -88,7 +88,7 @@ const SpeakerImages = (props: Props) => {
 			});
 
 		return p;
-	}, [speakerPolygonOptions, hideSpeakerPolygons]);
+	}, [hideSpeakerPolygons, lastSpeakerUpdateTime]);
 
 	return (
 		<>

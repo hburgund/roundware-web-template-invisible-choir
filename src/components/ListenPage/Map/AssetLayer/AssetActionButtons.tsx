@@ -70,15 +70,17 @@ export const AssetActionButtons = ({ asset, additionalActions, config }: { asset
 			}
 
 			if (item === 'show') {
-				<IconButton
-					onClick={() => {
-						if (Array.isArray(asset.envelope_ids) && asset.envelope_ids.length > 0) window.open(`/listen?eid=${asset.envelope_ids[0]}`, '_blank');
-					}}
-					style={{ minWidth: 30 }}
-					title='go to contribution page'
-				>
-					<LinkIcon />
-				</IconButton>;
+				return (
+					<IconButton
+						onClick={() => {
+							if (Array.isArray(asset.envelope_ids) && asset.envelope_ids.length > 0) window.open(`/listen?eid=${asset.envelope_ids[0]}`, '_blank');
+						}}
+						style={{ minWidth: 30 }}
+						title='go to contribution page'
+					>
+						<LinkIcon />
+					</IconButton>
+				);
 			}
 		},
 		[config]

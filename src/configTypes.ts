@@ -1,5 +1,6 @@
 // types for config file
 
+// @ts-ignore - SpeakerConfig exists in framework but may not be exported in index
 import { SpeakerConfig } from "roundware-web-framework";
 
 export type IAssetCardConfig = {
@@ -50,6 +51,8 @@ export type IConfig = {
     geoListenMode: "device" | ("map" | "walking")[];
     /** clicking the 'Listen' button automatically starts the stream */
     autoplay: boolean;
+    /** interval in milliseconds for checking speaker updates */
+    speakerUpdateInterval: number;
     /** config for speaker */
     speaker: SpeakerConfig;
 
@@ -76,6 +79,17 @@ export type IConfig = {
     speakerShape: "circle" | "beechLeaf";
     /** scale factor for expanding speaker shapes */
     speakerShapeScale: number;
+    /** number of beats per loop for countdown timing */
+    beatsPerLoop: number;
+    /** click track configuration */
+    clickTrack: {
+      /** enable click track during recording */
+      enabled: boolean;
+      /** volume level for click track (0-1) */
+      volume: number;
+      /** directory path containing click track files */
+      directory: string;
+    };
   };
   /** config for map */
   map: {
@@ -97,8 +111,68 @@ export type IConfig = {
      * 'images' will overlay the speaker region with the image "speaker.png" file
      */
     speakerDisplay?: "images" | "polygons" | "none";
-    /** colors to be used for speaker polygons */
-    speakerPolygonColors: string[];
+    /** colors to be used for speaker polygons - either array of colors or array of [fill, border] pairs */
+    speakerPolygonColors: string[] | [string, string][];
+    /** Default styling for speaker polygon display */
+    speakerDisplayDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+    };
+    /** Styling for speaker center markers and connection lines */
+    speakerConnectorStyles: {
+      // === CURVE BEHAVIOR (applies to both arc and bezier) ===
+      /** Type of curve algorithm to use */
+      curveType: "arc" | "bezier";
+      /** Curve intensity for connection lines - number for fixed intensity, or [min, max] array for random range */
+      curveIntensity: number | [number, number];
+      /** Enable organic variations like random curve direction and subtle noise (default: true) */
+      organicVariations?: boolean;
+      /** Intensity of organic noise added to curves (0-1, default: 0.1) */
+      noiseIntensity?: number;
+
+      // === BEZIER-SPECIFIC SETTINGS ===  
+      bezier?: {
+        /** Number of control points (2 for cubic bezier) */
+        controlPoints?: number;
+        /** How far bezier control points offset from the straight line - [min, max] for variation */
+        waveIntensity?: number | [number, number];
+        /** Asymmetry factor for S-curves - 0 = symmetric, 1 = highly asymmetric */
+        asymmetry?: number;
+        /** Complexity of bezier curves - simple = smooth S, wavy = multiple waves */
+        complexity?: "simple" | "wavy";
+        /** Amplitude of small waves in wavy mode - 0 = no small waves, higher = more pronounced waves */
+        waveAmplitude?: number;
+      };
+
+      // === MARKER STYLING ===
+      markers: {
+        /** Size (radius) of center markers */
+        size: number;
+        /** Border color of center markers */
+        borderColor: string;
+        /** Border stroke weight of center markers */
+        borderWeight: number;
+        /** Fill color of center markers - "auto" uses polygon color, or hex color */
+        fill: "auto" | string;
+        /** Opacity of center markers (0-1) */
+        opacity: number;
+        /** Z-index for center markers */
+        zIndex: number;
+      };
+
+      // === LINE STYLING ===
+      lines: {
+        /** Stroke weight of connection lines */
+        weight: number;
+        /** Color of connection lines (hex with optional alpha) */
+        color: string;
+        /** Opacity of connection lines (0-1) */
+        opacity: number;
+        /** Z-index for connection lines */
+        zIndex: number;
+      };
+    };
     /** should the map area be restricted */
     useListenMapBounds: boolean;
     /** should the bounds markers be shown;  */

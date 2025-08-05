@@ -1,6 +1,6 @@
 import makeStyles from '@mui/styles/makeStyles';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import React, { useState, useCallback } from 'react';
+import { GoogleMap, Marker } from '@react-google-maps/api';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Coordinates } from 'roundware-web-framework';
 import { useRoundware } from '../../../hooks';
 import { RoundwareMapStyle } from '../../../styles/map-style';
@@ -42,6 +42,15 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 	const { roundware, forceUpdate } = useRoundware();
 	const [map, setMap] = useState<google.maps.Map | undefined>();
 	const [showLaunch, setShowLaunch] = useState(true);
+	const isMountedRef = useRef(true);
+
+	// Track mounted state for cleanup
+	useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
 	const { deleteFromURL } = useURLSync();
 	const updateListenerLocation = (newLocation?: Coordinates) => {
@@ -123,11 +132,15 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 			deleteFromURL('zoom');
 		});
 
-		setMap(map);
+		if (isMountedRef.current) {
+			setMap(map);
+		}
 	};
 
 	const handleLaunch = () => {
-		setShowLaunch(false);
+		if (isMountedRef.current) {
+			setShowLaunch(false);
+		}
 		// Start audio playback when launch overlay disappears
 		if (!roundware.mixer || !roundware.mixer?.playlist) {
 			roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
@@ -153,7 +166,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 	return (
 		<>
 			{roundware.project ? (
-				<LoadScript id='script-loader' googleMapsApiKey={props.googleMapsApiKey}>
+				<>
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
 						<MapControlIcons />
@@ -233,7 +246,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 							</Box>
 						</Fade>
 					</GoogleMap>
-				</LoadScript>
+				</>
 			) : null}
 		</>
 	);
