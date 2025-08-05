@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import config from '@/config';
 
 /*
 
@@ -32,6 +33,12 @@ export const useRealtimePlayback = ({ audioContext, recordingStream }: { audioCo
 	const convolverNode = useRef<ConvolverNode | null>(null);
 	useEffect(() => {
 		if (!recordingStream) return;
+
+		// Check if real-time effects are disabled
+		if (!config.speak.micRecordingEffects) {
+			console.log('Real-time microphone effects disabled - skipping effects processing');
+			return;
+		}
 
 		// HERE:
 		// when recordingStream is available,

@@ -102,25 +102,46 @@ const LocationSelectForm = () => {
 		return null;
 	}
 
-	const getGeolocation = () => {
+	const getGeolocation = async () => {
 		if (!navigator.geolocation) {
 			console.error('Geolocation is not supported by your browser');
-		} else {
-			set_geolocating(true);
-			getPosition()
-				.then((position) => {
-					draftRecording.setLocation({
-						latitude: position.coords.latitude,
-						longitude: position.coords.longitude,
-					});
-				})
-				.catch((err) => {
-					set_error(err);
-				})
-				.finally(() => {
-					set_geolocating(false);
-				});
+			return;
 		}
+
+		// Check location permission status first
+		try {
+			const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+			
+			if (permissionStatus.state === 'denied') {
+				// Permission denied - show error
+				set_error(new Error('Location permission denied'));
+				return;
+			} else if (permissionStatus.state === 'granted') {
+				// Permission already granted - proceed directly
+				console.log('Location permission already granted, proceeding to get location');
+			} else {
+				// Permission not determined - will be requested by getCurrentPosition
+				console.log('Location permission not determined, will request permission');
+			}
+		} catch (error) {
+			// Fallback for browsers that don't support permissions API
+			console.log('Permissions API not supported, proceeding with location request');
+		}
+
+		set_geolocating(true);
+		getPosition()
+			.then((position) => {
+				draftRecording.setLocation({
+					latitude: position.coords.latitude,
+					longitude: position.coords.longitude,
+				});
+			})
+			.catch((err) => {
+				set_error(err);
+			})
+			.finally(() => {
+				set_geolocating(false);
+			});
 	};
 
 	if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {

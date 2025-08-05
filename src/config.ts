@@ -60,6 +60,7 @@ let config: IConfig = {
       volume: 1.0,
       balanceRatio: 0.8, // Ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click)
     },
+    micRecordingEffects: false, // Disable real-time effects during recording for better reliability
   },
 
   map: {
@@ -137,6 +138,7 @@ let config: IConfig = {
     assetTypeDisplay: ["audio", "photo", "text"],
 
     assetDisplay: "circle",
+    rangeCircleOverlayVisible: true,
   },
 
   ui: {

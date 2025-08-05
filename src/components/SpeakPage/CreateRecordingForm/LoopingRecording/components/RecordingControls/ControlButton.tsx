@@ -16,7 +16,6 @@ import {
 import { memo, useState } from "react";
 import { useLoopingRecording } from "../../useLoopingRecording";
 import { useLoopContext } from "../../LoopContext";
-import CountdownTimer from "./CountdownTimer";
 import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 
 interface ControlButtonProps {
@@ -87,8 +86,25 @@ const ControlButton = memo(
           >
             Re-Record
           </Button>
-        ) : mode === "waiting-to-record" ? (
-          <CountdownTimer />
+        ) : mode === "preparing-to-record" || mode === "processing-recording" ? (
+          <Box
+            width={60}
+            height={60}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              borderRadius: "50%",
+            }}
+          >
+            <Typography variant="h6" sx={{ color: "white" }}>
+              {mode === "preparing-to-record" ? "..." : "..."}
+            </Typography>
+          </Box>
+        ) : mode === "countdown-to-record" ? (
+          // Don't show anything during countdown - BeatCountdown will handle this
+          null
         ) : mode === "loading" ? (
           <Typography variant="h3">Loading...</Typography>
         ) : null}
@@ -98,7 +114,7 @@ const ControlButton = memo(
         onClose={() => setRerecordWarningOpen(false)}
         onConfirm={() => {
           setRerecordWarningOpen(false);
-          recorder.scheduleRecording();
+          recorder.startRecordingProcess();
         }}
         icon={<Replay sx={{ fontSize: 40 }} />}
         title="Re-record"

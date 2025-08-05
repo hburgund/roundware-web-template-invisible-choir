@@ -7,11 +7,12 @@ import { useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
+import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
 import { useRoundware } from "@/hooks";
 
 const LoopingRecordingForm = () => {
-  const { recorder, submission, location } = useLoopContext();
+  const { recorder, submission, location, loop } = useLoopContext();
   const { roundware } = useRoundware();
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
@@ -20,6 +21,28 @@ const LoopingRecordingForm = () => {
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
 
   const history = useHistory();
+
+  // Comprehensive cleanup function to stop all audio and clear resources
+  const cleanupRecordingSession = () => {
+    console.log("🧹 Starting comprehensive cleanup of recording session");
+    
+    // Clean up all audio resources (sources, timers, state)
+    loop.cleanupAllAudioResources();
+    
+    // Clean up all recording resources (streams, timers, blobs, etc.)
+    recorder.cleanupAllRecordingResources();
+    
+    // Suspend AudioContext to save resources
+    if (loop.audioContext.current.state !== 'suspended') {
+      loop.audioContext.current.suspend().then(() => {
+        console.log("🔇 AudioContext suspended for cleanup");
+      }).catch(err => {
+        console.warn("⚠️ Failed to suspend AudioContext:", err);
+      });
+    }
+    
+    console.log("✅ Recording session cleanup completed");
+  };
 
   // Watch for successful submission to show thank you dialog
   useEffect(() => {
@@ -32,7 +55,8 @@ const LoopingRecordingForm = () => {
   // Watch for confirmed leaving to trigger navigation
   useEffect(() => {
     if (userConfirmedLeaving) {
-      console.log("🚪 User confirmed leaving - navigating to listen page");
+      console.log("🚪 User confirmed leaving - cleaning up and navigating to listen page");
+      cleanupRecordingSession();
       history.push("/listen", { source: 'recording' });
     }
   }, [userConfirmedLeaving, history]);
@@ -42,6 +66,14 @@ const LoopingRecordingForm = () => {
     console.log("🔄 Retrying submission without legal agreement");
     await submission.start();
   };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      console.log("🧹 LoopingRecordingForm unmounting - cleaning up");
+      cleanupRecordingSession();
+    };
+  }, []);
 
   return (
     <Box
@@ -66,9 +98,17 @@ const LoopingRecordingForm = () => {
             setShowJoinChoirPage(false);
           }}
           onCancel={() => {
+            console.log("🚪 User cancelled from Join Choir page - cleaning up");
+            cleanupRecordingSession();
             history.push("/listen", { source: 'recording' });
           }}
-          onCheckPermission={recorder.checkMicrophonePermission}
+          onPermissionDenied={() => {
+            console.log("🎤 Microphone permission denied on Join Choir page");
+            // Show permission denied dialog or handle appropriately
+            // For now, just go back to listen page
+            cleanupRecordingSession();
+            history.push("/listen", { source: 'recording' });
+          }}
         />
       ) : (
         <RecordingControls userConfirmedLeaving={userConfirmedLeaving} />
@@ -93,7 +133,7 @@ const LoopingRecordingForm = () => {
         onClose={() => setShowRerecordConfirm(false)}
         onConfirm={() => {
           setShowRerecordConfirm(false);
-          recorder.scheduleRecording();
+          recorder.startRecordingProcess();
         }}
         icon={<ReplayIcon sx={{ fontSize: 40 }} />}
         title="Re-record"
@@ -156,6 +196,11 @@ const LoopingRecordingForm = () => {
           <Close />
         </Button>
       )}
+
+      <ProcessingOverlay
+        isVisible={loop.mode === "processing-recording" || loop.mode === "preparing-to-record"}
+        message={loop.mode === "preparing-to-record" ? "Preparing to record..." : "Processing recording..."}
+      />
     </Box>
   );
 };

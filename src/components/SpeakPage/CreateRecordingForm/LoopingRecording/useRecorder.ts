@@ -84,111 +84,60 @@ export const useRecorder = ({
     }
   };
 
-  // schedule recording to start from next loop point in timer
-  const scheduleRecording = async () => {
-    // Permission is already checked when user clicks "Continue" in JoinChoir component
-    // No need to check again here - it only causes audio disruption
-    
+  // Start the discrete recording process
+  const startRecordingProcess = async () => {
     if (typeof duration !== "number") return;
 
-    console.debug(
-      "Scheduling recording",
-      loop.nextLoopPointAt.current,
-      Date.now()
-    );
+    // Step 1: Stop current playback and show "Preparing to record..."
+    loop.stop();
+    loop.setMode("preparing-to-record");
+    setRecordedAudioBlob(null);
 
-    const startingInSeconds =
-      ((loop.nextLoopPointAt.current ?? 0) - Date.now()) / 1000;
-    
-    // Calculate musical beats countdown
-    const beatsPerLoop = config.speak.beatsPerLoop;
-    const beatInterval = duration / beatsPerLoop; // duration of one beat in seconds
-    const startingInBeats = Math.ceil(startingInSeconds / beatInterval);
-    
-    console.debug("Starting recording in", startingInSeconds + "s", `(${startingInBeats} beats)`);
-    console.debug("Beat interval:", beatInterval + "s");
-
-    // Defer UI updates to avoid audio interference during critical button press moment
-    requestAnimationFrame(() => {
-      loop.setMode("waiting-to-record");
-      setRecordedAudioBlob(null);
-      setStartingRecordingInSeconds(startingInSeconds);
-      setStartingRecordingInBeats(startingInBeats);
-      
-      // Store when countdown should end
-      countdownEndTime.current = Date.now() + (startingInSeconds * 1000);
-    });
-
-    // Pre-initialize MediaRecorder during countdown to eliminate delay at recording time
+    // Step 2: Pre-initialize MediaRecorder during preparation (after audio is loaded)
     const preInitializeRecorder = async () => {
       try {
         console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
         
-        // Check if we already have microphone permission
-        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+        // Permission should already be granted from JoinChoir screen
+        // Just get the stream directly without permission checks
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+          },
+        });
+        console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
         
-        if (permissionStatus.state === 'granted') {
-          // Permission already granted - proceed with getUserMedia
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
-          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
-          
-          const recorder = new MediaRecorder(stream);
-          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-          
-          preInitializedStream.current = stream;
-          preInitializedRecorder.current = recorder;
-        } else if (permissionStatus.state === 'denied') {
-          // Permission denied - don't try to get user media
-          console.error("Microphone permission denied during pre-initialization");
-          setIsPermissionDenied(true);
-        } else {
-          // Permission not determined - this shouldn't happen if checkMicrophonePermission was called first
-          console.warn("Microphone permission not determined during pre-initialization");
-          setIsPermissionDenied(true);
-        }
+        const recorder = new MediaRecorder(stream);
+        console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
+        
+        // Store the pre-initialized resources
+        preInitializedStream.current = stream;
+        preInitializedRecorder.current = recorder;
+        console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
         
       } catch (error) {
-        // Fallback for browsers that don't support permissions API
-        console.log('Permissions API not supported during pre-initialization, falling back to getUserMedia');
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
-          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
-          
-          const recorder = new MediaRecorder(stream);
-          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-          
-          preInitializedStream.current = stream;
-          preInitializedRecorder.current = recorder;
-        } catch (getUserMediaError) {
-          console.error("Error pre-initializing recorder:", getUserMediaError);
-          setIsPermissionDenied(true);
-        }
+        console.error("Error pre-initializing recorder:", error);
+        setIsPermissionDenied(true);
       }
     };
     
-    // Start pre-initialization immediately (don't wait for requestAnimationFrame)
+    // Start pre-initialization immediately
     preInitializeRecorder();
 
+    // Step 3: After a short delay, start the 4-beat countdown (no audio)
     setTimeout(() => {
-      console.debug("🎯 TIMING: startRecording timeout fired at", Date.now());
-      startRecording();
-    }, startingInSeconds * 1000);
+      loop.setMode("countdown-to-record");
+      // Don't start audio playback during countdown - just show the visual countdown
+    }, 2000); // 2 seconds of "Preparing to record..."
+  };
+
+  // Start recording after countdown completes
+  const startRecordingAfterCountdown = async () => {
+    // Stop the countdown playback
+    loop.stop();
     
-    // Set a single timeout to clear the countdown when recording starts
-    countdownCleanupTimeout.current = setTimeout(() => {
-      console.debug("🎯 TIMING: Countdown cleanup timeout fired at", Date.now());
-      setStartingRecordingInBeats(0);
-      setStartingRecordingInSeconds(0);
-      countdownEndTime.current = null;
-    }, startingInSeconds * 1000);
+    // Start the actual recording
+    await startRecording();
   };
 
   const isStopped = useRef(false);
@@ -200,7 +149,7 @@ export const useRecorder = ({
       setRecordedAudioBlob(null);
       audioChunk.current = undefined;
 
-      // Use pre-initialized recorder if available, otherwise fall back to old method
+      // Use pre-initialized recorder if available, otherwise create new one
       if (preInitializedRecorder.current && preInitializedStream.current) {
         console.debug("🎯 TIMING: Using pre-initialized recorder at", Date.now());
         mediaRecorder.current = preInitializedRecorder.current;
@@ -210,14 +159,16 @@ export const useRecorder = ({
         preInitializedRecorder.current = null;
         preInitializedStream.current = null;
       } else {
-        console.debug("🎯 TIMING: Pre-initialized recorder not available, falling back to old method at", Date.now());
+        console.debug("🎯 TIMING: Pre-initialized recorder not available, creating new one at", Date.now());
         
-        // Check permission before requesting getUserMedia
+        // Request microphone permission and create MediaRecorder
+        console.debug("🎯 TIMING: Requesting microphone permission at", Date.now());
+        
         try {
           const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
           
           if (permissionStatus.state === 'granted') {
-            console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
+            console.debug("🎯 TIMING: Permission already granted, requesting getUserMedia at", Date.now());
             const stream = await navigator.mediaDevices.getUserMedia({
               audio: {
                 echoCancellation: false,
@@ -229,14 +180,28 @@ export const useRecorder = ({
 
             console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
             mediaRecorder.current = new MediaRecorder(stream);
-          } else {
-            console.error("Microphone permission denied during startRecording fallback");
+          } else if (permissionStatus.state === 'denied') {
+            console.error("Microphone permission denied");
             setIsPermissionDenied(true);
             return;
+          } else {
+            // Permission not determined - request it
+            console.debug("🎯 TIMING: Permission not determined, requesting getUserMedia at", Date.now());
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: false,
+              },
+            });
+            console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
+
+            setRecorderStream(stream);
+
+            console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
+            mediaRecorder.current = new MediaRecorder(stream);
           }
         } catch (error) {
           // Fallback for browsers that don't support permissions API
-          console.log('Permissions API not supported during startRecording fallback, using getUserMedia directly');
+          console.log('Permissions API not supported, using getUserMedia directly');
           console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
@@ -307,21 +272,23 @@ export const useRecorder = ({
         const audioBlob = createBlobFromAudioBuffer(adjustedBuffer);
         console.debug("🎯 END TIMING: Final audio blob created at", Date.now());
 
-        // OPTIMIZATION: Start loop immediately, defer React state update
-        console.debug("🎯 END TIMING: About to stop current loop at", Date.now());
-        loop.stop();
-        console.debug("🎯 END TIMING: Current loop stopped at", Date.now());
+        // Show processing state (loop is already stopped at exact loop point)
+        console.debug("🎯 END TIMING: Setting processing mode at", Date.now());
+        loop.setMode("processing-recording");
         
-        console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
-        loop.start("recording-playback", audioBlob);
-        console.debug("🎯 END TIMING: Playback loop started at", Date.now());
-        
-        // Defer expensive React state update until after audio starts playing
-        console.debug("🎯 END TIMING: About to set recorded audio blob (deferred) at", Date.now());
+        // Process the recording with a delay to show the processing state
         setTimeout(() => {
-          setRecordedAudioBlob(audioBlob);
-          console.debug("🎯 END TIMING: setRecordedAudioBlob() completed (deferred) at", Date.now());
-        }, 0);
+          console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
+          loop.start("recording-playback", audioBlob);
+          console.debug("🎯 END TIMING: Playback loop started at", Date.now());
+          
+          // Defer expensive React state update until after audio starts playing
+          console.debug("🎯 END TIMING: About to set recorded audio blob (deferred) at", Date.now());
+          setTimeout(() => {
+            setRecordedAudioBlob(audioBlob);
+            console.debug("🎯 END TIMING: setRecordedAudioBlob() completed (deferred) at", Date.now());
+          }, 0);
+        }, 1500); // Show processing for 1.5 seconds
       };
 
       mediaRecorder.current.onstop = () => {
@@ -354,6 +321,14 @@ export const useRecorder = ({
       console.debug("🎯 TIMING: About to call mediaRecorder.start() at", Date.now());
       mediaRecorder.current.start(totalDuration);
       console.debug("🎯 TIMING: mediaRecorder.start() call completed at", Date.now());
+      
+      // Schedule the base loop to stop exactly when recording should end (not when MediaRecorder stops)
+      if (duration) {
+        setTimeout(() => {
+          console.debug("🎯 TIMING: Stopping base loop at exact loop point at", Date.now());
+          loop.stop();
+        }, duration * 1000);
+      }
     } catch (error) {
       console.error("Error starting recording:", error);
       setIsPermissionDenied(true);
@@ -402,12 +377,60 @@ export const useRecorder = ({
     }
   };
 
+  // Comprehensive cleanup function for when leaving the recording session
+  const cleanupAllRecordingResources = () => {
+    console.log("🧹 Cleaning up all recording resources");
+    
+    // Stop any ongoing recording
+    stopRecording();
+    
+    // Clear any recorded audio blob
+    setRecordedAudioBlob(null);
+    
+    // Stop and clean up any active recorder stream
+    if (recorderStream) {
+      recorderStream.getTracks().forEach((track) => {
+        track.stop();
+        console.log("🎤 Stopped recorder stream track:", track.kind);
+      });
+      setRecorderStream(undefined);
+    }
+    
+    // Clean up pre-initialized resources
+    if (preInitializedStream.current) {
+      preInitializedStream.current.getTracks().forEach((track) => {
+        track.stop();
+        console.log("🎤 Stopped pre-initialized stream track:", track.kind);
+      });
+      preInitializedStream.current = null;
+    }
+    if (preInitializedRecorder.current) {
+      preInitializedRecorder.current = null;
+    }
+    
+    // Clear any pending timers
+    if (countdownCleanupTimeout.current) {
+      clearTimeout(countdownCleanupTimeout.current);
+      countdownCleanupTimeout.current = undefined;
+    }
+    countdownEndTime.current = null;
+    
+    // Reset state
+    setStartingRecordingInSeconds(0);
+    setStartingRecordingInBeats(0);
+    setIsPermissionDenied(false);
+    
+    console.log("✅ All recording resources cleaned up");
+  };
+
   return {
     recordedAudioBlob,
     isPermissionDenied,
     setIsPermissionDenied,
-    scheduleRecording,
+    startRecordingProcess,
+    startRecordingAfterCountdown,
     stopRecording,
+    cleanupAllRecordingResources,
     checkMicrophonePermission,
     startingRecordingInSeconds,
     startingRecordingInBeats,
