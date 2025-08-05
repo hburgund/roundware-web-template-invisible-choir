@@ -67,18 +67,23 @@ export function trimAudioBuffer(
   endTime: number,
   audioContext: AudioContext = new AudioContext()
 ) {
+  console.debug("🎯 UTIL TIMING: trimAudioBuffer started at", Date.now());
+  
   const sampleRate = buffer.sampleRate;
   const startFrame = Math.max(0, Math.floor(startTime * sampleRate));
   const endFrame = Math.min(buffer.length, Math.ceil(endTime * sampleRate));
 
   const channels = buffer.numberOfChannels;
 
+  console.debug("🎯 UTIL TIMING: About to create trimmed buffer at", Date.now());
   // Create a new AudioBuffer for the trimmed audio
   const trimmedBuffer = audioContext.createBuffer(
     channels,
     endFrame - startFrame,
     sampleRate
   );
+  console.debug("🎯 UTIL TIMING: Trimmed buffer created at", Date.now());
+  
   console.log(
     "Start Frame:",
     startFrame,
@@ -91,27 +96,41 @@ export function trimAudioBuffer(
     endFrame - startFrame
   );
 
+  console.debug("🎯 UTIL TIMING: About to copy channel data at", Date.now());
   for (let channel = 0; channel < channels; channel++) {
     const sourceData = buffer
       .getChannelData(channel)
       .subarray(startFrame, endFrame);
     trimmedBuffer.getChannelData(channel).set(sourceData);
   }
+  console.debug("🎯 UTIL TIMING: Channel data copied at", Date.now());
 
+  console.debug("🎯 UTIL TIMING: trimAudioBuffer completed at", Date.now());
   return trimmedBuffer;
 }
 
 export function createBlobFromAudioBuffer(audioBuffer: AudioBuffer) {
+  console.debug("🎯 UTIL TIMING: createBlobFromAudioBuffer started at", Date.now());
+  
   // Float32Array samples
+  console.debug("🎯 UTIL TIMING: About to get channel data at", Date.now());
   const interleaved = audioBuffer.getChannelData(0);
+  console.debug("🎯 UTIL TIMING: Channel data retrieved at", Date.now());
 
   // get WAV file bytes and audio params of your audio source
+  console.debug("🎯 UTIL TIMING: About to generate WAV bytes at", Date.now());
   const wavBytes = getWavBytes(interleaved.buffer, {
     isFloat: true, // floating point or 16-bit integer
     numChannels: 1,
     sampleRate: audioBuffer.sampleRate,
   });
+  console.debug("🎯 UTIL TIMING: WAV bytes generated at", Date.now());
+  
+  console.debug("🎯 UTIL TIMING: About to create blob at", Date.now());
   const wav = new Blob([wavBytes], { type: "audio/wav" });
+  console.debug("🎯 UTIL TIMING: Blob created at", Date.now());
+  
+  console.debug("🎯 UTIL TIMING: createBlobFromAudioBuffer completed at", Date.now());
   return wav;
 }
 
@@ -125,16 +144,27 @@ function getWavBytes(
     numFrames?: number;
   }
 ) {
+  console.debug("🎯 UTIL TIMING: getWavBytes started at", Date.now());
+  
   const type = options.isFloat ? Float32Array : Uint16Array;
   const numFrames = buffer.byteLength / type.BYTES_PER_ELEMENT;
 
+  console.debug("🎯 UTIL TIMING: About to get WAV header at", Date.now());
   const headerBytes = getWavHeader(Object.assign({}, options, { numFrames }));
+  console.debug("🎯 UTIL TIMING: WAV header created at", Date.now());
+  
+  console.debug("🎯 UTIL TIMING: About to create WAV bytes array at", Date.now());
   const wavBytes = new Uint8Array(headerBytes.length + buffer.byteLength);
+  console.debug("🎯 UTIL TIMING: WAV bytes array created at", Date.now());
 
   // prepend header, then add pcmBytes
+  console.debug("🎯 UTIL TIMING: About to set header bytes at", Date.now());
   wavBytes.set(headerBytes, 0);
+  console.debug("🎯 UTIL TIMING: About to set audio data bytes at", Date.now());
   wavBytes.set(new Uint8Array(buffer), headerBytes.length);
+  console.debug("🎯 UTIL TIMING: Audio data bytes set at", Date.now());
 
+  console.debug("🎯 UTIL TIMING: getWavBytes completed at", Date.now());
   return wavBytes;
 }
 
