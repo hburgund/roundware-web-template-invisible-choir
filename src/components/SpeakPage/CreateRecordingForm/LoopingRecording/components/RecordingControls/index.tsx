@@ -8,7 +8,11 @@ import AnimatedCircle from "./AnimatedCircle";
 import ControlButton from "./ControlButton";
 import { useDimensions } from "./hooks";
 
-const RecordingControls = () => {
+interface RecordingControlsProps {
+  userConfirmedLeaving?: boolean;
+}
+
+const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsProps) => {
   const { loop, recorder, submission, speaker } = useLoopContext();
   const dimensions = useDimensions();
 
@@ -79,7 +83,7 @@ const RecordingControls = () => {
         functionality="microphone"
       />
       <Prompt
-        when={!!recorder.recordedAudioBlob && submission.status !== "submitted"}
+        when={!!recorder.recordedAudioBlob && submission.status !== "submitted" && !userConfirmedLeaving}
         message={JSON.stringify({
           message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
           stay: `Keep Recording`,

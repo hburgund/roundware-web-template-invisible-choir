@@ -36,6 +36,7 @@ const useStyles = makeStyles((theme) => {
 interface RoundwareMapProps {
 	googleMapsApiKey: string;
 	className: string;
+	buttonText?: string;
 }
 const RoundwareMap = (props: RoundwareMapProps) => {
 	const classes = useStyles();
@@ -67,6 +68,9 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 		roundware.updateLocation(location!);
 		console.log('updated location on framework', location);
 	};
+
+	// Use prop for button text, default to "PLAY"
+	const buttonText = props.buttonText || 'PLAY';
 
 	const onLoad = (map: google.maps.Map) => {
 		let restriction;
@@ -102,23 +106,15 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 				lng: parseFloat(typeof urlLongitude == 'string' ? urlLongitude : roundware?.project?.location?.longitude!?.toString()),
 			},
 			zoom: parseInt(typeof urlZoom == 'string' ? urlZoom : '5'),
-			zoomControl: true,
+			disableDefaultUI: true, // Disable all default UI controls
+			zoomControl: true, // Re-enable only the zoom control
 			draggable: true,
-			mapTypeControl: false,
-			streetViewControl: false,
 			draggableCursor: null,
-			fullscreenControl: false,
 			zoomControlOptions: {
 				style: google.maps.ZoomControlStyle.SMALL,
 				position: google.maps.ControlPosition.RIGHT_CENTER,
 			},
-			rotateControl: false,
 			mapTypeId: 'styled_map',
-			mapTypeControlOptions: {
-				mapTypeIds: [google.maps.MapTypeId.SATELLITE, 'styled_map'],
-				style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-				position: google.maps.ControlPosition.BOTTOM_LEFT,
-			},
 			restriction,
 		});
 		map.addListener('zoom_changed', () => {
@@ -141,6 +137,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 		if (isMountedRef.current) {
 			setShowLaunch(false);
 		}
+		
 		// Start audio playback when launch overlay disappears
 		if (!roundware.mixer || !roundware.mixer?.playlist) {
 			roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
@@ -229,7 +226,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 											bgcolor: 'secondary.main'
 										}}
 									/>
-									<Tooltip title="TAP LAUNCH TO LISTEN TO CHOIR" arrow placement="bottom">
+									<Tooltip title={`TAP ${buttonText} TO LISTEN TO CHOIR`} arrow placement="bottom">
 										<Fab 
 											size="large" 
 											color="secondary"
@@ -238,7 +235,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 										>
 											<Stack alignItems="center" spacing={2} sx={{ color: 'primary.main' }}>
 												<GraphicEq fontSize="large" color="primary" />
-												LAUNCH
+												{buttonText}
 											</Stack>
 										</Fab>
 									</Tooltip>

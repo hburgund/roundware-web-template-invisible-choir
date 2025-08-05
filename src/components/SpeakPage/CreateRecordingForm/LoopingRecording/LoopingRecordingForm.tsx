@@ -2,21 +2,46 @@ import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { Box, Button } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
 import { useLoopContext, withLoopContext } from "./LoopContext";
+import { useRoundware } from "@/hooks";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location } = useLoopContext();
+  const { roundware } = useRoundware();
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
+  const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
 
   const history = useHistory();
+
+  // Watch for successful submission to show thank you dialog
+  useEffect(() => {
+    if (submission.status === "submitted") {
+      console.log("✅ Submission status changed to submitted, showing thank you dialog");
+      setShowThankYouConfirm(true);
+    }
+  }, [submission.status]);
+
+  // Watch for confirmed leaving to trigger navigation
+  useEffect(() => {
+    if (userConfirmedLeaving) {
+      console.log("🚪 User confirmed leaving - navigating to listen page");
+      history.push("/listen", { source: 'recording' });
+    }
+  }, [userConfirmedLeaving, history]);
+
+  // Create a retry function that bypasses legal agreement
+  const handleRetry = async () => {
+    console.log("🔄 Retrying submission without legal agreement");
+    await submission.start();
+  };
 
   return (
     <Box
@@ -41,28 +66,26 @@ const LoopingRecordingForm = () => {
             setShowJoinChoirPage(false);
           }}
           onCancel={() => {
-            history.push("/listen");
+            history.push("/listen", { source: 'recording' });
           }}
           onCheckPermission={recorder.checkMicrophonePermission}
         />
       ) : (
-        <RecordingControls />
+        <RecordingControls userConfirmedLeaving={userConfirmedLeaving} />
       )}
 
       <SubmissionControls
         hasRecording={!!recorder.recordedAudioBlob}
         submissionStatus={submission.status}
+        errorDetails={submission.errorDetails}
         onLegalAccept={async () => {
-          try {
-            await submission.start();
-            // Wait for submission to fully complete before showing thank you dialog
-            setShowThankYouConfirm(true);
-          } catch (error) {
-            console.error("Submission failed:", error);
-            // Don't show thank you dialog if submission failed
-          }
+          console.log("📋 Legal agreement accepted, starting submission");
+          await submission.start();
+          // Thank you dialog will be shown via useEffect when status becomes "submitted"
         }}
         onLegalDecline={() => {}}
+        onReset={submission.reset}
+        onRetry={handleRetry}
       />
 
       <ConfirmationDialog
@@ -84,7 +107,8 @@ const LoopingRecordingForm = () => {
         onClose={() => setShowCloseConfirm(false)}
         onConfirm={() => {
           setShowCloseConfirm(false);
-          history.push("/listen");
+          setUserConfirmedLeaving(true); // This will trigger navigation via useEffect
+          console.log("🚪 User confirmed leaving - setting flag to bypass router prompt");
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Leave Choir"
@@ -97,10 +121,14 @@ const LoopingRecordingForm = () => {
       <ConfirmationDialog
         open={showThankYouConfirm}
         onClose={() => {
-          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
+          // Use current listener location instead of static query location
+          const currentLocation = roundware.listenerLocation;
+          history.push(`/listen?latitude=${currentLocation.latitude}&longitude=${currentLocation.longitude}`, { source: 'recording' });
         }}
         onConfirm={() => {
-          history.push(`/listen?latitude=${location.lat}&longitude=${location.lng}`);
+          // Use current listener location instead of static query location
+          const currentLocation = roundware.listenerLocation;
+          history.push(`/listen?latitude=${currentLocation.latitude}&longitude=${currentLocation.longitude}`, { source: 'recording' });
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Thank You!"

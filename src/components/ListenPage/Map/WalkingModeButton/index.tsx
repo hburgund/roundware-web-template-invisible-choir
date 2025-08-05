@@ -111,8 +111,29 @@ const walkingModeButton = () => {
 			setWalkingModeErrorMessage(messages.errors.walkingModeNotSupported);
 			enterMapMode();
 		} else {
-			// geo location supported
-			setWalkingModeStatus('locating');
+			// Check location permission status using the proper API
+			try {
+				const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+				
+				if (permissionStatus.state === 'granted') {
+					// Permission already granted - proceed directly
+					console.log('Location permission already granted, proceeding to walking mode');
+					await requestLocationPermission();
+				} else if (permissionStatus.state === 'denied') {
+					// Permission denied - show error
+					setWalkingModeStatus('error');
+					setWalkingModeErrorMessage(messages.errors.permissionDenied);
+					enterMapMode();
+				} else {
+					// Permission not determined yet - show permission dialog
+					console.log('Location permission not determined, showing permission dialog');
+					setWalkingModeStatus('locating');
+				}
+			} catch (error) {
+				// Fallback for browsers that don't support permissions API
+				console.log('Permissions API not supported, falling back to permission dialog');
+				setWalkingModeStatus('locating');
+			}
 		}
 	};
 

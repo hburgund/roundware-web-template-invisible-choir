@@ -398,7 +398,7 @@ const CreateRecordingForm = () => {
 									onClick={() => {
 										if (success != null && Array.isArray(success.envelope_ids) && success.envelope_ids.length > 0) {
 											resetFilters();
-											history.push(`/listen?eid=${success.envelope_ids[0]}`);
+											history.push(`/listen?eid=${success.envelope_ids[0]}`, { source: 'recording' });
 										}
 									}}
 									startIcon={<Headphones />}

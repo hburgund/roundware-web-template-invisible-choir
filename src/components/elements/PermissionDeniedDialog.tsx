@@ -1,8 +1,6 @@
-import { Button, Dialog, DialogContent, Stack, Typography, Container } from '@mui/material';
 import LanguageIcon from '@mui/icons-material/Language';
-import finalConfig from '@/config';
+import FullScreenOverlay from './FullScreenOverlay';
 import { type Funcionality } from 'web-permission-messages';
-import LeafBackground from '@/components/LeafBackground';
 
 type Props = {
 	open: boolean;
@@ -12,42 +10,19 @@ type Props = {
 
 const PermissionDeniedDialog = (props: Props) => {
 	return (
-		<Dialog 
-			open={props.open} 
+		<FullScreenOverlay
+			open={props.open}
 			onClose={props.onClose}
-			fullScreen
-		>
-			<LeafBackground>
-				<DialogContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-					<Container>
-						<Stack spacing={4} alignItems="center" justifyContent="center">
-							<Stack spacing={2} alignItems="center">
-								<LanguageIcon sx={{ fontSize: 40 }} />
-								<Typography 
-									variant="h5" 
-									component="h1" 
-								>
-									SORRY!
-								</Typography>
-							</Stack>
-							<Typography 
-								variant="body1" 
-							>
-								To participate fully in the artwork experience we need access to your location. In the meantime, please see our Youtube channel from some of our favourite choirs.
-							</Typography>
-							<Button 
-								variant="contained"
-								color="primary"
-								size="large"
-								onClick={() => window.open('https://roundware.org/', '_blank')}
-							>
-								WATCH VIDEOS
-							</Button>
-						</Stack>
-					</Container>
-				</DialogContent>
-			</LeafBackground>
-		</Dialog>
+			icon={<LanguageIcon sx={{ fontSize: 40 }} />}
+			title="SORRY!"
+			description="To participate fully in the artwork experience we need access to your location. In the meantime, please see our Youtube channel from some of our favourite choirs."
+			primaryButton={{
+				text: "WATCH VIDEOS",
+				onClick: () => window.open('https://roundware.org/', '_blank')
+			}}
+			useLeafBackground={true}
+			showCloseButton={false}
+		/>
 	);
 };
 

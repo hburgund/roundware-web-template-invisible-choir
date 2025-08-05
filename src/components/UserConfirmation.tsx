@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { ThemeProvider, Dialog, DialogContent, DialogTitle, DialogActions, Button } from '@mui/material';
+import { ThemeProvider, Dialog, DialogContent, DialogTitle, DialogActions, Button, DialogContentText } from '@mui/material';
 
 import { defaultTheme } from '../styles';
 const UserConfirmation = (message: string, callback: (bool: boolean) => any) => {
@@ -17,7 +17,9 @@ const UserConfirmation = (message: string, callback: (bool: boolean) => any) => 
 		<ThemeProvider theme={defaultTheme}>
 			<Dialog open={true}>
 				<DialogTitle>Warning</DialogTitle>
-				<DialogContent>{parsedMessage?.message}</DialogContent>
+				<DialogContent>
+					<DialogContentText>{parsedMessage?.message}</DialogContentText>
+				</DialogContent>
 				<DialogActions>
 					<Button variant='contained' onClick={() => closeModal(false)} color='success'>
 						{parsedMessage?.stay}

@@ -1,56 +1,90 @@
 import { Mic } from '@mui/icons-material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { Box, Button, Dialog, DialogActions, DialogContent, Tooltip, Skeleton, Fade, Fab, Stack } from '@mui/material';
+import { Box, Tooltip, Skeleton, Fade, Fab, Typography } from '@mui/material';
 import { point } from '@turf/helpers';
 import { useRoundware } from '@/hooks/index';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 
 const AddLoopVoiceButton = () => {
 	const { roundware, forceUpdate } = useRoundware();
 	const history = useHistory();
 
-	const [showNoSpeakerMessage, setShowNoSpeakerMessage] = useState(false);
 	const [showLaunch, setShowLaunch] = useState(true);
+	const [isInChoirRange, setIsInChoirRange] = useState(false);
 
-	const handleClick = () => {
+	// Function to check if user is within any speaker range
+	const checkChoirRange = () => {
+		if (!roundware?.mixer?.speakerEngine?.speakers || !roundware.listenerLocation) {
+			return false;
+		}
+
 		const lat = roundware.listenerLocation.latitude as number;
 		const lng = roundware.listenerLocation.longitude as number;
-		roundware.mixer.initContext();
-		roundware.mixer.speakerEngine?.updateParams({
-			listenerPoint: point([lng, lat]),
-		});
+		const listenerPoint = point([lng, lat]);
 
-		const sts = roundware.mixer.speakerEngine?.speakers?.sort((st1, st2) => {
-			return st2.volumeByLocation(point([lng, lat]).geometry) - st1.volumeByLocation(point([lng, lat]).geometry);
-		});
-
-		if (sts && sts.length > 0 && sts[0].volumeByLocation(point([lng, lat]).geometry) !== sts[0].minVolume) {
-			roundware.mixer.stop();
-			forceUpdate();
-			history.push({
-				pathname: '/speak',
-				search: `?lat=${lat}&lng=${lng}`,
-			});
-		} else {
-			setShowNoSpeakerMessage(true);
+		const speakers = roundware.mixer.speakerEngine.speakers;
+		
+		// Check if user is within range of any speaker without calling updateParams
+		for (const speaker of speakers) {
+			if (speaker.outerBoundaryContains && speaker.outerBoundaryContains(listenerPoint)) {
+				return true;
+			}
+			if (speaker.attenuationShapeContains && speaker.attenuationShapeContains(listenerPoint)) {
+				return true;
+			}
 		}
+		
+		return false;
 	};
+
+	// Check choir range when location changes (but not when speakers update to avoid interference)
+	useEffect(() => {
+		const inRange = checkChoirRange();
+		setIsInChoirRange(inRange);
+	}, [roundware.listenerLocation]);
+
+	// Also check when speakers are initially loaded (only when count changes from 0)
+	useEffect(() => {
+		const speakerCount = roundware.mixer?.speakerEngine?.speakers?.length || 0;
+		if (speakerCount > 0) {
+			const inRange = checkChoirRange();
+			setIsInChoirRange(inRange);
+		}
+	}, [roundware.mixer?.speakerEngine?.speakers?.length]);
+
+	const handleClick = () => {
+		if (!isInChoirRange) {
+			return; // Do nothing if not in range
+		}
+
+		const lat = roundware.listenerLocation.latitude as number;
+		const lng = roundware.listenerLocation.longitude as number;
+		
+		roundware.mixer.stop();
+		forceUpdate();
+		history.push({
+			pathname: '/speak',
+			search: `?lat=${lat}&lng=${lng}`,
+		});
+	};
+
 	return (
-		<>
-			<Fade in={showLaunch} timeout={1000}>
-				<Box
-					display="flex"
-					alignItems="center"
-					justifyContent="center"
-					position="absolute"
-					width="100%"
-					height="100%"
-					sx={{ 
-						'& .MuiFab-root': { width: 120, height: 120 },
-						pointerEvents: 'none'
-					}}>
-					<Box sx={{ position: 'relative' }}>
+		<Fade in={showLaunch} timeout={1000}>
+			<Box
+				display="flex"
+				alignItems="center"
+				justifyContent="center"
+				position="absolute"
+				width="100%"
+				height="100%"
+				sx={{ 
+					'& .MuiFab-root': { width: 120, height: 120 },
+					pointerEvents: 'none'
+				}}>
+				<Box sx={{ position: 'relative' }}>
+					{/* Show skeleton animation only when in choir range */}
+					{isInChoirRange && (
 						<Skeleton
 							variant="circular"
 							animation="pulse"
@@ -61,34 +95,56 @@ const AddLoopVoiceButton = () => {
 								top: '50%',
 								left: '50%',
 								transform: 'translate(-50%, -50%)',
-					
 							}}
 						/>
-						<Tooltip title="TAP TO JOIN CHOIR" arrow placement="bottom">
-							<Fab 
-								size="large" 
-								color="secondary"
-								onClick={handleClick}
-								sx={{ pointerEvents: 'auto' }}
-							>
+					)}
+					
+					<Tooltip 
+						title={isInChoirRange ? "TAP TO JOIN CHOIR" : "Move closer to a choir location to join"} 
+						arrow 
+						placement="bottom"
+					>
+						<Fab 
+							size="large" 
+							color={isInChoirRange ? "secondary" : "primary"}
+							onClick={handleClick}
+							disabled={!isInChoirRange}
+							sx={{ 
+								pointerEvents: 'auto',
+								opacity: isInChoirRange ? 1 : 0.7, // Slightly transparent when disabled
+								'&.Mui-disabled': {
+									// Explicitly maintain the dark green color and semi-transparency
+									backgroundColor: 'secondary.main',
+									opacity: 0.7,
+									color: 'white', // Ensure text stays white
+								}
+							}}
+						>
+							{isInChoirRange ? (
 								<AddCircleOutlineIcon fontSize="large" color="primary" />
-								
-							</Fab>
-						</Tooltip>
-					</Box>
+							) : (
+								<Typography 
+									variant="caption" 
+									sx={{ 
+										textAlign: 'center',
+										lineHeight: 1.2,
+										fontSize: '0.65rem',
+										fontWeight: 'bold',
+										color: 'white' // White text for disabled state
+									}}
+								>
+									NO CHOIR
+									<br />
+									TO JOIN
+								</Typography>
+							)}
+						</Fab>
+					</Tooltip>
 				</Box>
-			</Fade>
-
-			<Dialog open={showNoSpeakerMessage} onClose={() => setShowNoSpeakerMessage(false)}>
-				<DialogContent>Sorry, but there is no choir here for you to join. Please find a new location for your participation!</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setShowNoSpeakerMessage(false)} variant='contained' color='primary'>
-						OK
-					</Button>
-				</DialogActions>
-			</Dialog>
-		</>
+			</Box>
+		</Fade>
 	);
 };
 
 export default AddLoopVoiceButton;
+

@@ -6,7 +6,7 @@ import { merge } from "lodash";
 // Refer the type object below for info and comments on each config option
 let config: IConfig = {
   locale: "en",
-  debugMode: true,
+  debugMode: false,
 
   project: {
     apiUrl: "https://dev.roundware.com/api/2",
@@ -51,14 +51,14 @@ let config: IConfig = {
     defaultSpeakTags: [],
     recordingMethod: "looping",
     uploadAsSpeaker: true,
-    baseRecordingLoopSelectionMethod: "all",
+    baseRecordingLoopSelectionMethod: "topAncestor", // "all" | "oldest" | "topAncestor"
     speakerShape: "beechLeaf",
     speakerShapeScale: 1.05,
     beatsPerLoop: 8,
     clickTrack: {
       enabled: true,
       volume: 1.0,
-      directory: "/src/assets/audio/",
+      balanceRatio: 0.8, // Ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click)
     },
   },
 

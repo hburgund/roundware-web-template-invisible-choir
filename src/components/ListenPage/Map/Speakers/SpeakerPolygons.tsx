@@ -13,8 +13,6 @@ import {
 	getBaseColor 
 } from '@/utils/colors';
 import * as turf from '@turf/turf';
-// Import module augmentation to extend ISpeakerData with color fields
-import '@/types/speaker-augmentation';
 
 interface Props {}
 

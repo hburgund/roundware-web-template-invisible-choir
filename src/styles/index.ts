@@ -30,7 +30,8 @@ const baseTheme = {
 						color: black
 					},
 					'& .MuiDialogContent-root': {
-						paddingBottom: 0
+						paddingBottom: 0,
+						color: black
 					},
 					'& .MuiDialogActions-root': {
 						justifyContent: 'flex-end',
@@ -55,6 +56,19 @@ const baseTheme = {
 					},
 					'&.location-permission-dialog': {
 						borderRadius: 20
+					},
+
+					// Style for FullScreenOverlay component to ensure white text and icons
+					'&[data-fullscreen-overlay="true"]': {
+						'& .MuiTypography-root': {
+							color: white
+						},
+						'& .MuiSvgIcon-root': {
+							color: white
+						},
+						'& .MuiIconButton-root': {
+							color: white
+						}
 					}
 				})
 			}

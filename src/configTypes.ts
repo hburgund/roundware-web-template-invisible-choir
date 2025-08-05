@@ -1,6 +1,5 @@
 // types for config file
 
-// @ts-ignore - SpeakerConfig exists in framework but may not be exported in index
 import { SpeakerConfig } from "roundware-web-framework";
 
 export type IAssetCardConfig = {
@@ -74,7 +73,7 @@ export type IConfig = {
     /** upload as speaker */
     uploadAsSpeaker: boolean;
     /** base loop */
-    baseRecordingLoopSelectionMethod: "all" | "oldest";
+    baseRecordingLoopSelectionMethod: "all" | "oldest" | "topAncestor";
     /** speaker shape */
     speakerShape: "circle" | "beechLeaf";
     /** scale factor for expanding speaker shapes */
@@ -87,8 +86,8 @@ export type IConfig = {
       enabled: boolean;
       /** volume level for click track (0-1) */
       volume: number;
-      /** directory path containing click track files */
-      directory: string;
+      /** ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click) */
+      balanceRatio: number;
     };
   };
   /** config for map */
