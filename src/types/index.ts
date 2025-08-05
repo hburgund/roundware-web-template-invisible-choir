@@ -1,5 +1,4 @@
-import { ITag } from 'roundware-web-framework';
-import { IAssetData } from 'roundware-web-framework';
+import { ITag, IAssetData } from 'roundware-web-framework';
 
 // all the reusable types here
 export interface ITagLookup {
@@ -17,3 +16,13 @@ export interface IMatch {
 }
 export type IImageAsset = IAssetData;
 export type ITextAsset = string;
+
+// Color parsing result type
+export interface ParsedColor {
+	/** The color without alpha channel */
+	color: string;
+	/** Alpha value from 0-1, or null if no alpha channel */
+	alpha: number | null;
+	/** Whether the original color included an alpha channel */
+	hasAlpha: boolean;
+}
