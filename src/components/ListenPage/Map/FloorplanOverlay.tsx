@@ -37,6 +37,7 @@ interface FloorplanOverlayProps {
   };
   size?: number; // Size in degrees (default: 0.001 = ~10x leaf size)
   opacity?: number; // Opacity 0-1 (default: 0.8)
+  rotation?: number; // Rotation in degrees (default: 0)
   enabled?: boolean; // Whether to show the overlay (default: true)
   useProjectLocation?: boolean; // Use project location instead of map center (default: false)
 }
@@ -46,6 +47,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
   position,
   size = 0.001,
   opacity = 0.8,
+  rotation = 0,
   enabled = true,
   useProjectLocation = false
 }) => {
@@ -94,10 +96,12 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
       private bounds: google.maps.LatLngBounds;
       private div: HTMLDivElement | null = null;
       private svgContainer: HTMLDivElement | null = null;
+      private rotation: number;
 
-      constructor(bounds: google.maps.LatLngBounds) {
+      constructor(bounds: google.maps.LatLngBounds, rotation: number) {
         super();
         this.bounds = bounds;
+        this.rotation = rotation;
       }
 
       onAdd(): void {
@@ -112,6 +116,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
         svgContainer.style.width = '100%';
         svgContainer.style.height = '100%';
         svgContainer.style.opacity = opacity.toString(); // Use configurable opacity
+        svgContainer.style.transform = `rotate(${this.rotation}deg)`;
         div.appendChild(svgContainer);
 
         this.div = div;
@@ -185,7 +190,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
     }
 
     // Create and add the overlay
-    const overlay = new FloorplanOverlayClass(bounds);
+    const overlay = new FloorplanOverlayClass(bounds, rotation);
     overlay.setMap(map);
     overlayRef.current = overlay;
 
@@ -196,7 +201,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
         overlayRef.current = null;
       }
     };
-  }, [map, position, size, opacity, enabled, useProjectLocation, roundware?.project?.location]);
+  }, [map, position, size, opacity, rotation, enabled, useProjectLocation, roundware?.project?.location]);
 
   return null;
 };
