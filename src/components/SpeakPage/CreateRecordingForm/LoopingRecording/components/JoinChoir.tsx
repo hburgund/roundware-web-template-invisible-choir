@@ -30,6 +30,7 @@ const JoinChoir = ({
   const [isConsentChecked, setIsConsentChecked] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [isCheckingPermission, setIsCheckingPermission] = useState(false);
 
   const handleContinue = async () => {
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
@@ -52,6 +53,7 @@ const JoinChoir = ({
       // Check if permissions API is supported
       if (navigator.permissions && navigator.permissions.query) {
         try {
+          setIsCheckingPermission(true);
           const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
           
           if (permissionStatus.state === 'granted') {
@@ -68,6 +70,8 @@ const JoinChoir = ({
         } catch (permissionError) {
           console.warn('[JoinChoir] Permissions API not supported or failed, falling back to getUserMedia:', permissionError);
           // Continue to getUserMedia fallback
+        } finally {
+          setIsCheckingPermission(false);
         }
       } else {
         console.log('[JoinChoir] Permissions API not supported, using getUserMedia directly');
@@ -194,10 +198,10 @@ const JoinChoir = ({
         )}
         <Button
           variant="contained"
-          disabled={!isConsentChecked || isRequestingPermission}
+          disabled={!isConsentChecked || isRequestingPermission || isCheckingPermission}
           onClick={handleContinue}
         >
-          {isRequestingPermission ? "Requesting Permission..." : "Continue"}
+          {isCheckingPermission ? "Checking Permission..." : isRequestingPermission ? "Requesting Permission..." : "Continue"}
         </Button>
         <Button variant="text" onClick={onCancel}>
           Cancel
