@@ -5,13 +5,34 @@ import { point } from '@turf/helpers';
 import { useRoundware } from '@/hooks/index';
 import { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
+import { isAndroid, isIOS } from 'react-device-detect';
 
 const AddLoopVoiceButton = () => {
 	const { roundware, forceUpdate } = useRoundware();
 	const history = useHistory();
 
-	const [showLaunch, setShowLaunch] = useState(true);
+	const [showAddChoirButton, setShowAddChoirButton] = useState(true);
+	const [hasShownTooltip, setHasShownTooltip] = useState(false);
+
 	const [isInChoirRange, setIsInChoirRange] = useState(false);
+
+	const isMobile = isAndroid || isIOS;
+
+	const tooltipProps = {
+		open: isMobile ? (hasShownTooltip && showAddChoirButton) : undefined,
+		disableFocusListener: isMobile,
+		disableHoverListener: isMobile,
+		disableTouchListener: isMobile,
+	};
+
+	// show tooltip on mobile devices
+	useEffect(() => {
+		const hasShownTooltipBefore = localStorage.getItem('hasShownAddChoirTooltip');
+		if (isMobile && showAddChoirButton && !hasShownTooltip && !hasShownTooltipBefore) {
+			setHasShownTooltip(true);
+			localStorage.setItem('hasShownAddChoirTooltip', 'true');
+		}
+	}, [showAddChoirButton, hasShownTooltip]);
 
 	// Function to check if user is within any speaker range
 	const checkChoirRange = () => {
@@ -58,6 +79,7 @@ const AddLoopVoiceButton = () => {
 			return; // Do nothing if not in range
 		}
 
+		setShowAddChoirButton(false);
 		const lat = roundware.listenerLocation.latitude as number;
 		const lng = roundware.listenerLocation.longitude as number;
 		
@@ -70,7 +92,7 @@ const AddLoopVoiceButton = () => {
 	};
 
 	return (
-		<Fade in={showLaunch} timeout={1000}>
+		<Fade in={showAddChoirButton} timeout={1000}>
 			<Box
 				display="flex"
 				alignItems="center"
@@ -103,6 +125,7 @@ const AddLoopVoiceButton = () => {
 						title={isInChoirRange ? "TAP TO JOIN CHOIR" : "Move closer to a choir location to join"} 
 						arrow 
 						placement="bottom"
+						{...tooltipProps}
 					>
 						<Fab 
 							size="large" 
