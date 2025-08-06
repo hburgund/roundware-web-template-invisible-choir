@@ -22,7 +22,7 @@ const StepIndicator = () => {
       ? "recording"
       : loop.mode === "processing-recording"
       ? "recording"
-      : loop.mode === "recording-playback"
+      : loop.mode === "recording-playback" || loop.mode === "loading"
       ? "review"
       : "rehearsal";
 
