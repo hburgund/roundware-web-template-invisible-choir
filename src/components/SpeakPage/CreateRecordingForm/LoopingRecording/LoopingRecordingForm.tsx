@@ -110,7 +110,7 @@ const LoopingRecordingForm = () => {
           open={recorder.isPermissionDenied}
           onClose={() => {
             recorder.setIsPermissionDenied(false);
-            setShowJoinChoirPage(true);
+            history.push("/listen", { source: 'recording' });
           }}
           onNeedHelp={() => {
             setShowMicrophoneHelp(true);
