@@ -129,10 +129,12 @@ const LoopingRecordingForm = () => {
           }}
           onPermissionDenied={() => {
             console.log("🎤 Microphone permission denied on Join Choir page");
-            // Show permission denied dialog or handle appropriately
-            // For now, just go back to listen page
-            cleanupRecordingSession();
-            history.push("/listen", { source: 'recording' });
+            // show the MicrophoneBlockedDialog
+            recorder.setIsPermissionDenied(true);
+          }}
+          onAudioDeviceMissing={() => {
+            // show the AudioRequiredDialog
+            recorder.setIsAudioDeviceMissing(true);
           }}
         />
       ) : (

@@ -19,6 +19,7 @@ interface JoinChoirProps {
   onCancel: () => void;
   onCheckPermission?: () => Promise<boolean>; // Made optional since we no longer use it
   onPermissionDenied?: () => void; // Callback for when permission is denied
+  onAudioDeviceMissing?: () => void; // Callback for when audio devices are missing
 }
 
 const JoinChoir = ({
@@ -26,6 +27,7 @@ const JoinChoir = ({
   onCancel,
   onCheckPermission,
   onPermissionDenied,
+  onAudioDeviceMissing,
 }: JoinChoirProps) => {
   const [isConsentChecked, setIsConsentChecked] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
@@ -104,15 +106,17 @@ const JoinChoir = ({
       const errorName = (error as any)?.name;
       if (errorName === 'NotAllowedError') {
         setPermissionError('Microphone permission was denied. Please allow microphone access in your browser settings and try again.');
+        onPermissionDenied?.();
       } else if (errorName === 'NotFoundError') {
         setPermissionError('No microphone found. Please connect a microphone and try again.');
+        onAudioDeviceMissing?.();
       } else if (errorName === 'NotSupportedError') {
         setPermissionError('Microphone access is not supported in this browser. Please try a different browser.');
+        onAudioDeviceMissing?.();
       } else {
         setPermissionError('Failed to access microphone. Please check your browser settings and try again.');
+        onPermissionDenied?.();
       }
-      
-      onPermissionDenied?.();
     } finally {
       console.log('[JoinChoir] Permission request completed, setting isRequestingPermission to false');
       setIsRequestingPermission(false);
