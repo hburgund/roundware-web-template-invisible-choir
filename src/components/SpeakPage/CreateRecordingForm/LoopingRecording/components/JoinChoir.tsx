@@ -176,30 +176,7 @@ const JoinChoir = ({
             }
           />
         </Stack>
-        {permissionError && (
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'error.main', color: 'white', borderRadius: 1, maxWidth: 400, textAlign: 'center' }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              {permissionError}
-            </Typography>
-            <Typography variant="caption" sx={{ display: 'block', mb: 2 }}>
-              To enable microphone access:
-              <br />1. Click the microphone icon in your browser's address bar
-              <br />2. Select "Allow" for microphone access
-              <br />3. Click "Try Again" below
-            </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => {
-                setPermissionError(null);
-                setIsRequestingPermission(false);
-              }}
-              sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
-            >
-              Try Again
-            </Button>
-          </Box>
-        )}
+
         <Button
           variant="contained"
           disabled={!isConsentChecked || isRequestingPermission || isCheckingPermission}
