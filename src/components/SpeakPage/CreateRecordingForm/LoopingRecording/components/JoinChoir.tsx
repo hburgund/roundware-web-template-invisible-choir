@@ -13,6 +13,8 @@ import { useState } from "react";
 import JoinChoirBackground from "./JoinChoirBackground";
 import JoinChoirSteps from "./JoinChoirSteps";
 import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
+import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
+import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -33,10 +35,20 @@ const JoinChoir = ({
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isCheckingPermission, setIsCheckingPermission] = useState(false);
+  const [showMicrophonePermissionDialog, setShowMicrophonePermissionDialog] = useState(false);
+  const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
+  const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
 
   const handleContinue = async () => {
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
     if (!isConsentChecked) return;
+    
+    // Show the permission dialog first
+    setShowMicrophonePermissionDialog(true);
+  };
+
+  const handlePermissionAllow = async () => {
+    setShowMicrophonePermissionDialog(false);
     
     // Check if we're on HTTPS (required for getUserMedia in most browsers)
     if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
@@ -123,6 +135,12 @@ const JoinChoir = ({
     }
   };
 
+  const handlePermissionBlock = () => {
+    setShowMicrophonePermissionDialog(false);
+    // Show the blocked dialog
+    setShowMicrophoneBlockedDialog(true);
+  };
+
   return (
     <Fade mountOnEnter unmountOnExit in={true}>
       <Box
@@ -187,6 +205,28 @@ const JoinChoir = ({
         <Button variant="text" onClick={onCancel}>
           Cancel
         </Button>
+
+        <MicrophonePermissionDialog
+          open={showMicrophonePermissionDialog}
+          onAllow={handlePermissionAllow}
+          onBlock={handlePermissionBlock}
+        />
+
+        <MicrophoneBlockedDialog
+          open={showMicrophoneBlockedDialog}
+          onClose={() => {
+            setShowMicrophoneBlockedDialog(false);
+            onCancel();
+          }}
+          onNeedHelp={() => {
+            setShowMicrophoneHelp(true);
+          }}
+        />
+
+        <MicrophoneInstructionsDialog
+          open={showMicrophoneHelp}
+          onClose={() => setShowMicrophoneHelp(false)}
+        />
       </Box>
     </Fade>
   );
