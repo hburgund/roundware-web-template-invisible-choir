@@ -43,6 +43,31 @@ const JoinChoir = ({
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
     if (!isConsentChecked) return;
     
+    // Check if audio devices are available first
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+    } catch (error) {
+      const errorName = (error as any)?.name;
+      if (errorName === 'NotFoundError') {
+        onAudioDeviceMissing?.();
+        return;
+      }
+    }
+    
+    // Check if permission already granted
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+        if (permissionStatus.state === 'granted') {
+          onContinue();
+          return;
+        }
+      } catch (error) {
+        // Fallback for unsupported browsers
+      }
+    }
+    
     // Show the permission dialog first
     setShowMicrophonePermissionDialog(true);
   };
