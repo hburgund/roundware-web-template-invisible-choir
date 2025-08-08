@@ -19,6 +19,7 @@ const RoundwareProvider = (props: PropTypes) => {
 		uiConfig: {
 			speak: [],
 		},
+		speakers: () => [],
 	} as unknown as Roundware);
 	const [assetsReady, setAssetsReady] = useState<IRoundwareContext[`assetsReady`]>(false);
 	const [beforeDateFilter, setBeforeDateFilter] = useState<IRoundwareContext[`beforeDateFilter`]>(new Date());
