@@ -3,7 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, 
 import CloseIcon from '@mui/icons-material/Close';
 import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import LockIcon from '@mui/icons-material/Lock';
-import { isChrome, isFirefox, isSafari, isEdge } from 'react-device-detect';
+import { isChrome, isFirefox, isSafari, isEdge, isAndroid, isIOS, isMobile } from 'react-device-detect';
 
 type Props = {
 	open: boolean;
@@ -44,7 +44,46 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 			<DialogContent sx={{ px: 3, pb: 2 }}>
 				<Box sx={{ textAlign: 'center' }}>
 					<Box sx={{ textAlign: 'left', maxWidth: 400, mx: 'auto', mt: 3 }}>
-						{isChrome ? (
+						{isMobile && isAndroid ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Tap the three dots menu (⋮) in the top right corner of your browser
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Select "Settings"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Scroll down and find "Site settings" (usually at the bottom)
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Tap on "Microphone" under "Permissions"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									5. Change it from "Block" to "Allow"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									6. Go back and refresh the page
+								</Typography>
+							</>
+						) : isMobile && isIOS ? (
+							<>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									1. Tap the "AA" button in the address bar (top left)
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									2. Select "Website Settings" or "Site Settings"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									3. Tap on "Microphone"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									4. Change it from "Deny" to "Allow"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 3 }}>
+									5. Go back and refresh the page
+								</Typography>
+							</>
+						) : isChrome ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									1. Click the site controls icon <img src="//storage.googleapis.com/support-kms-prod/S76Rs1BC1QDxT8zpF3tATLDsc5oxceWYIPHN" width="18" height="18" alt="Site controls" style={{ verticalAlign: 'middle' }} /> next to the URL.
