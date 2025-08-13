@@ -23,11 +23,10 @@ const UiConfigProvider = ({ children }: { children: React.ReactNode }) => {
 	// const history = useHistory();
 
 	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 	const updateDrawerState = () => {
 		if (manuallyClosed) return;
 		console.log('updateDrawerState', window.location.pathname);
-		if (window.location.pathname.includes(`/listen`)) setDrawerOpen(finalConfig.ui.listenSidebar.active && finalConfig.ui.listenSidebar.defaultOpen && !isMobile);
+		if (window.location.pathname.includes(`/listen`)) setDrawerOpen(finalConfig.ui.listenSidebar.active && finalConfig.ui.listenSidebar.defaultOpen);
 		else setDrawerOpen(false);
 	};
 

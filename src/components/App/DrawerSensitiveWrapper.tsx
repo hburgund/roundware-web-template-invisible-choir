@@ -7,10 +7,10 @@ type Props = {
 };
 
 const DrawerSensitiveWrapper = ({ children }: Props) => {
-	const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+
 	const { drawerOpen } = useUIContext();
 
-	if (isMobile) return <>{children}</>;
+
 	return (
 		<Box
 			sx={(t) => ({
