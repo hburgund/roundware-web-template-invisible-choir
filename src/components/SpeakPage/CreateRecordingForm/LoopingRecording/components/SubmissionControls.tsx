@@ -11,6 +11,7 @@ import {
 import LegalAgreementForm from "@/components/LegalAgreementForm";
 import { useState } from "react";
 import { useLoopContext } from "../LoopContext";
+import { isAndroid, isIOS } from 'react-device-detect';
 
 interface SubmissionError {
   type: 'network' | 'server' | 'validation' | 'unknown';
@@ -42,6 +43,8 @@ const SubmissionControls = ({
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const { loop, recorder } = useLoopContext();
   const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
+  const isMobileDevice = isAndroid || isIOS;
+  const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
   
   // Debug logging (can be removed once testing is complete)
   console.log('🎯 SubmissionControls render:', { 
@@ -64,7 +67,7 @@ const SubmissionControls = ({
           width: "100%", 
           display: "flex", 
           justifyContent: "center",
-          ...(isLandscape && {
+          ...(shouldUseLandscapeLayout && {
             position: "absolute",
             px: 5,
             left: "50%",

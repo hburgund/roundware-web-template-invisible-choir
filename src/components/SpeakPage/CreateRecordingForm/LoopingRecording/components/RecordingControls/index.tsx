@@ -9,6 +9,7 @@ import AnimatedCircle from "./AnimatedCircle";
 import ControlButton from "./ControlButton";
 import BeatCountdown from "./BeatCountdown";
 import { useDimensions } from "./hooks";
+import { isAndroid, isIOS } from 'react-device-detect';
 
 interface RecordingControlsProps {
   userConfirmedLeaving?: boolean;
@@ -19,6 +20,8 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
   const dimensions = useDimensions();
   const beatCountdownRef = useRef<any>(null);
   const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
+  const isMobileDevice = isAndroid || isIOS;
+  const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
 
   // Helper to forcibly stop click track
   const stopCountdownClick = () => {
@@ -85,7 +88,7 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
   };
 
   // Landscape mode layout
-  if (isLandscape) {
+  if (shouldUseLandscapeLayout) {
     return (
       <Box
         sx={{
