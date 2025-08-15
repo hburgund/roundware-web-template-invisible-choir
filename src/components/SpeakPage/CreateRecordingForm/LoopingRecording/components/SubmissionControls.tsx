@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogContentText,
   Stack,
+  useMediaQuery,
 } from "@mui/material";
 import LegalAgreementForm from "@/components/LegalAgreementForm";
 import { useState } from "react";
@@ -40,6 +41,7 @@ const SubmissionControls = ({
 }: SubmissionControlsProps) => {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const { loop, recorder } = useLoopContext();
+  const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
   
   // Debug logging (can be removed once testing is complete)
   console.log('🎯 SubmissionControls render:', { 
@@ -58,7 +60,17 @@ const SubmissionControls = ({
         alignItems={"center"}
         sx={{ position: "absolute", bottom: 150, width: "100%" }}
       >
-        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <Box sx={{ 
+          width: "100%", 
+          display: "flex", 
+          justifyContent: "center",
+          ...(isLandscape && {
+            position: "absolute",
+            px: 5,
+            left: "50%",
+            width: "auto",
+          })
+        }}>
           <Button
             variant="contained"
             color="primary"
