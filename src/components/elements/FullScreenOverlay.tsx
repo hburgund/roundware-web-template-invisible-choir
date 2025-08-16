@@ -8,7 +8,8 @@ import {
   IconButton,
   Box,
   Container,
-  Slide
+  Slide,
+  useMediaQuery
 } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
 import CloseIcon from '@mui/icons-material/Close';
@@ -58,6 +59,7 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
   useLeafBackground = false,
   transition = 'slide'
 }) => {
+  const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
   const backgroundProps = useLeafBackground ? {} : {
     backgroundImage: `url(${greenBackground})`,
     backgroundSize: 'cover',
@@ -104,7 +106,7 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
         >
           <Container maxWidth="xs">
             <Stack
-              spacing={3}
+              spacing={isLandscape ? 2 : 3}
               alignItems="center"
               sx={{ width: '100%', px: 2 }}
             >
