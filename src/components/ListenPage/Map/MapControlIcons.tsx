@@ -1,4 +1,4 @@
-import { Box, Fab, Stack } from '@mui/material';
+import { Box, Fab, Stack, useMediaQuery } from '@mui/material';
 import { useRoundware } from '@/hooks';
 import RoundwareMixerControl from '../RoundwareMixerControl';
 import infoIcon from '@/assets/icons/info_i_icon.svg';
@@ -8,6 +8,7 @@ import InfoPopup from '@/components/InfoPopup';
 const MapControlIcons = () => {
   const { roundware } = useRoundware();
   const [showTabs, setShowTabs] = useState(false);
+  const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
 
   const handleCloseTabs = () => {
     setShowTabs(false);
@@ -19,7 +20,7 @@ const MapControlIcons = () => {
         spacing={2}
         position="absolute"
         top={20}
-        right={20}
+        right={isLandscape ? 60 : 20}
         zIndex={1200}
       >
         <Fab color="secondary" size="medium" onClick={() => setShowTabs(true)}>
