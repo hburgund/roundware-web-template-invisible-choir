@@ -8,7 +8,8 @@
 		"start": "vite",
 		"preview": "vite preview",
 		"build": "tsc --pretty && vite build",
-		"deploy": "npm run build && cp ./build/index.html ./build/200.html && surge --domain https://invisible-choir.surge.sh build"
+		"deploy": "npm run build && cp ./build/index.html ./build/200.html && surge --domain https://invisible-choir.surge.sh build",
+		"framework": "cd ../roundware-web-framework && pnpm run build:main && cd ../roundware-web-template-invisible-choir && pnpm install ../roundware-web-framework && pnpm run dev"
 	},
 	"type": "module",
 	"author": "Evan Babb",
@@ -60,7 +61,7 @@
 		"react-router-dom": "^5.2.0",
 		"react-share": "^4.4.0",
 		"regenerator-runtime": "^0.13.9",
-		"roundware-web-framework": "0.13.1-alpha.2",
+		"roundware-web-framework": "link:../roundware-web-framework",
 		"ts-overlapping-marker-spiderfier": "^1.0.3",
 		"wavesurfer-react": "https://github.com/shreyas-jadhav/wavesurfer-react/raw/tarball/wavesurfer-react-2.0.13.tgz",
 		"wavesurfer.js": "^5.2.0",

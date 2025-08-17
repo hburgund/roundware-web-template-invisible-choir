@@ -45,6 +45,52 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 	const { roundware, forceUpdate } = useRoundware();
 	const [map, setMap] = useState<google.maps.Map | undefined>();
 	const [showLaunch, setShowLaunch] = useState(true);
+
+	// Add debug overlay
+	useEffect(() => {
+		if (config.debugMode) {
+			const debugInfo = document.createElement('div');
+			debugInfo.style.cssText = `
+				position: fixed; 
+				bottom: 10px; 
+				right: 10px; 
+				background: rgba(0, 0, 0, 0.7); 
+				color: white; 
+				padding: 10px; 
+				border-radius: 4px;
+				z-index: 9999;
+				font-size: 10px;
+				font-family: monospace;
+			`;
+			debugInfo.innerHTML = `
+				Framework: LOCAL<br>
+				GeoMode: ${roundware.mixer?.mixParams?.geoListenMode || 'UNKNOWN'}<br>
+				Time: ${new Date().toLocaleTimeString()}<br>
+				Location: ${roundware.listenerLocation?.latitude?.toFixed(4)}, ${roundware.listenerLocation?.longitude?.toFixed(4)}
+			`;
+			debugInfo.id = 'debug-overlay';
+			document.body.appendChild(debugInfo);
+
+			// Update every second
+			const interval = setInterval(() => {
+				if (debugInfo.parentNode) {
+					debugInfo.innerHTML = `
+						Framework: LOCAL<br>
+						GeoMode: ${roundware.mixer?.mixParams?.geoListenMode || 'UNKNOWN'}<br>
+						Time: ${new Date().toLocaleTimeString()}<br>
+						Location: ${roundware.listenerLocation?.latitude?.toFixed(4)}, ${roundware.listenerLocation?.longitude?.toFixed(4)}
+					`;
+				}
+			}, 1000);
+
+			return () => {
+				clearInterval(interval);
+				if (debugInfo.parentNode) {
+					debugInfo.parentNode.removeChild(debugInfo);
+				}
+			};
+		}
+	}, [roundware.mixer?.mixParams?.geoListenMode, roundware.listenerLocation]);
 	const [hasShownTooltip, setHasShownTooltip] = useState(false);
 	const isMountedRef = useRef(true);
 	const isMobile = isAndroid || isIOS;
