@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton } from '@mui/material';
+import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton, useMediaQuery } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
+import { isAndroid, isIOS } from 'react-device-detect';
 import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
@@ -56,6 +57,9 @@ function TabPanel(props: TabPanelProps) {
 
 const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 	const [value, setValue] = useState(0);
+	const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
+	const isMobileDevice = isAndroid || isIOS;
+	const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
 
 	// Define your tabs configuration here
 	const tabs: TabConfig[] = [
@@ -190,8 +194,13 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					<CloseIcon />
 				</IconButton>
 			</Box>
-			<Box sx={{ width: '100%', mt: 3, pb: 10 }}>
-				<Box>
+			<Box sx={{ width: '100%', mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
+				<Box sx={{ 
+					position: 'sticky', 
+					top: 0, 
+					zIndex: 1, 
+					backdropFilter: 'blur(10px)',
+				}}>
 					<Tabs
 						value={value}
 						onChange={handleChange}
@@ -210,7 +219,15 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					</TabPanel>
 				))}
 			</Box>
-			<Box sx={{ position: 'fixed', bottom: 20, left: 0, right: 0, px: 3 }}>
+			<Box sx={{ 
+				position: shouldUseLandscapeLayout ? 'relative' : 'fixed', 
+				bottom: shouldUseLandscapeLayout ? 'auto' : 20, 
+				left: 0, 
+				right: 0, 
+				px: 3,
+				mt: shouldUseLandscapeLayout ? 3 : 0,
+				pb: shouldUseLandscapeLayout ? 3 : 0
+			}}>
 				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
 					<Stack direction="column" spacing={2}>
 						<Box
