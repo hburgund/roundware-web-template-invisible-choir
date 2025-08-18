@@ -8,8 +8,9 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Fade } from "@mui/material";
+import { Fade, useMediaQuery } from "@mui/material";
 import { useState } from "react";
+import { isAndroid, isIOS } from 'react-device-detect';
 import JoinChoirBackground from "./JoinChoirBackground";
 import JoinChoirSteps from "./JoinChoirSteps";
 import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
@@ -166,70 +167,187 @@ const JoinChoir = ({
     setShowMicrophoneBlockedDialog(true);
   };
 
+  const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
+  const isMobileDevice = isAndroid || isIOS;
+  const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
+
+  if (shouldUseLandscapeLayout) {
+    return (
+      <Fade mountOnEnter unmountOnExit in={true}>
+        <Box>
+          {/* Landscape mode layout */}
+          <Box
+            sx={{
+              "& .MuiFab-root": { width: 260, height: 260 },
+              mx: "auto",
+            }}
+            position={"absolute"}
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <JoinChoirBackground />
+            <Box
+              sx={{
+                position: "relative",
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                px: 4,
+              }}
+            >
+              {/* Main content (Fab and Skeleton) on the left */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flex: 1,
+                }}
+              >
+                <Box sx={{ position: "relative" }}>
+                  <Skeleton
+                    variant="circular"
+                    animation="pulse"
+                    sx={{
+                      position: "absolute",
+                      width: 290,
+                      height: 290,
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      bgcolor: "secondary.main",
+                    }}
+                  />
+
+                  <Fab size="large" color="secondary" sx={{ width: 350, height:350 }}>
+                    <JoinChoirSteps />
+                  </Fab>
+                </Box>
+              </Box>
+
+              {/* Form elements on the right */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  flex: 1,
+                  height: "100%",
+                  gap: 3,
+                }}
+              >
+                <Stack direction="row" alignItems="center" sx={{ p: 5 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isConsentChecked}
+                        onChange={(e) => setIsConsentChecked(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" fontSize={14}>
+                        I consent to my recording being used solely for the artistic
+                        purposes of Invisible Choir
+                      </Typography>
+                    }
+                  />
+                </Stack>
+
+                <Stack direction="column" spacing={2} alignItems="center">
+                  <Button
+                    variant="contained"
+                    disabled={!isConsentChecked || isRequestingPermission || isCheckingPermission}
+                    onClick={handleContinue}
+                  >
+                    {isCheckingPermission ? "Checking Permission..." : isRequestingPermission ? "Requesting Permission..." : "Continue"}
+                  </Button>
+                  <Button variant="text" onClick={onCancel}>
+                    Cancel
+                  </Button>
+                </Stack>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Fade>
+    );
+  }
+
+  // Portrait mode layout (original)
   return (
     <Fade mountOnEnter unmountOnExit in={true}>
-      <Box
-        display="flex"
-        flexDirection="column"
-        sx={{
-          "& .MuiFab-root": { width: 300, height: 300 },
-          mx: "auto",
-        }}
-        position={"absolute"}
-        top={0}
-        left={0}
-        right={0}
-        bottom={0}
-        justifyContent={"center"}
-        alignItems={"center"}
-      >
-        <JoinChoirBackground />
-        <Box sx={{ position: "relative" }}>
-          <Skeleton
-            variant="circular"
-            animation="pulse"
-            sx={{
-              position: "absolute",
-              width: 340,
-              height: 340,
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              bgcolor: "secondary.main"
-            }}
-          />
-
-          <Fab size="large" color="secondary" sx={{ width: 350, height: 350 }}>
-            <JoinChoirSteps />
-          </Fab>
-        </Box>
-        <Stack direction="row" alignItems="center" sx={{ mt: 4, p: 4}}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={isConsentChecked}
-                onChange={(e) => setIsConsentChecked(e.target.checked)}
-              />
-            }
-            label={
-              <Typography variant="body2" fontSize={14}>
-                I consent to my recording being used solely for the artistic
-                purposes of Invisible Choir
-              </Typography>
-            }
-          />
-        </Stack>
-
-        <Button
-          variant="contained"
-          disabled={!isConsentChecked || isRequestingPermission || isCheckingPermission}
-          onClick={handleContinue}
+      <Box>
+        <Box
+          display="flex"
+          flexDirection="column"
+          sx={{
+            "& .MuiFab-root": { width: 300, height: 300 },
+            mx: "auto",
+          }}
+          position={"absolute"}
+          top={0}
+          left={0}
+          right={0}
+          bottom={0}
+          justifyContent={"center"}
+          alignItems={"center"}
         >
-          {isCheckingPermission ? "Checking Permission..." : isRequestingPermission ? "Requesting Permission..." : "Continue"}
-        </Button>
-        <Button variant="text" onClick={onCancel}>
-          Cancel
-        </Button>
+          <JoinChoirBackground />
+          <Box sx={{ position: "relative" }}>
+            <Skeleton
+              variant="circular"
+              animation="pulse"
+              sx={{
+                position: "absolute",
+                width: 340,
+                height: 340,
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                bgcolor: "secondary.main"
+              }}
+            />
+
+            <Fab size="large" color="secondary" sx={{ width: 350, height: 350 }}>
+              <JoinChoirSteps />
+            </Fab>
+          </Box>
+          <Stack direction="row" alignItems="center" sx={{ mt: 4, p: 4}}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isConsentChecked}
+                  onChange={(e) => setIsConsentChecked(e.target.checked)}
+                />
+              }
+              label={
+                <Typography variant="body2" fontSize={14}>
+                  I consent to my recording being used solely for the artistic
+                  purposes of Invisible Choir
+                </Typography>
+              }
+            />
+          </Stack>
+
+          <Button
+            variant="contained"
+            disabled={!isConsentChecked || isRequestingPermission || isCheckingPermission}
+            onClick={handleContinue}
+          >
+            {isCheckingPermission ? "Checking Permission..." : isRequestingPermission ? "Requesting Permission..." : "Continue"}
+          </Button>
+          <Button variant="text" onClick={onCancel}>
+            Cancel
+          </Button>
+        </Box>
 
         <MicrophonePermissionDialog
           open={showMicrophonePermissionDialog}
