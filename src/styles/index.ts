@@ -57,6 +57,9 @@ const baseTheme = {
 					'&.location-permission-dialog': {
 						borderRadius: 20
 					},
+					'&.microphone-permission-dialog': {
+						borderRadius: 20
+					},
 
 					// Style for FullScreenOverlay component to ensure white text and icons
 					'&[data-fullscreen-overlay="true"]': {
@@ -102,6 +105,10 @@ const baseTheme = {
 						paddingRight: theme.spacing(3.5),
 						paddingY: theme.spacing(0),
 						borderRadius: theme.spacing(2)
+					},
+					'&.MuiButton-dialog': {
+						position: 'relative',
+						zIndex: 10,
 					}
 				})
 			},
@@ -170,7 +177,15 @@ const baseTheme = {
 					}
 				}
 			}
-		}
+		},
+		MuiTooltip: {
+			defaultProps: {
+				PopperProps: {
+					style: { zIndex: 1000 }
+				}
+			}
+		},
+
 	},
 };
 

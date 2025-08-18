@@ -7,7 +7,6 @@ import Grid from '@mui/material/Grid';
 import { makeStyles } from '@mui/styles';
 import { Route, Switch, useHistory } from 'react-router-dom';
 import { DraftRecordingProvider } from '../../providers/DraftRecordingProvider';
-import { config } from 'process';
 import finalConfig from '@/config';
 import LoopingRecordingForm from './CreateRecordingForm/LoopingRecording/LoopingRecordingForm';
 
@@ -45,8 +44,15 @@ const SpeakPage = (props: SpeakPageProps) => {
 		// if we are directed to the 'speak' page directly,
 		// redirect to the first tag selection page
 
+		// redirect based on configuration
 		if (props.match.isExact === true) {
-			history.replace({ pathname: '/speak/tags/0', search: history.location.search });
+			if (finalConfig.speak.recordingMethod === 'looping' && !finalConfig.speak.allowSpeakTags) {
+				// For looping recording -> recording
+				history.replace({ pathname: '/speak/recording', search: history.location.search });
+			} else {
+				// For standard recording -> tag selection
+				history.replace({ pathname: '/speak/tags/0', search: history.location.search });
+			}
 		}
 	}, [props.match]);
 

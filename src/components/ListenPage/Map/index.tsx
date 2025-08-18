@@ -24,6 +24,8 @@ import { GraphicEq} from '@mui/icons-material';
 import AddLoopVoiceButton from './AddLoopVoiceButton';
 import { GeoListenMode } from 'roundware-web-framework';
 import MapControlIcons from './MapControlIcons';
+import { isAndroid, isIOS } from 'react-device-detect';
+import FloorplanOverlay from './FloorplanOverlay';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -43,8 +45,8 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 	const { roundware, forceUpdate } = useRoundware();
 	const [map, setMap] = useState<google.maps.Map | undefined>();
 	const [showLaunch, setShowLaunch] = useState(true);
+	const [hasShownTooltip, setHasShownTooltip] = useState(false);
 	const isMountedRef = useRef(true);
-
 	// Track mounted state for cleanup
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -52,6 +54,16 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 			isMountedRef.current = false;
 		};
 	}, []);
+
+	// show tooltip on mobile devices
+	useEffect(() => {
+		const hasShownTooltipBefore = localStorage.getItem('hasShownTooltip');
+		
+		if ((isAndroid || isIOS) && showLaunch && !hasShownTooltip && !hasShownTooltipBefore) {
+			setHasShownTooltip(true);
+			localStorage.setItem('hasShownTooltip', 'true');
+		}
+	}, [showLaunch]);
 
 	const { deleteFromURL } = useURLSync();
 	const updateListenerLocation = (newLocation?: Coordinates) => {
@@ -167,6 +179,12 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 					<AssetLoadingOverlay />
 					<GoogleMap mapContainerClassName={classes.roundwareMap + ' ' + props.className} onZoomChanged={updateListenerLocation} onDragEnd={updateListenerLocation} onLoad={onLoad}>
 						<MapControlIcons />
+						{map && (
+							<FloorplanOverlay 
+								map={map} 
+								useProjectLocation={true}
+							/>
+						)}
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
 						{map && roundware.mixer?.playlist && <WalkingModeButton />}
@@ -226,7 +244,9 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 											bgcolor: 'secondary.main'
 										}}
 									/>
-									<Tooltip title={`TAP ${buttonText} TO LISTEN TO CHOIR`} arrow placement="bottom">
+									<Tooltip title={`TAP ${buttonText} TO LISTEN TO CHOIR`} arrow placement="bottom"
+										{...(hasShownTooltip ? { open: true } : {})}
+									>
 										<Fab 
 											size="large" 
 											color="secondary"

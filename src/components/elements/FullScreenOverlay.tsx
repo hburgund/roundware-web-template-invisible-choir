@@ -137,6 +137,7 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
                       fullWidth
                       size="large"
                       disabled={primaryButton.disabled}
+                      className="MuiButton-dialog"
                     >
                       {primaryButton.text}
                     </Button>
@@ -144,10 +145,11 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
                   
                   {secondaryButton && (
                     <Button
-                      variant="text"
+                      variant="outlined"
                       onClick={secondaryButton.onClick}
                       fullWidth
                       size="large"
+                      className="MuiButton-dialog"
                     >
                       {secondaryButton.text}
                     </Button>
