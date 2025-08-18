@@ -106,7 +106,12 @@ const ControlButton = memo(
           // Don't show anything during countdown - BeatCountdown will handle this
           null
         ) : mode === "loading" ? (
-          <Typography variant="h3">Loading...</Typography>
+          <Typography 
+            variant="body1" 
+            color="primary"
+          >
+            LOADING PREVIEW
+          </Typography>
         ) : null}
 
       <ConfirmationDialog

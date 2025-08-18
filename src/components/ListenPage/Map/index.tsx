@@ -47,6 +47,15 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 	const [showLaunch, setShowLaunch] = useState(true);
 	const [hasShownTooltip, setHasShownTooltip] = useState(false);
 	const isMountedRef = useRef(true);
+	const isMobile = isAndroid || isIOS;
+
+	const tooltipProps = {
+		open: isMobile ? (hasShownTooltip && showLaunch) : undefined,
+		disableFocusListener: isMobile,
+		disableHoverListener: isMobile,
+		disableTouchListener: isMobile,
+	};
+
 	// Track mounted state for cleanup
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -244,8 +253,11 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 											bgcolor: 'secondary.main'
 										}}
 									/>
-									<Tooltip title={`TAP ${buttonText} TO LISTEN TO CHOIR`} arrow placement="bottom"
-										{...(hasShownTooltip ? { open: true } : {})}
+									<Tooltip 
+										title={`TAP ${buttonText} TO LISTEN TO CHOIR`} 
+										arrow 
+										placement="bottom"
+										{...tooltipProps}
 									>
 										<Fab 
 											size="large" 

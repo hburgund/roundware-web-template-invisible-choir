@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Typography, Box } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import HelpCenterIcon from '@mui/icons-material/HelpCenter';
 import LockIcon from '@mui/icons-material/Lock';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { isChrome, isFirefox, isSafari, isEdge, isAndroid, isIOS, isMobile } from 'react-device-detect';
 
 type Props = {
@@ -10,9 +10,7 @@ type Props = {
 	onClose: () => void;
 };
 
-const MicrophoneInstructionsDialog = (props: Props) => {
-
-
+const LocationInstructionsDialog = (props: Props) => {
 	return (
 		<Dialog
 			open={props.open}
@@ -34,10 +32,10 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 
 			<DialogTitle sx={{ pt: 4, pb: 1, textAlign: 'center' }}>
 				<Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-					<HelpCenterIcon sx={{ fontSize: 40,}} />
+					<LocationOnIcon sx={{ fontSize: 40 }} />
 				</Box>
 				<Typography variant="h5" component="div">
-					Microphone Help
+					Location Access Help
 				</Typography>
 			</DialogTitle>
 
@@ -56,7 +54,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									3. Scroll down and find "Site settings" (usually at the bottom)
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									4. Tap on "Microphone" under "Permissions"
+									4. Tap on "Location" under "Permissions"
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									5. Change it from "Block" to "Allow"
@@ -74,7 +72,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									2. Select "Website Settings" or "Site Settings"
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Tap on "Microphone"
+									3. Tap on "Location"
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									4. Change it from "Deny" to "Allow"
@@ -92,7 +90,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									2. Select "Site settings."
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Under Permissions, find "Microphone."
+									3. Under Permissions, find "Location."
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									4. Change it to "Allow" (or "Allow this time.")
@@ -110,7 +108,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									2. Click "Permissions for this site."
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Find "Microphone."
+									3. Find "Location."
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									4. Change it to "Allow."
@@ -125,7 +123,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									1. Click the three lines menu (☰) in the top right
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									2. Go to Settings {'>'} Privacy & Security {'>'} Permissions {'>'} Microphone
+									2. Go to Settings {'>'} Privacy & Security {'>'} Permissions {'>'} Location
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									3. Click 'Settings' and find this website
@@ -140,7 +138,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 						) : isSafari ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									1. Go to Safari {'>'} Preferences {'>'} Websites {'>'} Microphone
+									1. Go to Safari {'>'} Preferences {'>'} Websites {'>'} Location
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									2. Find this website in the list
@@ -161,7 +159,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 									2. Look for 'Privacy', 'Permissions', or 'Site Settings'
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Find 'Microphone' settings
+									3. Find 'Location' settings
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
 									4. Find this website and change it from 'Block' to 'Allow'
@@ -189,4 +187,4 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 	);
 };
 
-export default MicrophoneInstructionsDialog; 
+export default LocationInstructionsDialog;

@@ -183,6 +183,21 @@ const baseTheme = {
 				PopperProps: {
 					style: { zIndex: 1000 }
 				}
+			},
+			styleOverrides: {
+				tooltip: {
+					backgroundColor: 'black',
+					borderRadius: 20,
+					fontSize: '14px',
+					fontWeight: 'normal',
+					paddingTop: 8,
+					paddingBottom: 8,
+					paddingLeft: 16,
+					paddingRight: 16,
+				},
+				arrow: {
+					color: 'black',
+				}
 			}
 		},
 

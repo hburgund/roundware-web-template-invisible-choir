@@ -16,11 +16,11 @@ const MicrophoneBlockedDialog = (props: Props) => {
 			title="MICROPHONE BLOCKED"
 			description="To participate fully in the artwork we need access to your microphone. In the meantime, you can still listen to our choirs in your current location."
 			primaryButton={{
-				text: "GOT IT!",
+				text: "LISTEN MORE",
 				onClick: props.onClose
 			}}
 			secondaryButton={props.onNeedHelp ? {
-				text: "NEED MORE HELP",
+				text: "MIC ACCESS HELP",
 				onClick: props.onNeedHelp
 			} : undefined}
 			useLeafBackground={true}
