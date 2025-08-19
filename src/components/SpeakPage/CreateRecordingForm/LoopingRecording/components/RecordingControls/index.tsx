@@ -191,76 +191,106 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
 
   // Portrait mode layout (original)
   return (
-    <Stack spacing={8} height={"100%"}>
-      <Box pt={15}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* StepIndicator at the top */}
+      <Box pt={15} pb={2}>
         <StepIndicator />
       </Box>
+      
+      {/* Main content area - flex to fill remaining space */}
       <Box
-        position={"absolute"}
         sx={{
-          top: "calc(50% - 100px)",
-          transform: "translateY(-50%)",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center", // Center the content unit
+          alignItems: "center",
+          position: "relative",
+          py: { xs: 2, sm: 4 }, // Responsive padding - smaller on mobile
         }}
       >
+        {/* Circle and text stack - centered in available space */}
         <Box
-          position="relative"
-          width={dimensions.svgSize}
-          height={dimensions.svgSize}
           sx={{
             display: "flex",
-            justifyContent: "center",
+            flexDirection: "column",
             alignItems: "center",
+            gap: { xs: 3, sm: 4, md: 6 }, // Responsive gap - smaller on mobile
+            minHeight: 0, // Allow shrinking
+            // Add bottom margin to account for Submit button area
+            mb: { xs: 12, sm: 15, md: 20 }, // Responsive bottom margin
           }}
         >
-          <Box zIndex={2}>
-            <AnimatedCircle
-              dimensions={dimensions}
+          {/* Circle */}
+          <Box
+            position="relative"
+            width={dimensions.svgSize}
+            height={dimensions.svgSize}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              flexShrink: 0, // Prevent circle from shrinking
+            }}
+          >
+            <Box zIndex={2}>
+              <AnimatedCircle
+                dimensions={dimensions}
+                mode={loop.mode}
+                startedAtTime={loop.startedAtTime}
+                duration={speaker.duration}
+                isRecording={loop.mode === "recording"}
+              />
+            </Box>
+            <ControlButton
               mode={loop.mode}
-              startedAtTime={loop.startedAtTime}
+              onPlayClick={handlePlayClick}
+              onRecordClick={handleRecordClick}
+            />
+            <BeatCountdown
+              ref={beatCountdownRef}
+              isVisible={loop.mode === "countdown-to-record"}
+              onComplete={recorder.startRecordingAfterCountdown}
               duration={speaker.duration}
-              isRecording={loop.mode === "recording"}
+              audioContext={loop.audioContext.current}
             />
           </Box>
-          <ControlButton
-            mode={loop.mode}
-            onPlayClick={handlePlayClick}
-            onRecordClick={handleRecordClick}
-          />
-          <BeatCountdown
-            ref={beatCountdownRef}
-            isVisible={loop.mode === "countdown-to-record"}
-            onComplete={recorder.startRecordingAfterCountdown}
-            duration={speaker.duration}
-            audioContext={loop.audioContext.current}
-          />
+          
+          {/* Text below the circle */}
+          <Box
+            sx={{
+              textAlign: "center",
+              px: 2,
+              flexShrink: 0, // Prevent text from shrinking
+            }}
+          >
+            <Typography variant="h6" textTransform={"uppercase"} fontWeight="300" fontSize={16}>
+              {loop.mode === "idle"
+                ? "Press play to start rehearsing"
+                : loop.mode === "playing-speaker"
+                ? "Press record when ready to sing"
+                : loop.mode === "preparing-to-record"
+                ? "Preparing to record..."
+                : loop.mode === "countdown-to-record"
+                ? "Get ready to record..."
+                : loop.mode === "recording"
+                ? "Recording..."
+                : loop.mode === "processing-recording"
+                ? "Processing recording..."
+                : ""}
+            </Typography>
+          </Box>
         </Box>
       </Box>
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: "20%",
-          left: 0,
-          right: 0,
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h6" textTransform={"uppercase"} fontWeight="300" fontSize={16}>
-          {loop.mode === "idle"
-            ? "Press play to start rehearsing"
-            : loop.mode === "playing-speaker"
-            ? "Press record when ready to sing"
-            : loop.mode === "preparing-to-record"
-            ? "Preparing to record..."
-            : loop.mode === "countdown-to-record"
-            ? "Get ready to record..."
-            : loop.mode === "recording"
-            ? "Recording..."
-            : loop.mode === "processing-recording"
-            ? "Processing recording..."
-            : ""}
-        </Typography>
-      </Box>
-      <Box />
+      
       <PermissionDeniedDialog
         open={recorder.isPermissionDenied}
         onClose={() => recorder.setIsPermissionDenied(false)}
@@ -274,7 +304,7 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
           leave: `Delete Recording`,
         })}
       />
-    </Stack>
+    </Box>
   );
 };
 
