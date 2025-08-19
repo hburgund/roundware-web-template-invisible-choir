@@ -61,7 +61,12 @@ const SubmissionControls = ({
       <Stack
         spacing={10}
         alignItems={"center"}
-        sx={{ position: "absolute", bottom: 150, width: "100%" }}
+        sx={{ 
+          position: "absolute", 
+          bottom: { xs: 80, sm: 100, md: 150 }, // Responsive bottom positioning
+          width: "100%",
+          zIndex: 10, // Ensure it's above other elements
+        }}
       >
         <Box sx={{ 
           width: "100%", 

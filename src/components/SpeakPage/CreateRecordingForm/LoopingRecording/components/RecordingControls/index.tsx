@@ -226,7 +226,7 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
             gap: { xs: 3, sm: 4, md: 6 }, // Responsive gap - smaller on mobile
             minHeight: 0, // Allow shrinking
             // Add bottom margin to account for Submit button area
-            mb: { xs: 12, sm: 15, md: 20 }, // Responsive bottom margin
+            mb: { xs: 10, sm: 12, md: 18 }, // Responsive bottom margin - adjusted for responsive Submit button
           }}
         >
           {/* Circle */}
