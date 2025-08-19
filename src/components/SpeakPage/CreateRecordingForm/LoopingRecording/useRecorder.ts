@@ -134,7 +134,13 @@ export const useRecorder = ({
         });
         console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
         
-        const recorder = new MediaRecorder(stream);
+        // Use iOS-compatible MIME type
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+          ? 'audio/webm' 
+          : MediaRecorder.isTypeSupported('audio/mp4') 
+          ? 'audio/mp4' 
+          : 'audio/wav';
+        const recorder = new MediaRecorder(stream, { mimeType });
         console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
         
         // Store the pre-initialized resources
@@ -173,6 +179,17 @@ export const useRecorder = ({
     console.debug("🎯 TIMING: startRecording() called at", startTime);
     
     try {
+      // Ensure AudioContext is resumed for iOS Safari compatibility
+      if (loop.audioContext.current.state !== 'running') {
+        console.debug("🎯 TIMING: AudioContext not running, attempting to resume at", Date.now());
+        try {
+          await loop.audioContext.current.resume();
+          console.debug("🎯 TIMING: AudioContext resumed successfully at", Date.now());
+        } catch (error) {
+          console.warn("🎯 TIMING: Failed to resume AudioContext:", error);
+        }
+      }
+      
       setRecordedAudioBlob(null);
       audioChunk.current = undefined;
 
@@ -206,7 +223,13 @@ export const useRecorder = ({
             setRecorderStream(stream);
 
             console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
-            mediaRecorder.current = new MediaRecorder(stream);
+            // Use iOS-compatible MIME type
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+              ? 'audio/webm' 
+              : MediaRecorder.isTypeSupported('audio/mp4') 
+              ? 'audio/mp4' 
+              : 'audio/wav';
+            mediaRecorder.current = new MediaRecorder(stream, { mimeType });
           } else if (permissionStatus.state === 'denied') {
             console.error("Microphone permission denied");
             setIsPermissionDenied(true);
@@ -224,7 +247,13 @@ export const useRecorder = ({
             setRecorderStream(stream);
 
             console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
-            mediaRecorder.current = new MediaRecorder(stream);
+            // Use iOS-compatible MIME type
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+              ? 'audio/webm' 
+              : MediaRecorder.isTypeSupported('audio/mp4') 
+              ? 'audio/mp4' 
+              : 'audio/wav';
+            mediaRecorder.current = new MediaRecorder(stream, { mimeType });
           }
         } catch (error) {
           // Fallback for browsers that don't support permissions API
@@ -240,7 +269,13 @@ export const useRecorder = ({
           setRecorderStream(stream);
 
           console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
-          mediaRecorder.current = new MediaRecorder(stream);
+          // Use iOS-compatible MIME type
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+            ? 'audio/webm' 
+            : MediaRecorder.isTypeSupported('audio/mp4') 
+            ? 'audio/mp4' 
+            : 'audio/wav';
+          mediaRecorder.current = new MediaRecorder(stream, { mimeType });
         }
       }
 
@@ -257,13 +292,20 @@ export const useRecorder = ({
         audioChunk.current = event.data;
 
         console.debug("🎯 END TIMING: About to create blob for decoding at", Date.now());
-        const blobForDecoding = new Blob([event.data], { type: "audio/wav" });
+        // Use the actual MIME type from the MediaRecorder
+        const blobForDecoding = new Blob([event.data], { type: event.data.type });
         const arrayBuffer = await blobForDecoding.arrayBuffer();
         console.debug("🎯 END TIMING: Blob and arrayBuffer created at", Date.now());
 
         console.debug("🎯 END TIMING: About to start audio decoding at", Date.now());
-        const audioBuffer = await loop.audioContext.current.decodeAudioData(arrayBuffer);
-        console.debug("🎯 END TIMING: Audio decoding completed at", Date.now());
+        let audioBuffer;
+        try {
+          audioBuffer = await loop.audioContext.current.decodeAudioData(arrayBuffer);
+          console.debug("🎯 END TIMING: Audio decoding completed at", Date.now());
+        } catch (decodeError) {
+          console.error("🎯 END TIMING: Audio decoding failed:", decodeError);
+          throw new Error("Failed to decode recorded audio data");
+        }
 
         if (!audioBuffer || !duration)
           throw new Error("Something went wrong while decoding audio data");
@@ -286,13 +328,20 @@ export const useRecorder = ({
           console.debug("🎯 END TIMING: Audio trimming completed at", Date.now());
           console.log("Trimmed audio buffer:", adjustedBuffer);
           isStopped.current = true;
-        } else {
+        } else if (adjustedBuffer.duration < duration * 0.8) {
+          // Only return if the recording is significantly shorter (less than 80% of expected duration)
           console.debug(
-            "Audio buffer is too short than original speaker duration. PC might be too fast!",
+            "Audio buffer is too short than original speaker duration. Recording might have failed.",
             audioBuffer.duration
           );
-
           return;
+        } else {
+          // Recording is slightly shorter but still usable (common on iOS)
+          console.debug(
+            "Audio buffer is slightly shorter than expected duration, but still usable. This is normal on mobile devices.",
+            audioBuffer.duration
+          );
+          // Continue with the slightly shorter recording
         }
 
         console.debug("🎯 END TIMING: About to create final audio blob at", Date.now());

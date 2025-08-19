@@ -125,7 +125,9 @@ export const useLoop = () => {
       recordedAudioSource.current = audioContext.current.createBufferSource();
       const blob = await recordedAudioBlob.arrayBuffer();
 
-      audioContext.current.decodeAudioData(blob, (buffer) => {
+      try {
+        const buffer = await audioContext.current.decodeAudioData(blob);
+        
         if (!recordedAudioSource.current) return;
         if (!speakerAudioBuffer.current) return;
 
@@ -162,7 +164,14 @@ export const useLoop = () => {
         });
         startedAtTime.current = Date.now();
         setMode("recording-playback");
-      });
+      } catch (error) {
+        console.error("Error decoding recorded audio data:", error);
+        // Fall back to just playing the speaker audio without the recording
+        recordedAudioSource.current = null;
+        calculateNextPoint();
+        speakerSource.current.start();
+        startedAtTime.current = Date.now();
+      }
           } else {
         recordedAudioSource.current = null;
         calculateNextPoint();
