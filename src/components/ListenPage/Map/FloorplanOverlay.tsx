@@ -45,9 +45,9 @@ interface FloorplanOverlayProps {
 const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({ 
   map, 
   position,
-  size = 0.001,
+  size = 0.0007,
   opacity = 0.8,
-  rotation = 0,
+  rotation = 287,
   enabled = true,
   useProjectLocation = false
 }) => {
@@ -157,7 +157,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
       loadSvg(): void {
         if (!this.svgContainer) return;
 
-        fetch('/floorplans/outlines3.svg')
+        fetch('/floorplans/base-plan2.svg')
           .then(response => {
             if (!response.ok) {
               throw new Error(`Failed to load SVG: ${response.statusText}`);
