@@ -15,9 +15,8 @@ const Introduction: React.FC = () => {
 	const { roundware, forceUpdate } = useRoundware();
   const project = roundware.project;
 
-	if (!project || project.projectName === '(unknown)') {
-		return null;
-  }
+	// Check if project is ready
+	const isProjectReady = project && project.projectName !== '(unknown)';
   
   useEffect(() => {
     // Start fade in after component mounts
@@ -34,6 +33,9 @@ const Introduction: React.FC = () => {
   }, []);
 
   const handleTakePart = () => {
+    if (!isProjectReady) {
+      return;
+    }
     if (project.data?.listen_enabled) {
       if (!config.listen.autoplay) {
         history.push('/listen', { source: 'intro' });
@@ -97,8 +99,13 @@ const Introduction: React.FC = () => {
             variant="contained" 
             color="primary"
             onClick={handleTakePart}
+            disabled={!isProjectReady}
+            sx={{
+              opacity: isProjectReady ? 1 : 0.6,
+              cursor: isProjectReady ? 'pointer' : 'not-allowed',
+            }}
           >
-            TAKE PART
+            {isProjectReady ? 'TAKE PART' : 'Loading...'}
           </Button>
         </Stack>
       </Fade>
