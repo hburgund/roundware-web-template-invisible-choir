@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useHistory } from 'react-router';
 import { IAudioData } from 'roundware-web-framework';
 import { ITextAsset } from '@/types';
-import { wait } from '@/utils';
+import { wait, getCleanAudioConstraints } from '@/utils';
 import MediaRecorder from 'audio-recorder-polyfill';
 const visualizerOptions = {
 	type: 'bars',
@@ -46,7 +46,7 @@ const useCreateRecording = () => {
 			setError(null);
 		}
 		navigator.mediaDevices
-			.getUserMedia({ audio: true })
+			.getUserMedia(getCleanAudioConstraints())
 			.then((stream) => {
 				set_draft_recording_media(null);
 				set_stream(stream);

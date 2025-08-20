@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useLoop } from "./useLoop";
-import { createBlobFromAudioBuffer, trimAudioBuffer } from "@/utils/index";
+import { createBlobFromAudioBuffer, trimAudioBuffer, getCleanAudioConstraints } from "@/utils/index";
 import config from "@/config";
 
 export const useRecorder = ({
@@ -74,13 +74,7 @@ export const useRecorder = ({
       } else {
         // Permission not determined yet - request it
         console.log('Microphone permission not determined, requesting access');
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-        });
+        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
         stream.getTracks().forEach((track) => {
           track.stop();
           console.debug(track.readyState);
@@ -91,13 +85,7 @@ export const useRecorder = ({
       // Fallback for browsers that don't support permissions API or other errors
       console.log('Permissions API not supported or error occurred, falling back to getUserMedia');
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-          },
-        });
+        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
         stream.getTracks().forEach((track) => {
           track.stop();
           console.debug(track.readyState);
@@ -127,11 +115,7 @@ export const useRecorder = ({
         
         // Permission should already be granted from JoinChoir screen
         // Just get the stream directly without permission checks
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-          },
-        });
+        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
         console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
         
         // Use iOS-compatible MIME type
@@ -213,11 +197,7 @@ export const useRecorder = ({
           
           if (permissionStatus.state === 'granted') {
             console.debug("🎯 TIMING: Permission already granted, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: false,
-              },
-            });
+            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
             console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
             setRecorderStream(stream);
@@ -237,11 +217,7 @@ export const useRecorder = ({
           } else {
             // Permission not determined - request it
             console.debug("🎯 TIMING: Permission not determined, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: false,
-              },
-            });
+            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
             console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
             setRecorderStream(stream);
@@ -259,11 +235,7 @@ export const useRecorder = ({
           // Fallback for browsers that don't support permissions API
           console.log('Permissions API not supported, using getUserMedia directly');
           console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-            },
-          });
+          const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
           console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
           setRecorderStream(stream);

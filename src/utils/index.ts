@@ -225,5 +225,27 @@ function getWavHeader(options: {
   return new Uint8Array(buffer);
 }
 
+/**
+ * Audio constraints that disable all browser audio processing
+ * to prevent volume jumps, dips, and unwanted effects
+ */
+export const getCleanAudioConstraints = () => ({
+  audio: {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+    googEchoCancellation: false,
+    googAutoGainControl: false,
+    googNoiseSuppression: false,
+    googHighpassFilter: false,
+    googTypingNoiseDetection: false,
+    googBeamforming: false,
+    googArrayGeometry: false,
+    googAudioMirroring: false,
+    googDAEchoCancellation: false,
+    googNoiseReduction: false
+  }
+});
+
 // Export color utilities
 export * from './colors';
