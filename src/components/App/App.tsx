@@ -23,6 +23,7 @@ import ListenDrawer from '../ListenPage/ListenDrawer';
 import RoundwareMixerControl from '../ListenPage/RoundwareMixerControl';
 import SpeakPage from '../SpeakPage/SpeakPage';
 import UserConfirmation from '../UserConfirmation';
+import IOSAudioTest from '../SpeakPage/CreateRecordingForm/LoopingRecording/components/IOSAudioTest';
 import DrawerSensitiveWrapper from './DrawerSensitiveWrapper';
 import ShareButton from './ShareButton';
 import ShareDialog from './ShareDialog';
@@ -90,6 +91,7 @@ export const App = () => {
 								<Route path='/listen' component={ListenPage} />
 								<Route path='/speak' component={SpeakPage} />
 								<Route path='/debug' component={DebugPage} />
+								<Route path='/test-audio' component={IOSAudioTest} />
 							</Switch>
 						</div>
 						{/* <AppBar position='sticky' className={classes.bottomBar}>
