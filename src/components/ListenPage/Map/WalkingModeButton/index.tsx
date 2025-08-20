@@ -56,6 +56,23 @@ const walkingModeButton = () => {
 		if (init) return;
 		if (!map) return;
 		setInit(true);
+		
+		// Check if we're already in the correct mode to avoid unnecessary switching
+		const shouldBeInWalkingMode = availableListenModesArray == 'device' ? isMobile : availableListenModesArray[0] !== 'map';
+		const isCurrentlyInWalkingMode = geoListenMode === GeoListenMode.AUTOMATIC;
+		const isCurrentlyInMapMode = geoListenMode === GeoListenMode.MANUAL;
+		
+		// If we're already in the correct mode, don't switch
+		if (shouldBeInWalkingMode && isCurrentlyInWalkingMode) {
+			console.log('Already in walking mode, skipping initialization');
+			return;
+		}
+		
+		if (!shouldBeInWalkingMode && isCurrentlyInMapMode) {
+			console.log('Already in map mode, skipping initialization');
+			return;
+		}
+		
 		if (availableListenModesArray == 'device') {
 			console.log(`default based on screen width [${isMobile ? `Mobile` : `Desktop`}]`);
 			isMobile ? enterWalkingMode() : enterMapMode();
@@ -66,7 +83,7 @@ const walkingModeButton = () => {
 			console.log('default to walking mode');
 			enterWalkingMode();
 		}
-	}, [isMobile, map]);
+	}, [isMobile, map, geoListenMode]);
 
 	const enterMapMode = () => {
 		if (!map) return;
@@ -111,12 +128,15 @@ const walkingModeButton = () => {
 			setWalkingModeErrorMessage(messages.errors.walkingModeNotSupported);
 			enterMapMode();
 		} else {
+			// Check if we've already requested permission in this session
+			const hasRequestedPermission = sessionStorage.getItem('locationPermissionRequested');
+			
 			// Check location permission status using the proper API
 			try {
 				const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
 				
 				if (permissionStatus.state === 'granted') {
-					// Permission already granted - proceed directly
+					// Permission already granted - proceed directly without showing dialog
 					console.log('Location permission already granted, proceeding to walking mode');
 					await requestLocationPermission();
 				} else if (permissionStatus.state === 'denied') {
@@ -124,14 +144,22 @@ const walkingModeButton = () => {
 					setWalkingModeStatus('error');
 					setWalkingModeErrorMessage(messages.errors.permissionDenied);
 					enterMapMode();
+				} else if (hasRequestedPermission) {
+					// We've already requested permission in this session, try to proceed
+					console.log('Permission already requested in this session, attempting to proceed');
+					await requestLocationPermission();
 				} else {
 					// Permission not determined yet - show permission dialog
 					console.log('Location permission not determined, showing permission dialog');
+					sessionStorage.setItem('locationPermissionRequested', 'true');
 					setWalkingModeStatus('locating');
 				}
 			} catch (error) {
 				// Fallback for browsers that don't support permissions API
 				console.log('Permissions API not supported, falling back to permission dialog');
+				if (!hasRequestedPermission) {
+					sessionStorage.setItem('locationPermissionRequested', 'true');
+				}
 				setWalkingModeStatus('locating');
 			}
 		}
