@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import { useLoop } from "./useLoop";
 import { createBlobFromAudioBuffer, trimAudioBuffer, getCleanAudioConstraints } from "@/utils/index";
+import { 
+  initializeIOSAudioRouting, 
+  getBuiltInMicrophoneConstraints, 
+  isIOSDevice,
+  type AudioRoutingState 
+} from "@/utils/audioRouting";
 import config from "@/config";
 
 export const useRecorder = ({
@@ -29,6 +35,10 @@ export const useRecorder = ({
   const countdownCleanupTimeout = useRef<NodeJS.Timeout>();
   const preInitializedStream = useRef<MediaStream | null>(null);
   const preInitializedRecorder = useRef<MediaRecorder | null>(null);
+  
+  // iOS Audio Routing State
+  const [audioRoutingState, setAudioRoutingState] = useState<AudioRoutingState | null>(null);
+  const [isIOSAudioRoutingInitialized, setIsIOSAudioRoutingInitialized] = useState(false);
 
   // Check if device has audio capabilities
   const checkAudioDeviceCapabilities = async () => {
@@ -45,6 +55,31 @@ export const useRecorder = ({
       return true;
     } catch (error) {
       setIsAudioDeviceMissing(true);
+      return false;
+    }
+  };
+
+  // Initialize iOS audio routing if on iOS device
+  const initializeIOSAudioRoutingIfNeeded = async () => {
+    if (!isIOSDevice() || isIOSAudioRoutingInitialized) {
+      return true;
+    }
+
+    try {
+      console.log('Initializing iOS audio routing for recording...');
+      const result = await initializeIOSAudioRouting();
+      
+      if (result.success) {
+        setAudioRoutingState(result.audioState);
+        setIsIOSAudioRoutingInitialized(true);
+        console.log('iOS audio routing initialized successfully');
+        return true;
+      } else {
+        console.warn('Failed to initialize iOS audio routing, falling back to standard approach');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error initializing iOS audio routing:', error);
       return false;
     }
   };
@@ -113,9 +148,15 @@ export const useRecorder = ({
       try {
         console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
         
+        // Initialize iOS audio routing if needed
+        await initializeIOSAudioRoutingIfNeeded();
+        
+        // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+        const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+        
         // Permission should already be granted from JoinChoir screen
         // Just get the stream directly without permission checks
-        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
         
         // Use iOS-compatible MIME type
@@ -197,7 +238,13 @@ export const useRecorder = ({
           
           if (permissionStatus.state === 'granted') {
             console.debug("🎯 TIMING: Permission already granted, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+            
+            // Initialize iOS audio routing if needed
+            await initializeIOSAudioRoutingIfNeeded();
+            
+            // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+            const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
             setRecorderStream(stream);
@@ -217,7 +264,13 @@ export const useRecorder = ({
           } else {
             // Permission not determined - request it
             console.debug("🎯 TIMING: Permission not determined, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+            
+            // Initialize iOS audio routing if needed
+            await initializeIOSAudioRoutingIfNeeded();
+            
+            // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+            const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
             setRecorderStream(stream);
@@ -235,7 +288,13 @@ export const useRecorder = ({
           // Fallback for browsers that don't support permissions API
           console.log('Permissions API not supported, using getUserMedia directly');
           console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
-          const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+          
+          // Initialize iOS audio routing if needed
+          await initializeIOSAudioRoutingIfNeeded();
+          
+          // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+          const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
           console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
           setRecorderStream(stream);

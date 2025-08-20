@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isIOSDevice } from "@/utils/audioRouting";
 
 export const useLoop = () => {
   const audioContext = useRef(new AudioContext());
@@ -28,6 +29,24 @@ export const useLoop = () => {
   const interval = useRef<NodeJS.Timer | null>(null);
 
   const nextLoopPointAt = useRef<number | null>(null);
+
+  // iOS Audio Context Setup
+  const setupIOSAudioContext = async () => {
+    if (!isIOSDevice()) return;
+    
+    try {
+      // For iOS, we need to ensure AudioContext is properly resumed
+      // This is required for iOS Safari to handle audio correctly
+      console.log('iOS detected - ensuring AudioContext is active');
+      
+      // Resume AudioContext to ensure it's active (required for iOS)
+      if (audioContext.current.state !== 'running') {
+        await audioContext.current.resume();
+      }
+    } catch (error) {
+      console.warn('Failed to setup iOS AudioContext:', error);
+    }
+  };
 
   const setSpeakerBuffers = (withClick: AudioBuffer, withoutClick: AudioBuffer) => {
     speakerAudioBufferWithClick.current = withClick;
@@ -72,6 +91,10 @@ export const useLoop = () => {
     if (isLoading || !speakerAudioBuffer.current) return;
 
     await audioContext.current.resume();
+    
+    // Setup iOS AudioContext if needed
+    await setupIOSAudioContext();
+    
     setIsStarted(true);
     speakerSource.current = audioContext.current.createBufferSource();
     

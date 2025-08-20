@@ -17,6 +17,7 @@ import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissi
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import { getCleanAudioConstraints } from "@/utils";
+import { getBuiltInMicrophoneConstraints, isIOSDevice } from "@/utils/audioRouting";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -47,7 +48,9 @@ const JoinChoir = ({
     
     // Check if audio devices are available first
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+      // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+      const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       stream.getTracks().forEach(track => track.stop());
     } catch (error) {
       const errorName = (error as any)?.name;
@@ -120,7 +123,10 @@ const JoinChoir = ({
       
       // Permission not determined or permissions API not supported - request it
       console.log('[JoinChoir] Requesting microphone permission from user...');
-      const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+      
+      // Use iOS-specific constraints if on iOS, otherwise use standard constraints
+      const constraints = isIOSDevice() ? getBuiltInMicrophoneConstraints() : getCleanAudioConstraints();
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       // Stop the stream immediately since we just need permission
       stream.getTracks().forEach(track => track.stop());
