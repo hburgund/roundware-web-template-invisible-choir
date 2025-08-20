@@ -249,3 +249,6 @@ export const getCleanAudioConstraints = () => ({
 
 // Export color utilities
 export * from './colors';
+
+// Export audio routing utilities
+export * from './audioRouting';
