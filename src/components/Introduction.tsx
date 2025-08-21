@@ -74,6 +74,8 @@ const Introduction: React.FC = () => {
           component="img"
           src={introLogo}
           alt="Intro Logo"
+          width={144}
+          height={188}
           sx={{
             zIndex: 2,
           }}
