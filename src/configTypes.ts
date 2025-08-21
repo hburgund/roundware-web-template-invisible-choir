@@ -91,6 +91,32 @@ export type IConfig = {
     };
     /** disable real-time effects during recording for better reliability */
     micRecordingEffects: boolean;
+    
+    /** advanced audio processing minimization settings */
+    audioProcessingMinimization?: {
+      /** enable comprehensive audio processing minimization */
+      enabled: boolean;
+      /** monitor audio levels to avoid triggering external AGC */
+      enableLevelMonitoring: boolean;
+      /** automatically adjust gain to stay in "safe zone" */
+      enableAdaptiveGain: boolean;
+      /** target audio level (0-255) to avoid external processing */
+      targetLevel: number;
+      /** acceptable range around target level */
+      levelTolerance: number;
+      /** initial gain setting to avoid hot levels */
+      conservativeGain: number;
+      /** higher sample rate for better quality */
+      sampleRate: number;
+      /** higher bit depth if supported */
+      sampleSize: number;
+      /** mono recording to avoid stereo processing */
+      channelCount: number;
+      /** minimal buffering */
+      latencyHint: 'interactive' | 'balanced' | 'playback';
+      /** validate that constraints are being applied (debug only) */
+      validateConstraints: boolean;
+    };
   };
   /** config for map */
   map: {

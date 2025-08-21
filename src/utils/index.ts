@@ -226,14 +226,29 @@ function getWavHeader(options: {
 }
 
 /**
- * Audio constraints that disable all browser audio processing
+ * Comprehensive audio constraints that disable all browser audio processing
  * to prevent volume jumps, dips, and unwanted effects
+ * Optimized to minimize on-board processing in headphones and external mics
  */
-export const getCleanAudioConstraints = () => ({
-  audio: {
+export const getCleanAudioConstraints = (config?: any) => {
+  // Get audio processing minimization settings from config
+  const audioConfig = config?.speak?.audioProcessingMinimization;
+  
+  return {
+    audio: {
+      // === CORE AUDIO QUALITY SETTINGS ===
+      sampleRate: audioConfig?.sampleRate || 48000,        // Higher sample rate preserves more info
+      sampleSize: audioConfig?.sampleSize || 24,           // Higher bit depth if supported
+      channelCount: audioConfig?.channelCount || 1,        // Mono recording to avoid stereo processing
+      latencyHint: audioConfig?.latencyHint || 'interactive', // Smaller buffers = less processing
+      latency: 0,              // Minimal buffering
+    
+    // === DISABLE ALL BROWSER AUDIO PROCESSING ===
     echoCancellation: false,
     noiseSuppression: false,
-    autoGainControl: false,
+    autoGainControl: false,   // Critical for preventing volume jumps
+    
+    // === GOOGLE/CHROME-SPECIFIC PROCESSING ===
     googEchoCancellation: false,
     googAutoGainControl: false,
     googNoiseSuppression: false,
@@ -243,9 +258,301 @@ export const getCleanAudioConstraints = () => ({
     googArrayGeometry: false,
     googAudioMirroring: false,
     googDAEchoCancellation: false,
-    googNoiseReduction: false
+    googNoiseReduction: false,
+    
+    // === MOZILLA/FIREFOX-SPECIFIC PROCESSING ===
+    mozEchoCancellation: false,
+    mozAutoGainControl: false,
+    mozNoiseSuppression: false,
+    
+    // === MICROSOFT/EDGE-SPECIFIC PROCESSING ===
+    msEchoCancellation: false,
+    msAutoGainControl: false,
+    msNoiseSuppression: false,
+    
+    // === SAFARI/APPLE-SPECIFIC PROCESSING ===
+    // Note: Safari doesn't expose these directly, but we include them for future compatibility
+    webkitEchoCancellation: false,
+    webkitAutoGainControl: false,
+    webkitNoiseSuppression: false,
+    
+    // === ADDITIONAL PROCESSING DISABLERS ===
+    // These help prevent any vendor-specific processing
+    // Note: Some of these are already defined above, but included here for completeness
+    
+    // === ADVANCED CONSTRAINTS FOR MINIMAL PROCESSING ===
+    // Request specific audio formats that are less likely to trigger processing
+    mimeType: 'audio/webm;codecs=opus', // Prefer Opus codec for minimal processing
+    
+    // === DEVICE-SPECIFIC OPTIMIZATIONS ===
+    // These help minimize on-board processing in headphones/external mics
+    deviceId: 'default', // Use default device to avoid device-specific processing
+    groupId: 'default',  // Use default group to avoid group-specific processing
   }
-});
+  };
+};
+
+/**
+ * Audio context configuration for minimal processing
+ * Creates an AudioContext with settings optimized to avoid processing
+ */
+export const createMinimalAudioContext = (options?: {
+  sampleRate?: number;
+  latencyHint?: AudioContextLatencyCategory;
+}) => {
+  const audioContext = new AudioContext({
+    sampleRate: options?.sampleRate || 48000,
+    latencyHint: options?.latencyHint || 'interactive',
+  });
+  
+  // Set additional properties to minimize processing
+  if (audioContext.baseLatency !== undefined) {
+    // Some browsers support baseLatency setting
+    console.log('AudioContext baseLatency:', audioContext.baseLatency);
+  }
+  
+  return audioContext;
+};
+
+/**
+ * Creates a gain node with conservative settings to avoid triggering AGC
+ * in headphones or external mics
+ */
+export const createConservativeGainNode = (audioContext: AudioContext, initialGain = 0.3) => {
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = initialGain; // Start with 30% to avoid hot levels
+  return gainNode;
+};
+
+/**
+ * Audio level monitoring system to keep levels moderate
+ * and avoid triggering aggressive AGC in external devices
+ */
+export const createAudioLevelMonitor = (
+  audioContext: AudioContext,
+  stream: MediaStream,
+  onLevelChange?: (level: number) => void
+) => {
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256; // Smaller FFT for faster processing
+  analyser.smoothingTimeConstant = 0.1; // Less smoothing for more responsive monitoring
+  
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const source = audioContext.createMediaStreamSource(stream);
+  source.connect(analyser);
+  
+  let monitoringInterval: number | null = null;
+  
+  const startMonitoring = () => {
+    if (monitoringInterval) return;
+    
+    monitoringInterval = window.setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      
+      if (onLevelChange) {
+        onLevelChange(average);
+      }
+      
+      // Log levels for debugging (only when there's meaningful audio activity)
+      if (average > 5) { // Only log if there's some audio activity
+        if (average > 200) {
+          console.warn('Audio levels high:', average, '- may trigger external AGC');
+        } else if (average < 30) {
+          console.warn('Audio levels low:', average, '- may trigger external AGC');
+        }
+      }
+    }, 100); // Check every 100ms
+  };
+  
+  const stopMonitoring = () => {
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+      monitoringInterval = null;
+    }
+  };
+  
+  const getCurrentLevel = () => {
+    analyser.getByteFrequencyData(dataArray);
+    return dataArray.reduce((a, b) => a + b) / dataArray.length;
+  };
+  
+  return {
+    analyser,
+    startMonitoring,
+    stopMonitoring,
+    getCurrentLevel,
+    source,
+  };
+};
+
+/**
+ * Adaptive gain control that adjusts levels to stay in the "safe zone"
+ * to avoid triggering external device processing
+ */
+export const createAdaptiveGainControl = (
+  audioContext: AudioContext,
+  targetLevel = 100, // Target level (0-255)
+  tolerance = 20     // Acceptable range around target
+) => {
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = 0.3; // Start conservative
+  
+  let isAdjusting = false;
+  
+  const adjustGain = (currentLevel: number) => {
+    if (isAdjusting) return;
+    
+    isAdjusting = true;
+    
+    try {
+      const difference = targetLevel - currentLevel;
+      
+      if (Math.abs(difference) > tolerance) {
+        let adjustmentFactor = 1.0;
+        
+        if (difference > 0) {
+          // Level too low, increase gain
+          adjustmentFactor = 1.1;
+        } else {
+          // Level too high, decrease gain
+          adjustmentFactor = 0.9;
+        }
+        
+        // Apply adjustment with ramping to avoid clicks
+        const newGain = Math.max(0.1, Math.min(1.0, gainNode.gain.value * adjustmentFactor));
+        gainNode.gain.setTargetAtTime(newGain, audioContext.currentTime, 0.1);
+        
+        // Only log if there's actual change and meaningful audio activity
+        if (Math.abs(newGain - gainNode.gain.value) > 0.01 && currentLevel > 5) {
+          console.log(`Adjusting gain: ${gainNode.gain.value.toFixed(2)} -> ${newGain.toFixed(2)} (level: ${currentLevel})`);
+        }
+      }
+    } finally {
+      isAdjusting = false;
+    }
+  };
+  
+  return {
+    gainNode,
+    adjustGain,
+  };
+};
+
+/**
+ * Comprehensive audio setup that minimizes all processing
+ * Returns a complete audio processing chain optimized for minimal interference
+ */
+export const createMinimalAudioProcessingChain = async (options?: {
+  enableLevelMonitoring?: boolean;
+  enableAdaptiveGain?: boolean;
+  targetLevel?: number;
+}) => {
+  try {
+    // Get clean audio stream
+    const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+    
+    // Create minimal audio context
+    const audioContext = createMinimalAudioContext();
+    
+    // Create conservative gain node
+    const gainNode = createConservativeGainNode(audioContext);
+    
+    // Create source from stream
+    const source = audioContext.createMediaStreamSource(stream);
+    
+    // Connect the chain
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    let levelMonitor: ReturnType<typeof createAudioLevelMonitor> | null = null;
+    let adaptiveGain: ReturnType<typeof createAdaptiveGainControl> | null = null;
+    
+    if (options?.enableLevelMonitoring) {
+      levelMonitor = createAudioLevelMonitor(audioContext, stream, (level) => {
+        if (options?.enableAdaptiveGain && adaptiveGain) {
+          adaptiveGain.adjustGain(level);
+        }
+      });
+      
+      // Insert level monitor into the chain
+      source.disconnect();
+      source.connect(levelMonitor.analyser);
+      levelMonitor.analyser.connect(gainNode);
+      
+      levelMonitor.startMonitoring();
+    }
+    
+    if (options?.enableAdaptiveGain) {
+      adaptiveGain = createAdaptiveGainControl(audioContext, options.targetLevel || 100);
+      
+      // Insert adaptive gain into the chain
+      if (levelMonitor) {
+        levelMonitor.analyser.disconnect();
+        levelMonitor.analyser.connect(adaptiveGain.gainNode);
+        adaptiveGain.gainNode.connect(gainNode);
+      } else {
+        source.disconnect();
+        source.connect(adaptiveGain.gainNode);
+        adaptiveGain.gainNode.connect(gainNode);
+      }
+    }
+    
+    return {
+      stream,
+      audioContext,
+      source,
+      gainNode,
+      levelMonitor,
+      adaptiveGain,
+      cleanup: () => {
+        levelMonitor?.stopMonitoring();
+        stream.getTracks().forEach(track => track.stop());
+        audioContext.close();
+      }
+    };
+  } catch (error) {
+    console.error('Failed to create minimal audio processing chain:', error);
+    throw error;
+  }
+};
+
+/**
+ * Utility to check if current audio constraints are being respected
+ * Helps debug when external processing might be interfering
+ */
+export const validateAudioConstraints = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+    const track = stream.getAudioTracks()[0];
+    const settings = track.getSettings();
+    const capabilities = track.getCapabilities();
+    
+    console.log('Audio track settings:', settings);
+    console.log('Audio track capabilities:', capabilities);
+    
+    // Check if our constraints were applied
+    const constraintsApplied = {
+      echoCancellation: settings.echoCancellation === false,
+      noiseSuppression: settings.noiseSuppression === false,
+      autoGainControl: settings.autoGainControl === false,
+    };
+    
+    console.log('Constraints applied:', constraintsApplied);
+    
+    // Stop the stream
+    stream.getTracks().forEach(track => track.stop());
+    
+    return {
+      settings,
+      capabilities,
+      constraintsApplied,
+    };
+  } catch (error) {
+    console.error('Failed to validate audio constraints:', error);
+    throw error;
+  }
+};
 
 // Export color utilities
 export * from './colors';
