@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useHistory } from 'react-router';
 import { IAudioData } from 'roundware-web-framework';
 import { ITextAsset } from '@/types';
-import { wait, getCleanAudioConstraints } from '@/utils';
+import { wait, getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from '@/utils';
 import MediaRecorder from 'audio-recorder-polyfill';
 const visualizerOptions = {
 	type: 'bars',
@@ -45,17 +45,35 @@ const useCreateRecording = () => {
 		} else {
 			setError(null);
 		}
-		navigator.mediaDevices
-			.getUserMedia(getCleanAudioConstraints())
-			.then((stream) => {
+		// Use enhanced audio processing minimization if enabled
+		const audioConfig = config.speak.audioProcessingMinimization;
+		
+		if (audioConfig?.enabled) {
+			console.log('Using enhanced audio processing minimization');
+			
+			// Validate constraints if enabled (debug only)
+			if (audioConfig.validateConstraints) {
+				validateAudioConstraints().then(result => {
+					console.log('Audio constraints validation:', result);
+				}).catch(error => {
+					console.warn('Audio constraints validation failed:', error);
+				});
+			}
+			
+			// Use minimal audio processing chain
+			createMinimalAudioProcessingChain({
+				enableLevelMonitoring: audioConfig.enableLevelMonitoring,
+				enableAdaptiveGain: audioConfig.enableAdaptiveGain,
+				targetLevel: audioConfig.targetLevel,
+			}).then((audioChain) => {
 				set_draft_recording_media(null);
-				set_stream(stream);
+				set_stream(audioChain.stream);
 				roundware.events?.logEvent(`start_record`);
 				wave.stopStream();
 				const newWave = new Wave();
 				set_wave(newWave);
-				newWave.fromStream(stream, 'audio-visualizer', visualizerOptions, false);
-				const recorder: MediaRecorder = new MediaRecorder(stream);
+				newWave.fromStream(audioChain.stream, 'audio-visualizer', visualizerOptions, false);
+				const recorder: MediaRecorder = new MediaRecorder(audioChain.stream);
 				set_recorder(recorder);
 				// Set record to <audio> when recording will be finished
 				recorder.addEventListener('dataavailable', (e) => {
@@ -64,12 +82,42 @@ const useCreateRecording = () => {
 				});
 				recorder.start();
 				set_is_recording(true);
-			})
-			.catch((err) => {
+				
+				// Store cleanup function for later
+				(window as any).__audioChainCleanup = audioChain.cleanup;
+			}).catch((err) => {
 				if (err.name === 'NotAllowedError') {
 					setIsPermissionDenied(true);
 				} else setError(err);
 			});
+				} else {
+			// Fallback to standard clean audio constraints
+			navigator.mediaDevices
+				.getUserMedia(getCleanAudioConstraints(config))
+				.then((stream) => {
+					set_draft_recording_media(null);
+					set_stream(stream);
+					roundware.events?.logEvent(`start_record`);
+					wave.stopStream();
+					const newWave = new Wave();
+					set_wave(newWave);
+					newWave.fromStream(stream, 'audio-visualizer', visualizerOptions, false);
+					const recorder: MediaRecorder = new MediaRecorder(stream);
+					set_recorder(recorder);
+					// Set record to <audio> when recording will be finished
+					recorder.addEventListener('dataavailable', (e) => {
+						console.log('data available: ' + e.data.size);
+						set_draft_recording_media(e.data);
+					});
+					recorder.start();
+					set_is_recording(true);
+				})
+				.catch((err) => {
+					if (err.name === 'NotAllowedError') {
+						setIsPermissionDenied(true);
+					} else setError(err);
+				});
+		}
 	};
 
 	useEffect(() => {
@@ -88,10 +136,18 @@ const useCreateRecording = () => {
 		if (typeof recorder !== 'undefined') {
 			recorder.stop();
 		}
-		if (stream)
+		
+		// Clean up enhanced audio processing chain if it exists
+		if ((window as any).__audioChainCleanup) {
+			(window as any).__audioChainCleanup();
+			(window as any).__audioChainCleanup = null;
+		} else if (stream) {
+			// Fallback to standard cleanup
 			stream.getTracks().forEach((track) => {
 				track.stop();
 			});
+		}
+		
 		wait(100).then(() => wave.stopStream());
 		set_is_recording(false);
 	};
