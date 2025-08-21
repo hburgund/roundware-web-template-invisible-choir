@@ -325,44 +325,126 @@ export const createConservativeGainNode = (audioContext: AudioContext, initialGa
 };
 
 /**
- * Audio level monitoring system to keep levels moderate
- * and avoid triggering aggressive AGC in external devices
+ * Enhanced audio level monitoring system with professional metering
+ * Provides RMS levels, decibel conversion, and smooth level changes
  */
 export const createAudioLevelMonitor = (
   audioContext: AudioContext,
   stream: MediaStream,
-  onLevelChange?: (level: number) => void
+  onLevelChange?: (level: number, rmsLevel: number, dbLevel: number) => void
 ) => {
   const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 256; // Smaller FFT for faster processing
-  analyser.smoothingTimeConstant = 0.1; // Less smoothing for more responsive monitoring
+  analyser.fftSize = 2048; // Larger FFT for better frequency resolution
+  analyser.smoothingTimeConstant = 0.8; // More smoothing for VU meter behavior
   
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const timeDataArray = new Float32Array(analyser.frequencyBinCount);
   const source = audioContext.createMediaStreamSource(stream);
   source.connect(analyser);
   
   let monitoringInterval: number | null = null;
+  let smoothedLevel = 0;
+  let peakLevel = 0;
+  let rmsLevel = 0;
+  
+  // Boxcar filter for smoothing (moving average)
+  const smoothingBuffer: number[] = [];
+  const smoothingBufferSize = 10; // Number of samples to average
+  
+  // Convert linear amplitude to decibels
+  const linearToDb = (linear: number): number => {
+    if (linear <= 0) return -60; // Minimum dB level
+    return 20 * Math.log10(linear);
+  };
+  
+  // Convert decibels to linear amplitude (0-1 scale)
+  const dbToLinear = (db: number): number => {
+    return Math.pow(10, db / 20);
+  };
+  
+  // Calculate RMS (Root Mean Square) for more accurate level measurement
+  const calculateRMS = (data: Float32Array): number => {
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      sum += data[i] * data[i];
+    }
+    return Math.sqrt(sum / data.length);
+  };
   
   const startMonitoring = () => {
     if (monitoringInterval) return;
     
     monitoringInterval = window.setInterval(() => {
+      // Get time domain data for accurate level measurement
+      analyser.getFloatTimeDomainData(timeDataArray);
+      const rms = calculateRMS(timeDataArray);
+      
+      // Convert RMS to a more appropriate scale for level metering
+      // RMS values are typically very small (0.001-0.1), so we need to scale them up
+      const scaledLevel = Math.min(1.0, rms * 18); // Scale up RMS by 50x for better sensitivity
+      
+      // Also get frequency data as backup (but use it differently)
       analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      const frequencyAverage = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      const frequencyLevel = frequencyAverage / 255;
+      
+      // Use the higher of the two levels for more responsive metering
+      const combinedLevel = Math.max(scaledLevel, frequencyLevel * 0.5);
+      
+      // Apply boxcar filtering for smooth movement
+      smoothingBuffer.push(combinedLevel);
+      if (smoothingBuffer.length > smoothingBufferSize) {
+        smoothingBuffer.shift();
+      }
+      
+      const smoothedAverage = smoothingBuffer.reduce((a, b) => a + b) / smoothingBuffer.length;
+      
+      // Apply VU meter behavior (slower attack, faster release)
+      const attackTime = 0.1; // 100ms attack
+      const releaseTime = 0.3; // 300ms release
+      
+      if (smoothedAverage > smoothedLevel) {
+        // Attack phase - move up quickly
+        smoothedLevel += (smoothedAverage - smoothedLevel) * attackTime;
+      } else {
+        // Release phase - move down more slowly
+        smoothedLevel += (smoothedAverage - smoothedLevel) * releaseTime;
+      }
+      
+      // Update peak level
+      if (smoothedLevel > peakLevel) {
+        peakLevel = smoothedLevel;
+      } else {
+        // Peak decay
+        peakLevel *= 0.95;
+      }
+      
+      // Convert to decibels
+      const dbLevel = linearToDb(smoothedLevel);
+      const rmsDbLevel = linearToDb(rms);
       
       if (onLevelChange) {
-        onLevelChange(average);
+        onLevelChange(smoothedLevel, rms, dbLevel);
       }
       
       // Log levels for debugging (only when there's meaningful audio activity)
-      if (average > 5) { // Only log if there's some audio activity
-        if (average > 200) {
-          console.warn('Audio levels high:', average, '- may trigger external AGC');
-        } else if (average < 30) {
-          console.warn('Audio levels low:', average, '- may trigger external AGC');
+      if (smoothedLevel > 0.01) { // Only log if there's some audio activity
+        console.log('Audio level debug:', {
+          rms: rms.toFixed(4),
+          scaledLevel: (scaledLevel * 100).toFixed(1) + '%',
+          frequencyLevel: (frequencyLevel * 100).toFixed(1) + '%',
+          combinedLevel: (combinedLevel * 100).toFixed(1) + '%',
+          smoothedLevel: (smoothedLevel * 100).toFixed(1) + '%',
+          dbLevel: dbLevel.toFixed(1) + 'dB'
+        });
+        
+        if (smoothedLevel > 0.8) {
+          console.warn('Audio levels high:', (smoothedLevel * 100).toFixed(1) + '%', `(${dbLevel.toFixed(1)}dB) - may trigger external AGC`);
+        } else if (smoothedLevel < 0.1) {
+          console.warn('Audio levels low:', (smoothedLevel * 100).toFixed(1) + '%', `(${dbLevel.toFixed(1)}dB) - may trigger external AGC`);
         }
       }
-    }, 100); // Check every 100ms
+    }, 16); // 60fps for smooth animation
   };
   
   const stopMonitoring = () => {
@@ -374,7 +456,8 @@ export const createAudioLevelMonitor = (
   
   const getCurrentLevel = () => {
     analyser.getByteFrequencyData(dataArray);
-    return dataArray.reduce((a, b) => a + b) / dataArray.length;
+    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+    return average / 255; // Return normalized 0-1 value
   };
   
   return {
@@ -383,17 +466,21 @@ export const createAudioLevelMonitor = (
     stopMonitoring,
     getCurrentLevel,
     source,
+    getSmoothedLevel: () => smoothedLevel,
+    getPeakLevel: () => peakLevel,
+    getRMSLevel: () => rmsLevel,
   };
 };
 
 /**
  * Adaptive gain control that adjusts levels to stay in the "safe zone"
  * to avoid triggering external device processing
+ * Updated to work with normalized 0-1 levels
  */
 export const createAdaptiveGainControl = (
   audioContext: AudioContext,
-  targetLevel = 100, // Target level (0-255)
-  tolerance = 20     // Acceptable range around target
+  targetLevel = 0.4, // Target level (0-1 scale, default 0.4 = 40%)
+  tolerance = 0.1    // Acceptable range around target (0.1 = 10%)
 ) => {
   const gainNode = audioContext.createGain();
   gainNode.gain.value = 0.3; // Start conservative
@@ -424,8 +511,8 @@ export const createAdaptiveGainControl = (
         gainNode.gain.setTargetAtTime(newGain, audioContext.currentTime, 0.1);
         
         // Only log if there's actual change and meaningful audio activity
-        if (Math.abs(newGain - gainNode.gain.value) > 0.01 && currentLevel > 5) {
-          console.log(`Adjusting gain: ${gainNode.gain.value.toFixed(2)} -> ${newGain.toFixed(2)} (level: ${currentLevel})`);
+        if (Math.abs(newGain - gainNode.gain.value) > 0.01 && currentLevel > 0.01) {
+          console.log(`Adjusting gain: ${gainNode.gain.value.toFixed(2)} -> ${newGain.toFixed(2)} (level: ${(currentLevel * 100).toFixed(1)}%)`);
         }
       }
     } finally {
@@ -469,7 +556,7 @@ export const createMinimalAudioProcessingChain = async (options?: {
     let adaptiveGain: ReturnType<typeof createAdaptiveGainControl> | null = null;
     
     if (options?.enableLevelMonitoring) {
-      levelMonitor = createAudioLevelMonitor(audioContext, stream, (level) => {
+      levelMonitor = createAudioLevelMonitor(audioContext, stream, (level, rmsLevel, dbLevel) => {
         if (options?.enableAdaptiveGain && adaptiveGain) {
           adaptiveGain.adjustGain(level);
         }

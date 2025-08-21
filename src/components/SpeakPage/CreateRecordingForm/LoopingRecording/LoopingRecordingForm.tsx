@@ -13,6 +13,8 @@ import { useRoundware } from "@/hooks";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
+import AudioLevelMeter from "./components/AudioLevelMeter";
+import { useAudioLevelMeter } from "./hooks/useAudioLevelMeter";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
@@ -23,6 +25,9 @@ const LoopingRecordingForm = () => {
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
+  
+  // Audio level meter hook
+  const { currentLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
 
   const history = useHistory();
 
@@ -232,6 +237,12 @@ const LoopingRecordingForm = () => {
       <MicrophoneInstructionsDialog
         open={showMicrophoneHelp}
         onClose={() => setShowMicrophoneHelp(false)}
+      />
+
+      {/* Audio Level Meter - displays during recording */}
+      <AudioLevelMeter 
+        level={currentLevel} 
+        isVisible={isMeterVisible} 
       />
     </Box>
   );

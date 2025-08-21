@@ -68,13 +68,13 @@ let config: IConfig = {
       enabled: true,                    // Enable comprehensive audio processing minimization
       enableLevelMonitoring: true,      // Monitor audio levels to avoid triggering external AGC
       enableAdaptiveGain: true,         // Automatically adjust gain to stay in "safe zone"
-      targetLevel: 100,                 // Target audio level (0-255) to avoid external processing
-      levelTolerance: 20,               // Acceptable range around target level
+      targetLevel: 0.3,                 // Target audio level (0-1 scale, 0.3 = 30%) to avoid external processing
+      levelTolerance: 0.15,             // Acceptable range around target level (0.15 = 15%)
       conservativeGain: 0.3,            // Initial gain setting to avoid hot levels
       sampleRate: 48000,                // Higher sample rate for better quality
       sampleSize: 24,                   // Higher bit depth if supported
       channelCount: 1,                  // Mono recording to avoid stereo processing
-      latencyHint: 'balanced',       // Minimal buffering
+      latencyHint: 'balanced',          // Minimal buffering
       validateConstraints: true,        // Validate that constraints are being applied (debug only)
     },
   },
