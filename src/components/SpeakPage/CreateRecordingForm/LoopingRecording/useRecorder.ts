@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useLoop } from "./useLoop";
-import { createBlobFromAudioBuffer, trimAudioBuffer, getCleanAudioConstraints } from "@/utils/index";
+import { createBlobFromAudioBuffer, trimAudioBuffer, getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils/index";
 import config from "@/config";
 
 export const useRecorder = ({
@@ -30,28 +30,27 @@ export const useRecorder = ({
   const preInitializedStream = useRef<MediaStream | null>(null);
   const preInitializedRecorder = useRef<MediaRecorder | null>(null);
 
-  // Check if device has audio capabilities
-  const checkAudioDeviceCapabilities = async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasMicrophone = devices.some(device => device.kind === 'audioinput');
-      const hasSpeakers = devices.some(device => device.kind === 'audiooutput');
-      
-      if (!hasMicrophone || !hasSpeakers) {
-        setIsAudioDeviceMissing(true);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      setIsAudioDeviceMissing(true);
-      return false;
-    }
-  };
+        // Check if device has audio capabilities
+      const checkAudioDeviceCapabilities = async () => {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+          const hasSpeakers = devices.some(device => device.kind === 'audiooutput');
+          
+          if (!hasMicrophone || !hasSpeakers) {
+            setIsAudioDeviceMissing(true);
+            return false;
+          }
+          
+          return true;
+        } catch (error) {
+          setIsAudioDeviceMissing(true);
+          return false;
+        }
+      };
 
   // Check microphone permission status using the proper API
   const checkMicrophonePermission = async () => {
-    
     // First check if device has audio capabilities
     const hasAudioCapabilities = await checkAudioDeviceCapabilities();
     if (!hasAudioCapabilities) {
@@ -64,7 +63,6 @@ export const useRecorder = ({
       
       if (permissionStatus.state === 'granted') {
         // Permission already granted - no need to request again
-        console.log('Microphone permission already granted');
         return true;
       } else if (permissionStatus.state === 'denied') {
         // Permission denied - show error
@@ -112,25 +110,60 @@ export const useRecorder = ({
     const preInitializeRecorder = async () => {
       try {
         console.debug("🎯 TIMING: Starting pre-initialization at", Date.now());
+        // Pre-initializing recorder with enhanced audio processing
         
-        // Permission should already be granted from JoinChoir screen
-        // Just get the stream directly without permission checks
-        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
-        console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
+        // Use enhanced audio processing minimization if enabled
+        const audioConfig = config.speak.audioProcessingMinimization;
         
-        // Use iOS-compatible MIME type
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-          ? 'audio/webm' 
-          : MediaRecorder.isTypeSupported('audio/mp4') 
-          ? 'audio/mp4' 
-          : 'audio/wav';
-        const recorder = new MediaRecorder(stream, { mimeType });
-        console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
-        
-        // Store the pre-initialized resources
-        preInitializedStream.current = stream;
-        preInitializedRecorder.current = recorder;
-        console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
+        if (audioConfig?.enabled) {
+          // Pre-initializing with enhanced audio processing minimization
+          
+          // Use minimal audio processing chain for pre-initialization
+          const audioChain = await createMinimalAudioProcessingChain({
+            enableLevelMonitoring: audioConfig.enableLevelMonitoring,
+            enableAdaptiveGain: audioConfig.enableAdaptiveGain,
+            targetLevel: audioConfig.targetLevel,
+          });
+          
+          const stream = audioChain.stream;
+          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
+          
+          // Use iOS-compatible MIME type
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+            ? 'audio/webm' 
+            : MediaRecorder.isTypeSupported('audio/mp4') 
+            ? 'audio/mp4' 
+            : 'audio/wav';
+          const recorder = new MediaRecorder(stream, { mimeType });
+          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
+          
+          // Store the pre-initialized resources
+          preInitializedStream.current = stream;
+          preInitializedRecorder.current = recorder;
+          console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
+          
+        } else {
+          // Pre-initializing with standard clean audio constraints (enhanced features disabled)
+          
+          // Permission should already be granted from JoinChoir screen
+          // Just get the stream directly without permission checks
+          const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints(config));
+          console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
+          
+          // Use iOS-compatible MIME type
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+            ? 'audio/webm' 
+            : MediaRecorder.isTypeSupported('audio/mp4') 
+            ? 'audio/mp4' 
+            : 'audio/wav';
+          const recorder = new MediaRecorder(stream, { mimeType });
+          console.debug("🎯 TIMING: Pre-initialization MediaRecorder created at", Date.now());
+          
+          // Store the pre-initialized resources
+          preInitializedStream.current = stream;
+          preInitializedRecorder.current = recorder;
+          console.debug("🎯 TIMING: Pre-initialization completed successfully at", Date.now());
+        }
         
       } catch (error) {
         console.error("Error pre-initializing recorder:", error);
@@ -179,6 +212,7 @@ export const useRecorder = ({
 
       // Use pre-initialized recorder if available, otherwise create new one
       if (preInitializedRecorder.current && preInitializedStream.current) {
+        // Using pre-initialized recorder (enhanced audio processing applied)
         console.debug("🎯 TIMING: Using pre-initialized recorder at", Date.now());
         mediaRecorder.current = preInitializedRecorder.current;
         setRecorderStream(preInitializedStream.current);
@@ -187,6 +221,7 @@ export const useRecorder = ({
         preInitializedRecorder.current = null;
         preInitializedStream.current = null;
       } else {
+        // Creating new recorder (enhanced audio processing will be applied)
         console.debug("🎯 TIMING: Pre-initialized recorder not available, creating new one at", Date.now());
         
         // Request microphone permission and create MediaRecorder
@@ -197,19 +232,59 @@ export const useRecorder = ({
           
           if (permissionStatus.state === 'granted') {
             console.debug("🎯 TIMING: Permission already granted, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
-            console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
+            
+            // Use enhanced audio processing minimization if enabled
+            const audioConfig = config.speak.audioProcessingMinimization;
+            
+            if (audioConfig?.enabled) {
+              console.log('Using enhanced audio processing minimization for looping recording');
+              
+              // Validate constraints if enabled (debug only)
+              if (audioConfig.validateConstraints) {
+                validateAudioConstraints().then(result => {
+                  console.log('Audio constraints validation:', result);
+                }).catch(error => {
+                  console.warn('Audio constraints validation failed:', error);
+                });
+              }
+              
+              // Use minimal audio processing chain
+              const audioChain = await createMinimalAudioProcessingChain({
+                enableLevelMonitoring: audioConfig.enableLevelMonitoring,
+                enableAdaptiveGain: audioConfig.enableAdaptiveGain,
+                targetLevel: audioConfig.targetLevel,
+              });
+              
+              const stream = audioChain.stream;
+              console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
-            setRecorderStream(stream);
+              setRecorderStream(stream);
 
-            console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
-            // Use iOS-compatible MIME type
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
-              ? 'audio/webm' 
-              : MediaRecorder.isTypeSupported('audio/mp4') 
-              ? 'audio/mp4' 
-              : 'audio/wav';
-            mediaRecorder.current = new MediaRecorder(stream, { mimeType });
+              console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
+              // Use iOS-compatible MIME type
+              const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+                ? 'audio/webm' 
+                : MediaRecorder.isTypeSupported('audio/mp4') 
+                ? 'audio/mp4' 
+                : 'audio/wav';
+              mediaRecorder.current = new MediaRecorder(stream, { mimeType });
+            } else {
+              // Using fallback (standard clean audio constraints)
+              // Fallback to standard clean audio constraints
+              const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints(config));
+              console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
+
+              setRecorderStream(stream);
+
+              console.debug("🎯 TIMING: Creating MediaRecorder at", Date.now());
+              // Use iOS-compatible MIME type
+              const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+                ? 'audio/webm' 
+                : MediaRecorder.isTypeSupported('audio/mp4') 
+                ? 'audio/mp4' 
+                : 'audio/wav';
+              mediaRecorder.current = new MediaRecorder(stream, { mimeType });
+            }
           } else if (permissionStatus.state === 'denied') {
             console.error("Microphone permission denied");
             setIsPermissionDenied(true);
@@ -217,7 +292,8 @@ export const useRecorder = ({
           } else {
             // Permission not determined - request it
             console.debug("🎯 TIMING: Permission not determined, requesting getUserMedia at", Date.now());
-            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+            // Permission not determined, using standard getUserMedia
+            const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints(config));
             console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
             setRecorderStream(stream);
@@ -234,8 +310,9 @@ export const useRecorder = ({
         } catch (error) {
           // Fallback for browsers that don't support permissions API
           console.log('Permissions API not supported, using getUserMedia directly');
+          // Permissions API fallback, using standard getUserMedia
           console.debug("🎯 TIMING: About to request getUserMedia at", Date.now());
-          const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+          const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints(config));
           console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
           setRecorderStream(stream);
