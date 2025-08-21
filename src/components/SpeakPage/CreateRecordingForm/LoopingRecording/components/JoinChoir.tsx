@@ -16,7 +16,7 @@ import JoinChoirSteps from "./JoinChoirSteps";
 import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
-import { getCleanAudioConstraints } from "@/utils";
+import { getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -47,8 +47,21 @@ const JoinChoir = ({
     
     // Check if audio devices are available first
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
-      stream.getTracks().forEach(track => track.stop());
+      // Use enhanced audio processing minimization if available
+      const audioConfig = (window as any).__roundwareConfig?.speak?.audioProcessingMinimization;
+      
+      if (audioConfig?.enabled) {
+        console.log('Using enhanced audio processing minimization for device check');
+        const audioChain = await createMinimalAudioProcessingChain({
+          enableLevelMonitoring: audioConfig.enableLevelMonitoring,
+          enableAdaptiveGain: audioConfig.enableAdaptiveGain,
+          targetLevel: audioConfig.targetLevel,
+        });
+        audioChain.cleanup();
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
+        stream.getTracks().forEach(track => track.stop());
+      }
     } catch (error) {
       const errorName = (error as any)?.name;
       if (errorName === 'NotFoundError') {
