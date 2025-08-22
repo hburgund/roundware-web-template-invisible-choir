@@ -73,11 +73,19 @@ const LoopingRecordingForm = () => {
 
   // Cleanup on component unmount
   useEffect(() => {
+    const handlePopState = () => {
+      cleanupRecordingSession();
+      history.push("/listen", { source: 'recording' });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       console.log("🧹 LoopingRecordingForm unmounting - cleaning up");
       cleanupRecordingSession();
     };
-  }, []);
+  }, [history]);
 
   return (
     <Box
