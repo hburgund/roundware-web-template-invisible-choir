@@ -68,6 +68,26 @@ let config: IConfig = {
       userRecordingVolume: 1.0, // Higher user recording volume for review
     },
     
+    /** effects for looping recording playback review stage */
+    loopingRecordingPlaybackEffects: {
+      enabled: true,
+      compression: {
+        threshold: -20,    // Significant compression to level out auto-gain issues
+        knee: 20,
+        ratio: 12,         // High ratio for aggressive compression
+        attack: 0.01,      // Fast attack
+        release: 0.25,     // Moderate release
+      },
+      delay: {
+        time: 0.1,         // Short delay for subtle effect
+        feedback: 0.2,     // Low feedback to avoid echo buildup
+      },
+      reverb: {
+        gain: 0.3,         // Moderate reverb for ambience
+        decayTime: 1.0,    // 1 second decay
+      },
+    },
+    
     // === ADVANCED AUDIO PROCESSING MINIMIZATION ===
     // These settings help minimize on-board processing in headphones and external mics
     audioProcessingMinimization: {

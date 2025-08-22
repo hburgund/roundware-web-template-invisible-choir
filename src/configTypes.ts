@@ -100,6 +100,39 @@ export type IConfig = {
       userRecordingVolume: number;
     };
     
+    /** effects for looping recording playback review stage */
+    loopingRecordingPlaybackEffects?: {
+      /** enable effects during playback review */
+      enabled: boolean;
+      /** compression settings */
+      compression: {
+        /** compression threshold in dB */
+        threshold: number;
+        /** compression knee in dB */
+        knee: number;
+        /** compression ratio */
+        ratio: number;
+        /** compression attack time in seconds */
+        attack: number;
+        /** compression release time in seconds */
+        release: number;
+      };
+      /** delay settings */
+      delay: {
+        /** delay time in seconds */
+        time: number;
+        /** feedback amount (0-1) */
+        feedback: number;
+      };
+      /** reverb settings */
+      reverb: {
+        /** reverb gain (0-1) */
+        gain: number;
+        /** reverb decay time in seconds */
+        decayTime: number;
+      };
+    };
+    
     /** advanced audio processing minimization settings */
     audioProcessingMinimization?: {
       /** enable comprehensive audio processing minimization */

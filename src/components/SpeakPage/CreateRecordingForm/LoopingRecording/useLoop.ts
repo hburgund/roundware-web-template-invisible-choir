@@ -13,6 +13,23 @@ export const useLoop = () => {
   const speakerSource = useRef<AudioBufferSourceNode | null>(null);
   const recordedAudioSource = useRef<AudioBufferSourceNode | null>(null);
 
+  // Effects nodes for playback
+  const playbackEffects = useRef<{
+    compressor: DynamicsCompressorNode | null;
+    delay: DelayNode | null;
+    feedbackGain: GainNode | null;
+    convolver: ConvolverNode | null;
+    reverbGain: GainNode | null;
+    masterGain: GainNode | null;
+  }>({
+    compressor: null,
+    delay: null,
+    feedbackGain: null,
+    convolver: null,
+    reverbGain: null,
+    masterGain: null,
+  });
+
   const startedAtTime = useRef<number | null>(null);
 
   const [mode, setMode] = useState<
@@ -35,6 +52,88 @@ export const useLoop = () => {
     speakerAudioBufferWithoutClick.current = withoutClick;
     // Default to the version with click for backward compatibility
     speakerAudioBuffer.current = withClick;
+  };
+
+  const setupPlaybackEffects = () => {
+    if (!config.speak.loopingRecordingPlaybackEffects?.enabled) {
+      return null;
+    }
+
+    const effects = config.speak.loopingRecordingPlaybackEffects;
+    
+    // Create effects nodes
+    const compressor = audioContext.current.createDynamicsCompressor();
+    const delay = audioContext.current.createDelay();
+    const feedbackGain = audioContext.current.createGain();
+    const convolver = audioContext.current.createConvolver();
+    const reverbGain = audioContext.current.createGain();
+    const masterGain = audioContext.current.createGain();
+
+    // Set compression parameters
+    compressor.threshold.value = effects.compression.threshold;
+    compressor.knee.value = effects.compression.knee;
+    compressor.ratio.value = effects.compression.ratio;
+    compressor.attack.value = effects.compression.attack;
+    compressor.release.value = effects.compression.release;
+
+    // Set delay parameters
+    delay.delayTime.value = effects.delay.time;
+    feedbackGain.gain.value = effects.delay.feedback;
+
+    // Set reverb parameters
+    reverbGain.gain.value = effects.reverb.gain;
+
+    // Create impulse response for reverb
+    const bufferSize = audioContext.current.sampleRate * effects.reverb.decayTime;
+    const impulseBuffer = audioContext.current.createBuffer(1, bufferSize, audioContext.current.sampleRate);
+    const impulseData = impulseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      impulseData[i] = Math.exp(-i / (bufferSize / 2)) * Math.random() * 2;
+    }
+    convolver.buffer = impulseBuffer;
+
+    // Connect the effects chain
+    masterGain.connect(compressor);
+    compressor.connect(delay);
+    delay.connect(feedbackGain);
+    feedbackGain.connect(delay); // Feedback loop
+    delay.connect(convolver);
+    convolver.connect(reverbGain);
+    reverbGain.connect(audioContext.current.destination);
+    
+    // Dry signal (without reverb) also goes to output
+    compressor.connect(audioContext.current.destination);
+
+    // Store references for cleanup
+    playbackEffects.current = {
+      compressor,
+      delay,
+      feedbackGain,
+      convolver,
+      reverbGain,
+      masterGain,
+    };
+
+    return masterGain;
+  };
+
+  const cleanupPlaybackEffects = () => {
+    const effects = playbackEffects.current;
+    if (effects.compressor) effects.compressor.disconnect();
+    if (effects.delay) effects.delay.disconnect();
+    if (effects.feedbackGain) effects.feedbackGain.disconnect();
+    if (effects.convolver) effects.convolver.disconnect();
+    if (effects.reverbGain) effects.reverbGain.disconnect();
+    if (effects.masterGain) effects.masterGain.disconnect();
+    
+    playbackEffects.current = {
+      compressor: null,
+      delay: null,
+      feedbackGain: null,
+      convolver: null,
+      reverbGain: null,
+      masterGain: null,
+    };
   };
 
   const getSpeakerBufferForMode = (currentMode: typeof mode) => {
@@ -117,8 +216,12 @@ export const useLoop = () => {
     const finalRecordedVolume = RECORDED_VOLUMES[newMode || mode];
     const fadeDuration = 0.3;
 
+    // Set up effects chain for recording-playback mode
+    const effectsChain = setupPlaybackEffects();
+    const outputDestination = effectsChain || audioContext.current.destination;
+
     speakerSource.current.connect(speakerGain);
-    speakerGain.connect(audioContext.current.destination);
+    speakerGain.connect(outputDestination);
 
     speakerSource.current.loop = true;
 
@@ -145,7 +248,7 @@ export const useLoop = () => {
         const recorderGain = audioContext.current.createGain();
         recorderGain.gain.value = 0;
         recordedAudioSource.current.connect(recorderGain);
-        recorderGain.connect(audioContext.current.destination);
+        recorderGain.connect(outputDestination);
 
         calculateNextPoint();
         recordedAudioSource.current.start();
@@ -200,6 +303,7 @@ export const useLoop = () => {
       recordedAudioSource.current.disconnect();
       recordedAudioSource.current = null;
     }
+    cleanupPlaybackEffects();
   }
 
   // Comprehensive cleanup function for when leaving the recording session
