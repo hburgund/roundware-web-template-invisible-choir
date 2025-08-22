@@ -76,11 +76,17 @@ const LoopingRecordingForm = () => {
     await submission.start();
   };
 
-  // Cleanup on component unmount
+  // Cleanup on unmount & back button handling
   useEffect(() => {
     const handlePopState = () => {
-      cleanupRecordingSession();
-      history.push("/listen", { source: 'recording' });
+      if (showJoinChoirPage) {
+        // On join choir page → go back to listen
+        cleanupRecordingSession();
+        history.push("/listen", { source: 'recording' });
+      } else {
+        // On recording page → go back to join choir
+        setShowJoinChoirPage(true);
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -90,7 +96,7 @@ const LoopingRecordingForm = () => {
       console.log("🧹 LoopingRecordingForm unmounting - cleaning up");
       cleanupRecordingSession();
     };
-  }, [history]);
+  }, [history, showJoinChoirPage]);
 
   return (
     <Box
@@ -133,6 +139,9 @@ const LoopingRecordingForm = () => {
       {showJoinChoirPage ? (
         <JoinChoir
           onContinue={() => {
+            // Add a history entry when transitioning to recording page
+            // This ensures the back button will go back to join choir page
+            history.push(history.location.pathname + history.location.search);
             setShowJoinChoirPage(false);
           }}
           onCancel={() => {
