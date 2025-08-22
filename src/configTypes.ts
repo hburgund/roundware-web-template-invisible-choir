@@ -92,6 +92,14 @@ export type IConfig = {
     /** disable real-time effects during recording for better reliability */
     micRecordingEffects: boolean;
     
+    /** volume levels for looping recording review stage */
+    loopingRecordingVolumes?: {
+      /** volume level for base loop during review (0-1) */
+      baseLoopVolume: number;
+      /** volume level for user recording during review (0-1) */
+      userRecordingVolume: number;
+    };
+    
     /** advanced audio processing minimization settings */
     audioProcessingMinimization?: {
       /** enable comprehensive audio processing minimization */

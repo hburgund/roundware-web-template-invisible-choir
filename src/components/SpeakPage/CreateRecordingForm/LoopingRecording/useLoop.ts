@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import config from "@/config";
 
 export const useLoop = () => {
   const audioContext = useRef(new AudioContext());
@@ -94,7 +95,7 @@ export const useLoop = () => {
       "playing-speaker": 1,
       "preparing-to-record": 0,
       "countdown-to-record": 1,
-      "recording-playback": 0.1, // Lower base loop volume for review
+      "recording-playback": config.speak.loopingRecordingVolumes?.baseLoopVolume ?? 0.1, // Lower base loop volume for review
       recording: 0.5,
       idle: 1,
       loading: 0,
@@ -105,7 +106,7 @@ export const useLoop = () => {
       "playing-speaker": 0,
       "preparing-to-record": 0,
       "countdown-to-record": 0,
-      "recording-playback": 1.8, // Higher user recording volume for review
+      "recording-playback": config.speak.loopingRecordingVolumes?.userRecordingVolume ?? 1.8, // Higher user recording volume for review
       recording: 0,
       idle: 0,
       loading: 0,

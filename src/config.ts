@@ -62,6 +62,12 @@ let config: IConfig = {
     },
     micRecordingEffects: false, // Disable real-time effects during recording for better reliability
     
+    /** volume levels for looping recording review stage */
+    loopingRecordingVolumes: {
+      baseLoopVolume: 0.5,    // Lower base loop volume for review
+      userRecordingVolume: 1.0, // Higher user recording volume for review
+    },
+    
     // === ADVANCED AUDIO PROCESSING MINIMIZATION ===
     // These settings help minimize on-board processing in headphones and external mics
     audioProcessingMinimization: {
