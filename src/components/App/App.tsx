@@ -46,7 +46,7 @@ export const App = () => {
 				id='global-script-loader'
 				googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}
 				libraries={gmapsLibraries}
-				loadingElement={<div>Loading Maps...</div>}
+				loadingElement={<div style={{ display: 'none' }}></div>}
 				onLoad={() => {
 					console.log('Global Google Maps script loaded');
 				}}
