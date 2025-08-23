@@ -196,10 +196,6 @@ const walkingModeButton = () => {
 					// permission denied
 					setWalkingModeErrorMessage(messages.errors.permissionDenied);
 					break;
-
-				case 3:
-					setWalkingModeErrorMessage(messages.errors.timeOut);
-					break;
 				case 2:
 				// position unavailable
 				default:
