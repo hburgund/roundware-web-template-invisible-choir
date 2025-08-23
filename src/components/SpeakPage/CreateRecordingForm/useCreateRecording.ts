@@ -99,6 +99,7 @@ const useCreateRecording = () => {
 	const deleteRecording = () => {
 		set_draft_recording_media(null);
 		set_draft_media_url('');
+		history.push('/listen', { source: 'recording' });
 	};
 	const toggleRecording = () => {
 		if (isRecording) {
