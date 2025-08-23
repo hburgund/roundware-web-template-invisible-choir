@@ -126,9 +126,6 @@ const LoopingRecordingForm = () => {
       {showJoinChoirPage ? (
         <JoinChoir
           onContinue={() => {
-            // Add a history entry when transitioning to recording page
-            // This ensures the back button will go back to join choir page
-            history.push(history.location.pathname + history.location.search);
             setShowJoinChoirPage(false);
           }}
           onCancel={() => {
