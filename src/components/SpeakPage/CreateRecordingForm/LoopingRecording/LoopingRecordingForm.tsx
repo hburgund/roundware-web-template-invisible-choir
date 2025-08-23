@@ -73,21 +73,8 @@ const LoopingRecordingForm = () => {
 
   // Cleanup on unmount & back button handling
   useEffect(() => {
-    // const handlePopState = () => {
-    //   if (showJoinChoirPage) {
-    //     // On join choir page → go back to listen
-    //     cleanupRecordingSession();
-    //     history.push("/listen", { source: 'recording' });
-    //   } else {
-    //     // On recording page → go back to join choir
-    //     setShowJoinChoirPage(true);
-    //   }
-    // };
-
-    // window.addEventListener('popstate', handlePopState);
     
     return () => {
-      // window.removeEventListener('popstate', handlePopState);
       console.log("🧹 LoopingRecordingForm unmounting - cleaning up");
       cleanupRecordingSession();
     };
