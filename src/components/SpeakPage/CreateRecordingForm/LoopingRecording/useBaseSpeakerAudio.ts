@@ -456,7 +456,7 @@ export const useBaseSpeakerAudio = (
               return mixed;
             },
             loop.audioContext.current.createBuffer(
-              allAudioSources[0].buffer.numberOfChannels,
+              1, // Force mono for looping recording
               allAudioSources[0].buffer.length,
               allAudioSources[0].buffer.sampleRate
             )
@@ -482,15 +482,23 @@ export const useBaseSpeakerAudio = (
           // Create version without click track (balanceRatio = 0.0)
           // Create a copy of the speaker buffer to avoid modifying the original
           const speakerBufferCopy1 = loop.audioContext.current.createBuffer(
-            speakerBuffer.numberOfChannels,
+            1, // Force mono for looping recording
             speakerBuffer.length,
             speakerBuffer.sampleRate
           );
-          // Copy the speaker buffer data
-          for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
-            const originalData = speakerBuffer.getChannelData(channel);
-            const copyData = speakerBufferCopy1.getChannelData(channel);
+          // Copy the speaker buffer data and convert to mono
+          const copyData = speakerBufferCopy1.getChannelData(0);
+          if (speakerBuffer.numberOfChannels === 1) {
+            // Already mono, just copy
+            const originalData = speakerBuffer.getChannelData(0);
             copyData.set(originalData);
+          } else {
+            // Convert stereo to mono by averaging channels
+            const leftData = speakerBuffer.getChannelData(0);
+            const rightData = speakerBuffer.getChannelData(1);
+            for (let i = 0; i < speakerBuffer.length; i++) {
+              copyData[i] = (leftData[i] + rightData[i]) / 2;
+            }
           }
           
           bufferWithoutClick = speakerBufferCopy1;
@@ -514,15 +522,23 @@ export const useBaseSpeakerAudio = (
           // Create version with click track (speaker audio + click track)
           // Create another copy of the speaker buffer
           const speakerBufferCopy2 = loop.audioContext.current.createBuffer(
-            speakerBuffer.numberOfChannels,
+            1, // Force mono for looping recording
             speakerBuffer.length,
             speakerBuffer.sampleRate
           );
-          // Copy the speaker buffer data
-          for (let channel = 0; channel < speakerBuffer.numberOfChannels; channel++) {
-            const originalData = speakerBuffer.getChannelData(channel);
-            const copyData = speakerBufferCopy2.getChannelData(channel);
-            copyData.set(originalData);
+          // Copy the speaker buffer data and convert to mono
+          const copyData2 = speakerBufferCopy2.getChannelData(0);
+          if (speakerBuffer.numberOfChannels === 1) {
+            // Already mono, just copy
+            const originalData = speakerBuffer.getChannelData(0);
+            copyData2.set(originalData);
+          } else {
+            // Convert stereo to mono by averaging channels
+            const leftData = speakerBuffer.getChannelData(0);
+            const rightData = speakerBuffer.getChannelData(1);
+            for (let i = 0; i < speakerBuffer.length; i++) {
+              copyData2[i] = (leftData[i] + rightData[i]) / 2;
+            }
           }
           
           bufferWithClick = speakerBufferCopy2;
