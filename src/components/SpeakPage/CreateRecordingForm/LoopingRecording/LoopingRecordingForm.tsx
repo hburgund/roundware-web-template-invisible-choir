@@ -3,7 +3,7 @@ import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { Box, Button } from "@mui/material";
 import { useState, useEffect } from "react";
-import { useHistory } from "react-router";
+import { Prompt, useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
@@ -23,6 +23,7 @@ const LoopingRecordingForm = () => {
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
+  const [currentPath, setCurrentPath] = useState<string | null>(null);
 
   const history = useHistory();
 
@@ -70,6 +71,11 @@ const LoopingRecordingForm = () => {
     console.log("🔄 Retrying submission without legal agreement");
     await submission.start();
   };
+
+  // Store current path when component mounts
+  useEffect(() => {
+    setCurrentPath(window.location.pathname);
+  }, []);
 
   // Cleanup on unmount & back button handling
   useEffect(() => {
@@ -185,6 +191,17 @@ const LoopingRecordingForm = () => {
         confirmText="Yes, Leave"
         cancelText="Cancel"
       />
+
+       {/* back to join choir page  */}
+      <Prompt
+        when={currentPath === "/speak/recording" && !userConfirmedLeaving}
+        message={JSON.stringify({
+          message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
+          stay: `Keep Recording`,
+          leave: `Delete Recording`,
+        })}
+      />
+      
 
       <ConfirmationDialog
         open={showThankYouConfirm}
