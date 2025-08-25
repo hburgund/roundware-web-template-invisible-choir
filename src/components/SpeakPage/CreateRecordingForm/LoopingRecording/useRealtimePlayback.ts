@@ -35,7 +35,9 @@ export const useRealtimePlayback = ({ audioContext, recordingStream }: { audioCo
 		if (!recordingStream) return;
 
 		// Check if real-time effects are disabled
-		if (!config.speak.micRecordingEffects) {
+		// Default to false if config is not available or explicitly set to false
+		const effectsEnabled = config?.speak?.micRecordingEffects === true;
+		if (!effectsEnabled) {
 			console.log('Real-time microphone effects disabled - skipping effects processing');
 			return;
 		}

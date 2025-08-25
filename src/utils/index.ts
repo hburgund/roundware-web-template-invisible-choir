@@ -548,9 +548,9 @@ export const createMinimalAudioProcessingChain = async (options?: {
     // Create source from stream
     const source = audioContext.createMediaStreamSource(stream);
     
-    // Connect the chain
+    // Connect the chain for level monitoring only (not to output)
     source.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    // DO NOT connect to audioContext.destination to prevent microphone routing to output
     
     let levelMonitor: ReturnType<typeof createAudioLevelMonitor> | null = null;
     let adaptiveGain: ReturnType<typeof createAdaptiveGainControl> | null = null;
