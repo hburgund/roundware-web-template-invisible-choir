@@ -194,7 +194,7 @@ const LoopingRecordingForm = () => {
 
        {/* back to join choir page  */}
       <Prompt
-        when={currentPath === "/speak/recording" && !userConfirmedLeaving}
+        when={currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage}
         message={JSON.stringify({
           message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
           stay: `Keep Recording`,
