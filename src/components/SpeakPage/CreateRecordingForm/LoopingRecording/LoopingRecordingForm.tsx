@@ -3,7 +3,7 @@ import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { Box, Button } from "@mui/material";
 import { useState, useEffect } from "react";
-import { useHistory } from "react-router";
+import { Prompt, useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
 import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
@@ -28,6 +28,7 @@ const LoopingRecordingForm = () => {
   
   // Audio level meter hook
   const { currentLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
+  const [currentPath, setCurrentPath] = useState<string | null>(null);
 
   const history = useHistory();
 
@@ -76,8 +77,14 @@ const LoopingRecordingForm = () => {
     await submission.start();
   };
 
-  // Cleanup on component unmount
+  // Store current path when component mounts
   useEffect(() => {
+    setCurrentPath(window.location.pathname);
+  }, []);
+
+  // Cleanup on unmount & back button handling
+  useEffect(() => {
+    
     return () => {
       console.log("🧹 LoopingRecordingForm unmounting - cleaning up");
       cleanupRecordingSession();
@@ -189,6 +196,17 @@ const LoopingRecordingForm = () => {
         confirmText="Yes, Leave"
         cancelText="Cancel"
       />
+
+       {/* back to join choir page  */}
+      <Prompt
+        when={currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage}
+        message={JSON.stringify({
+          message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
+          stay: `Keep Recording`,
+          leave: `Delete Recording`,
+        })}
+      />
+      
 
       <ConfirmationDialog
         open={showThankYouConfirm}
