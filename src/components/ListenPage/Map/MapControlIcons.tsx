@@ -4,14 +4,20 @@ import RoundwareMixerControl from '../RoundwareMixerControl';
 import infoIcon from '@/assets/icons/info_i_icon.svg';
 import { useState } from 'react';
 import InfoPopup from '@/components/InfoPopup';
+import HelpPopup from '@/components/HelpPopup';
 
 const MapControlIcons = () => {
   const { roundware } = useRoundware();
   const [showTabs, setShowTabs] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
 
   const handleCloseTabs = () => {
     setShowTabs(false);
+  };
+
+  const handleCloseHelp = () => {
+    setShowHelp(false);
   };
 
   return (
@@ -23,6 +29,21 @@ const MapControlIcons = () => {
         right={isLandscape ? 60 : 20}
         zIndex={1200}
       >
+        <Fab color="secondary" size="medium" onClick={() => setShowHelp(true)}>
+          <Box
+            sx={{
+              height: 24,
+              width: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+              color: 'inherit'
+            }}
+          >
+            ?
+          </Box>
+        </Fab>
         <Fab color="secondary" size="medium" onClick={() => setShowTabs(true)}>
           <Box
             component="img"
@@ -42,6 +63,7 @@ const MapControlIcons = () => {
         </Fab>
       </Stack>
       <InfoPopup open={showTabs} onClose={handleCloseTabs} />
+      <HelpPopup open={showHelp} onClose={handleCloseHelp} />
     </Box>
   );
 };
