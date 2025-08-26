@@ -331,7 +331,7 @@ export const createConservativeGainNode = (audioContext: AudioContext, initialGa
 export const createAudioLevelMonitor = (
   audioContext: AudioContext,
   stream: MediaStream,
-  onLevelChange?: (level: number, rmsLevel: number, dbLevel: number) => void
+  onLevelChange?: (immediateLevel: number, averageLevel: number, rmsLevel: number, dbLevel: number) => void
 ) => {
   const analyser = audioContext.createAnalyser();
   analyser.fftSize = 2048; // Larger FFT for better frequency resolution
@@ -349,7 +349,7 @@ export const createAudioLevelMonitor = (
   
   // Boxcar filter for smoothing (moving average)
   const smoothingBuffer: number[] = [];
-  const smoothingBufferSize = 10; // Number of samples to average
+  const smoothingBufferSize = 20; // Increased for more smoothing
   
   // Convert linear amplitude to decibels
   const linearToDb = (linear: number): number => {
@@ -400,8 +400,8 @@ export const createAudioLevelMonitor = (
       const smoothedAverage = smoothingBuffer.reduce((a, b) => a + b) / smoothingBuffer.length;
       
       // Apply VU meter behavior (slower attack, faster release)
-      const attackTime = 0.1; // 100ms attack
-      const releaseTime = 0.3; // 300ms release
+      const attackTime = 0.05; // 50ms attack (faster response)
+      const releaseTime = 0.5; // 500ms release (slower decay)
       
       if (smoothedAverage > smoothedLevel) {
         // Attack phase - move up quickly
@@ -424,7 +424,9 @@ export const createAudioLevelMonitor = (
       const rmsDbLevel = linearToDb(rms);
       
       if (onLevelChange) {
-        onLevelChange(smoothedLevel, rms, dbLevel);
+        // Provide both immediate (raw) and average (smoothed) levels
+        const immediateLevel = combinedLevel; // Raw level without smoothing
+        onLevelChange(immediateLevel, smoothedLevel, rms, dbLevel);
       }
       
       // Log levels for debugging (only when there's meaningful audio activity)

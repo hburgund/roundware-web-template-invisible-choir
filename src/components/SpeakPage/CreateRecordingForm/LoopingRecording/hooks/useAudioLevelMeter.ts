@@ -4,19 +4,46 @@ import { createAudioLevelMonitor } from '@/utils';
 
 export const useAudioLevelMeter = () => {
   const { recorder, loop } = useLoopContext();
-  const [currentLevel, setCurrentLevel] = useState(0);
+  const [immediateLevel, setImmediateLevel] = useState(0);
+  const [averageLevel, setAverageLevel] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  const levelUpdateRef = useRef<number | null>(null);
+  const immediateLevelUpdateRef = useRef<number | null>(null);
+  const averageLevelUpdateRef = useRef<number | null>(null);
   const levelMonitorRef = useRef<ReturnType<typeof createAudioLevelMonitor> | null>(null);
   
-  // Update level with smooth animation
-  const updateLevel = (newLevel: number) => {
-    if (levelUpdateRef.current) {
-      cancelAnimationFrame(levelUpdateRef.current);
+  // For fast attack, gradual decay behavior
+  const smoothedImmediateLevel = useRef(0);
+  
+  // Update immediate level with fast attack, gradual decay
+  const updateImmediateLevel = (newLevel: number) => {
+    if (immediateLevelUpdateRef.current) {
+      cancelAnimationFrame(immediateLevelUpdateRef.current);
     }
     
-    levelUpdateRef.current = requestAnimationFrame(() => {
-      setCurrentLevel(newLevel);
+    immediateLevelUpdateRef.current = requestAnimationFrame(() => {
+      // Fast attack, gradual decay behavior
+      const currentLevel = smoothedImmediateLevel.current;
+      
+      if (newLevel > currentLevel) {
+        // Attack phase - move up more gradually (less flashy response)
+        smoothedImmediateLevel.current = currentLevel + (newLevel - currentLevel) * 0.5;
+      } else {
+        // Decay phase - move down slowly (gradual fallback)
+        smoothedImmediateLevel.current = currentLevel + (newLevel - currentLevel) * 0.1;
+      }
+      
+      setImmediateLevel(smoothedImmediateLevel.current);
+    });
+  };
+
+  // Update average level with smooth animation
+  const updateAverageLevel = (newLevel: number) => {
+    if (averageLevelUpdateRef.current) {
+      cancelAnimationFrame(averageLevelUpdateRef.current);
+    }
+    
+    averageLevelUpdateRef.current = requestAnimationFrame(() => {
+      setAverageLevel(newLevel);
     });
   };
   
@@ -26,8 +53,10 @@ export const useAudioLevelMeter = () => {
     setIsVisible(isRecording);
     
     if (!isRecording) {
-      // Reset level when not recording
-      updateLevel(0);
+      // Reset levels when not recording
+      updateImmediateLevel(0);
+      updateAverageLevel(0);
+      smoothedImmediateLevel.current = 0; // Reset the smoothed level
     }
   }, [loop.mode]);
   
@@ -47,8 +76,9 @@ export const useAudioLevelMeter = () => {
     levelMonitorRef.current = createAudioLevelMonitor(
       audioContext,
       recorder.recorderStream,
-      (level, rmsLevel, dbLevel) => {
-        updateLevel(level);
+      (immediateLevel, averageLevel, rmsLevel, dbLevel) => {
+        updateImmediateLevel(immediateLevel);
+        updateAverageLevel(averageLevel);
       }
     );
     
@@ -64,7 +94,8 @@ export const useAudioLevelMeter = () => {
   }, [isVisible, recorder.recorderStream]);
   
   return {
-    currentLevel,
+    immediateLevel,
+    averageLevel,
     isVisible,
   };
 };

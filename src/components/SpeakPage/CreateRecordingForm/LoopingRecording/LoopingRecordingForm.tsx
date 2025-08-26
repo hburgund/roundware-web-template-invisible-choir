@@ -27,7 +27,7 @@ const LoopingRecordingForm = () => {
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
   
   // Audio level meter hook
-  const { currentLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
+  const { immediateLevel, averageLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
 
   const history = useHistory();
 
@@ -241,7 +241,8 @@ const LoopingRecordingForm = () => {
 
       {/* Audio Level Meter - displays during recording */}
       <AudioLevelMeter 
-        level={currentLevel} 
+        immediateLevel={immediateLevel} 
+        averageLevel={averageLevel}
         isVisible={isMeterVisible} 
       />
     </Box>

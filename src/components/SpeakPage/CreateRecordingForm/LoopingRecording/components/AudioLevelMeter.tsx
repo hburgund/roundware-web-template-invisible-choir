@@ -2,42 +2,72 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 
 interface AudioLevelMeterProps {
-  level: number; // 0-1 normalized level
+  immediateLevel: number; // 0-1 normalized immediate level
+  averageLevel: number; // 0-1 normalized average level
   isVisible?: boolean;
 }
 
 const AudioLevelMeter: React.FC<AudioLevelMeterProps> = ({ 
-  level, 
+  immediateLevel, 
+  averageLevel,
   isVisible = true 
 }) => {
-  const [displayLevel, setDisplayLevel] = useState(0);
-  const animationRef = useRef<number>();
+  const [displayImmediateLevel, setDisplayImmediateLevel] = useState(0);
+  const [displayAverageLevel, setDisplayAverageLevel] = useState(0);
+  const immediateAnimationRef = useRef<number>();
+  const averageAnimationRef = useRef<number>();
   
-  // Smooth animation for the level display
+  // Smooth animation for the immediate level display
   useEffect(() => {
     if (!isVisible) {
-      setDisplayLevel(0);
+      setDisplayImmediateLevel(0);
       return;
     }
     
     const animate = () => {
-      setDisplayLevel(prev => {
-        const diff = level - prev;
-        const newLevel = prev + diff * 0.1; // Smooth interpolation
-        return Math.abs(diff) < 0.001 ? level : newLevel;
+      setDisplayImmediateLevel(prev => {
+        const diff = immediateLevel - prev;
+        const newLevel = prev + diff * 0.3; // Faster interpolation for immediate response
+        return Math.abs(diff) < 0.001 ? immediateLevel : newLevel;
       });
       
-      animationRef.current = requestAnimationFrame(animate);
+      immediateAnimationRef.current = requestAnimationFrame(animate);
     };
     
-    animationRef.current = requestAnimationFrame(animate);
+    immediateAnimationRef.current = requestAnimationFrame(animate);
     
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (immediateAnimationRef.current) {
+        cancelAnimationFrame(immediateAnimationRef.current);
       }
     };
-  }, [level, isVisible]);
+  }, [immediateLevel, isVisible]);
+
+  // Smooth animation for the average level display
+  useEffect(() => {
+    if (!isVisible) {
+      setDisplayAverageLevel(0);
+      return;
+    }
+    
+    const animate = () => {
+      setDisplayAverageLevel(prev => {
+        const diff = averageLevel - prev;
+        const newLevel = prev + diff * 0.1; // Slower interpolation for stable average
+        return Math.abs(diff) < 0.001 ? averageLevel : newLevel;
+      });
+      
+      averageAnimationRef.current = requestAnimationFrame(animate);
+    };
+    
+    averageAnimationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (averageAnimationRef.current) {
+        cancelAnimationFrame(averageAnimationRef.current);
+      }
+    };
+  }, [averageLevel, isVisible]);
   
   // Calculate color based on level
   const getColor = (level: number): string => {
@@ -61,7 +91,7 @@ const AudioLevelMeter: React.FC<AudioLevelMeterProps> = ({
     }
   };
   
-  // Get message based on level
+  // Get message based on average level (more stable for user feedback)
   const getMessage = (level: number): string => {
     if (level < 0.05) {
       return "Sing a bit louder!";
@@ -88,19 +118,59 @@ const AudioLevelMeter: React.FC<AudioLevelMeterProps> = ({
         left: 0,
         right: 0,
         width: '100vw',
-        height: `${displayLevel * 100}%`,
-        backgroundColor: getColor(displayLevel),
-        opacity: 0.7,
+        height: '100vh',
         zIndex: -1, // Below all UI components but above background
-        transition: 'background-color 0.1s ease',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
         pointerEvents: 'none', // Don't interfere with UI interactions
       }}
     >
-      {/* Level indicator text */}
-              <Box
+      {/* Immediate level layer (behind, with opacity-based attack) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
+          height: `${displayImmediateLevel * 100}%`,
+          backgroundColor: getColor(displayImmediateLevel),
+          opacity: Math.min(0.4, 0.1 + displayImmediateLevel * 0.3), // Opacity increases with level
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          justifyContent: 'flex-end',
+          transition: 'opacity 0.1s ease', // Smooth opacity transitions
+        }}
+      >
+        {/* Solid bar at the top of immediate level */}
+        <Box
+          sx={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: getColor(displayImmediateLevel),
+            opacity: Math.min(0.9, 0.3 + displayImmediateLevel * 0.6), // Top bar opacity also increases with level
+            transition: 'opacity 0.1s ease',
+          }}
+        />
+      </Box>
+      
+      {/* Average level layer (in front, more opaque) */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: '100%',
+          height: `${displayAverageLevel * 100}%`,
+          backgroundColor: getColor(displayAverageLevel),
+          opacity: 0.6, // More opaque for the average level
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        }}
+      >
+              {/* Level indicator text */}
+        <Box
           sx={{
             position: 'absolute',
             bottom: '20px',
@@ -110,35 +180,36 @@ const AudioLevelMeter: React.FC<AudioLevelMeterProps> = ({
             zIndex: 0, // Above the meter bar but below other UI
           }}
         >
-        <Typography
-          variant="h6"
-          sx={{
-            color: 'white',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-            fontWeight: 'bold',
-            fontSize: { xs: '1rem', sm: '1.25rem' },
-            textAlign: 'center',
-            maxWidth: '300px',
-            lineHeight: 1.2,
-          }}
-        >
-          {getMessage(displayLevel)}
-        </Typography>
-        
-        {/* Level percentage (optional, for debugging) */}
-        {process.env.NODE_ENV === 'development' && (
           <Typography
-            variant="body2"
+            variant="h6"
             sx={{
               color: 'white',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-              marginTop: 1,
-              opacity: 0.8,
+              textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+              fontWeight: 'bold',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              textAlign: 'center',
+              maxWidth: '300px',
+              lineHeight: 1.2,
             }}
           >
-            {Math.round(displayLevel * 100)}%
+            {getMessage(displayAverageLevel)}
           </Typography>
-        )}
+          
+          {/* Level percentage (optional, for debugging) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'white',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                marginTop: 1,
+                opacity: 0.8,
+              }}
+            >
+              Avg: {Math.round(displayAverageLevel * 100)}% | Immediate: {Math.round(displayImmediateLevel * 100)}%
+            </Typography>
+          )}
+        </Box>
       </Box>
     </Box>
   );
