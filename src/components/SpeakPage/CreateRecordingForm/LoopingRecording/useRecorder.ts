@@ -29,6 +29,7 @@ export const useRecorder = ({
   const countdownCleanupTimeout = useRef<NodeJS.Timeout>();
   const preInitializedStream = useRef<MediaStream | null>(null);
   const preInitializedRecorder = useRef<MediaRecorder | null>(null);
+  const processingTimeout = useRef<NodeJS.Timeout>();
 
         // Check if device has audio capabilities
       const checkAudioDeviceCapabilities = async () => {
@@ -402,7 +403,7 @@ export const useRecorder = ({
         loop.setMode("processing-recording");
         
         // Process the recording with a delay to show the processing state
-        setTimeout(() => {
+        processingTimeout.current = setTimeout(() => {
           console.debug("🎯 END TIMING: About to start playback loop at", Date.now());
           loop.start("recording-playback", audioBlob);
           console.debug("🎯 END TIMING: Playback loop started at", Date.now());
@@ -500,6 +501,12 @@ export const useRecorder = ({
     }
     countdownEndTime.current = null;
     
+    // Clear processing timeout to prevent rehearse phase from starting
+    if (processingTimeout.current) {
+      clearTimeout(processingTimeout.current);
+      processingTimeout.current = undefined;
+    }
+    
     // Clean up pre-initialized resources if they weren't used
     if (preInitializedStream.current) {
       preInitializedStream.current.getTracks().forEach((track) => {
@@ -554,6 +561,10 @@ export const useRecorder = ({
     if (countdownCleanupTimeout.current) {
       clearTimeout(countdownCleanupTimeout.current);
       countdownCleanupTimeout.current = undefined;
+    }
+    if (processingTimeout.current) {
+      clearTimeout(processingTimeout.current);
+      processingTimeout.current = undefined;
     }
     countdownEndTime.current = null;
     
