@@ -8,6 +8,7 @@ import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
 import greenBackground from '../assets/green_background.svg';
+import helpData from '../help.json';
 
 const Transition = React.forwardRef(function Transition(
 	props: TransitionProps & {
@@ -21,12 +22,24 @@ const Transition = React.forwardRef(function Transition(
 interface HelpPopupProps {
 	open: boolean;
 	onClose: () => void;
+	currentScreen?: string;
 }
 
-const HelpPopup = ({ open, onClose }: HelpPopupProps) => {
+const HelpPopup = ({ open, onClose, currentScreen = 'listen' }: HelpPopupProps) => {
 	const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
 	const isMobileDevice = isAndroid || isIOS;
 	const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
+
+	// Get help content based on current screen
+	const getHelpContent = () => {
+		if (currentScreen && helpData[currentScreen as keyof typeof helpData]) {
+			return helpData[currentScreen as keyof typeof helpData];
+		}
+		// Fallback to help section if current screen not found
+		return helpData.help;
+	};
+
+	const helpContent = getHelpContent();
 
 	return (
 		<Dialog
@@ -84,11 +97,30 @@ const HelpPopup = ({ open, onClose }: HelpPopupProps) => {
 			<Box sx={{ width: '100%', mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
 				<Box sx={{ p: 3 }}>
 					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
-						Help
+						{helpContent.title}
 					</Typography>
-					<Typography variant="body1" color="text.secondary">
-						Help content will be added here.
-					</Typography>
+					<Box 
+						sx={{ 
+							mb: 3,
+							color: 'text.secondary',
+							'& h2': {
+								color: 'primary.main',
+								fontSize: '1.5rem',
+								fontWeight: 'bold',
+								mb: 2
+							},
+							'& p': {
+								fontSize: '1rem',
+								lineHeight: 1.6,
+								mb: 1.5
+							}
+						}}
+						dangerouslySetInnerHTML={{ 
+							__html: Array.isArray(helpContent.description) 
+								? helpContent.description.join('') 
+								: helpContent.description 
+						}}
+					/>
 				</Box>
 			</Box>
 			<Box sx={{ 

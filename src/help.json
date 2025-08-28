@@ -1,0 +1,90 @@
+{
+  "listen": {
+    "active": true,
+    "title": "Listen",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Listen to Community Recordings</h2>",
+      "  <p>Explore the map to discover and listen to recordings from the community. Navigate through different locations and experience the collective voice of the invisible choir.</p>",
+      "  <p>Use the filters to find specific types of recordings or browse by date and tags.</p>",
+      "</div>"
+    ]
+  },
+  "add choir": {
+    "active": true,
+    "title": "Add Choir",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Add Your Voice to the Choir</h2>",
+      "  <p>Record and contribute your voice to the community choir. Choose a location on the map and start your recording journey.</p>",
+      "  <p>Your recording will become part of the collective soundscape that others can discover and listen to.</p>",
+      "</div>"
+    ]
+  },
+  "rehearse": {
+    "active": true,
+    "title": "Rehearse",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Practice Before Recording</h2>",
+      "  <p>Listen to the base track and get familiar with the rhythm and melody before recording your contribution.</p>",
+      "  <p>Take your time to practice and feel comfortable with the musical loop. This is your chance to prepare before adding your voice to the choir.</p>",
+      "</div>"
+    ]
+  },
+  "recording": {
+    "active": true,
+    "title": "Recording",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Record Your Voice</h2>",
+      "  <p>Sing along with the base track to create your contribution to the choir. The loop will play while you record your voice.</p>",
+      "  <p>Make sure you're in a quiet environment and speak clearly. Your recording will be mixed with the base track for the final result.</p>",
+      "</div>"
+    ]
+  },
+  "review": {
+    "active": true,
+    "title": "Review",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Listen to Your Recording</h2>",
+      "  <p>Review your recording mixed with the base loop. Listen carefully to ensure you're satisfied with your contribution.</p>",
+      "  <p>If you're not happy with the result, you can re-record. Once you're satisfied, your voice will be added to the community choir.</p>",
+      "</div>"
+    ]
+  },
+  "welcome": {
+    "active": true,
+    "title": "Welcome",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Welcome to Invisible Choir</h2>",
+      "  <p>Join the collective voice of the community. Listen to existing recordings or add your own voice to create a unique soundscape.</p>",
+      "  <p>Navigate through the app to explore recordings by location, or contribute your own voice to the growing choir.</p>",
+      "</div>"
+    ]
+  },
+  "help": {
+    "active": true,
+    "title": "Help",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Get Help Using the Application</h2>",
+      "  <p>This help section provides guidance on how to use the Invisible Choir app effectively.</p>",
+      "  <p>Browse through different sections to learn about listening, recording, and contributing to the community choir.</p>",
+      "</div>"
+    ]
+  },
+  "tags": {
+    "active": true,
+    "title": "Tags",
+    "description": [
+      "<div class=\"content\">",
+      "  <h2>Categorize Your Recording</h2>",
+      "  <p>Use tags to categorize and organize your recordings. Tags help others discover your contributions and find similar content.</p>",
+      "  <p>Choose relevant tags that describe the mood, style, or theme of your recording.</p>",
+      "</div>"
+    ]
+  }
+}

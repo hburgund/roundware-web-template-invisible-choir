@@ -21,3 +21,32 @@ export const useLocationFromQuery = () => {
 	const lng = parseFloat(query.get('lng') as string) || 0;
 	return { lat, lng };
 };
+
+// Custom hook to determine current screen based on route and app state
+export const useCurrentScreen = (loopMode?: string) => {
+	const location = useLocation();
+	const { roundware } = useRoundware();
+	
+	if (location.pathname.includes('/speak/recording')) {
+		if (loopMode) {
+			// recording phases based on StepIndicator logic
+			switch (loopMode) {
+				case 'idle':
+					return 'rehearse';
+				case 'recording':
+					return 'recording';
+				case 'recording-playback':
+					return 'review';
+			}
+		}
+		return 'rehearse';
+	} 
+	else if (location.pathname.startsWith('/listen')) {
+		if (roundware.mixer?.playing) {
+			return 'add choir';
+		} else {
+			return 'listen';
+		}
+	}
+	return 'listen';
+};
