@@ -1,7 +1,8 @@
 import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { Box, Button } from "@mui/material";
+import QuestionMarkIcon from "@mui/icons-material/QuestionMark";
+import { Box, Button, Fab } from "@mui/material";
 import { useState, useEffect } from "react";
 import { Prompt, useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
@@ -9,21 +10,24 @@ import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
 import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
-import { useRoundware } from "@/hooks";
+import { useRoundware, useCurrentScreen } from "@/hooks";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 import AudioLevelMeter from "./components/AudioLevelMeter";
 import { useAudioLevelMeter } from "./hooks/useAudioLevelMeter";
+import HelpPopup from "@/components/HelpPopup";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
   const { roundware } = useRoundware();
+  const currentScreen = useCurrentScreen(loop.mode);
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
   
   // Audio level meter hook
@@ -228,23 +232,46 @@ const LoopingRecordingForm = () => {
       />
 
       {!showJoinChoirPage && (
-        <Button
-          variant="outlined"
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 15,
-            right: 25,
-            minWidth: 0,
-            p: 1,
-            borderRadius: "50%",
-            color: "white",
-            borderColor: "rgba(255, 255, 255, 0.5)"
-          }}
-          onClick={() => setShowCloseConfirm(true)}
-        >
-          <Close />
-        </Button>
+        <>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 15,
+              right: 25,
+              minWidth: 0,
+              p: 1,
+              borderRadius: "50%",
+              color: "white",
+              borderColor: "rgba(255, 255, 255, 0.5)"
+            }}
+            onClick={() => setShowCloseConfirm(true)}
+          >
+            <Close />
+          </Button>
+          
+          {/* Help Button */}
+          <Button
+            variant="outlined"
+            size="large"
+            sx={{
+              position: "absolute",
+              top: 15,
+              right: 90,
+              minWidth: 0,
+              p: 2.5,
+              borderRadius: "50%",
+              color: "white",
+              borderColor: "rgba(255, 255, 255, 0.5)",
+              width: 40,
+              height: 40
+            }}
+            onClick={() => setShowHelp(true)}
+          >
+            <QuestionMarkIcon sx={{ fontSize: 18 }} />
+          </Button>
+        </>
       )}
 
       <ProcessingOverlay
@@ -255,6 +282,12 @@ const LoopingRecordingForm = () => {
       <MicrophoneInstructionsDialog
         open={showMicrophoneHelp}
         onClose={() => setShowMicrophoneHelp(false)}
+      />
+
+      <HelpPopup 
+        open={showHelp} 
+        onClose={() => setShowHelp(false)} 
+        currentScreen={currentScreen} 
       />
 
       {/* Audio Level Meter - displays during recording */}
