@@ -2,6 +2,7 @@ import { Backdrop, Card, CircularProgress, Typography } from '@mui/material';
 import React from 'react';
 import makeStyles from '@mui/styles/makeStyles';
 import { useRoundware } from '../../../hooks';
+import config from '@/config';
 export const useLoadingStyles = makeStyles((theme) => {
 	return {
 		backdrop: {
@@ -27,8 +28,11 @@ const AssetLoadingOverlay = () => {
 	const { roundware } = useRoundware();
 
 	const classes = useLoadingStyles();
+	
+	const shouldShow = !Array.isArray(roundware.assetData) && !config.speak.uploadAsSpeaker;
+	
 	return (
-		<Backdrop className={classes.backdrop} open={!Array.isArray(roundware.assetData)}>
+		<Backdrop className={classes.backdrop} open={shouldShow}>
 			<Card className={classes.loadingCard}>
 				<CircularProgress className={classes.loadingSpinner} />
 				<Typography className={classes.loadingMessage}>Loading audio...</Typography>
