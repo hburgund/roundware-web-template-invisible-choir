@@ -11,7 +11,7 @@ import WalkingModeButton from './WalkingModeButton';
 import config from '@/config';
 import SpeakerPolygons from './Speakers/SpeakerPolygons';
 import SpeakerReplayButton from './Speakers/SpeakerReplayButton';
-import SpeakerLoadingIndicator from './Speakers/SpeakerLoadingIndicator';
+import CollectiveSpeakerLoadingIndicator from './Speakers/CollectiveSpeakerLoadingIndicator';
 import { useURLSync } from '@/context/URLContext';
 import ShareDialog from '@/components/App/ShareDialog';
 import ResetButton from './ResetButton';
@@ -246,7 +246,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 						{config.features.speakerToggleIds?.length > 0 && <SpeakerToggle />}
 						{config.map.speakerDisplay == 'polygons' && <SpeakerPolygons />}
 						{config.map.speakerDisplay == 'images' && <SpeakerImages />}
-						<SpeakerLoadingIndicator />
+						<CollectiveSpeakerLoadingIndicator />
 						{!config.listen.speaker.loop && <SpeakerReplayButton />}
 						<ShareDialog />
 						<ResetButton updateLocation={updateListenerLocation} />
