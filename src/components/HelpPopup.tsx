@@ -1,6 +1,11 @@
 import React from 'react';
 import { Box, Dialog, Typography, Stack, IconButton, useMediaQuery } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import MicIcon from '@mui/icons-material/Mic';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
 import { isAndroid, isIOS } from 'react-device-detect';
@@ -29,6 +34,19 @@ const HelpPopup = ({ open, onClose, currentScreen = 'listen' }: HelpPopupProps) 
 	const isLandscape = useMediaQuery('(orientation: landscape)', { noSsr: true });
 	const isMobileDevice = isAndroid || isIOS;
 	const shouldUseLandscapeLayout = isLandscape && isMobileDevice;
+
+	// Centralized icon mapping
+	const getHelpIcon = (iconKey?: string) => {
+		const iconStyle = { fontSize: 50, color: 'primary.main', mb: 1 };
+		const icons = {
+			speaker: <VolumeUpIcon sx={iconStyle} />,
+			mic: <MicIcon sx={iconStyle} />,
+			play: <PlayArrowIcon sx={iconStyle} />,
+			record: <RadioButtonCheckedIcon sx={iconStyle} />,
+			review: <HeadphonesIcon sx={iconStyle} />
+		};
+		return iconKey ? icons[iconKey as keyof typeof icons] : null;
+	};
 
 	// Get help content based on current screen
 	const getHelpContent = () => {
@@ -99,6 +117,9 @@ const HelpPopup = ({ open, onClose, currentScreen = 'listen' }: HelpPopupProps) 
 					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
 						{helpContent.title}
 					</Typography>
+					<Box sx={{ display: 'flex', mb: 2 }}>
+						{getHelpIcon((helpContent as any).icon)}
+					</Box>
 					<Box 
 						sx={{ 
 							mb: 3,
