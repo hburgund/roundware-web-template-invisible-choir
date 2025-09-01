@@ -238,10 +238,13 @@ const LoopingRecordingForm = () => {
             size="small"
             sx={{
               position: "absolute",
-              top: 15,
+              top: 30,
               right: 25,
-              minWidth: 0,
-              p: 1,
+              minWidth: 45,
+              minHeight: 45,
+              width: 45,
+              height: 45,
+              p: 0,
               borderRadius: "50%",
               color: "white",
               borderColor: "rgba(255, 255, 255, 0.5)"
@@ -257,7 +260,7 @@ const LoopingRecordingForm = () => {
             size="large"
             sx={{
               position: "absolute",
-              top: 15,
+              top: 30,
               right: 90,
               minWidth: 45,
               minHeight: 45,
