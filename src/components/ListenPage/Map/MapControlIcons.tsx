@@ -2,7 +2,7 @@ import { Box, Fab, Stack, useMediaQuery } from '@mui/material';
 import { useRoundware, useCurrentScreen } from '@/hooks';
 import RoundwareMixerControl from '../RoundwareMixerControl';
 import infoIcon from '@/assets/icons/info_i_icon.svg';
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
+import LightbulbOutlined from '@mui/icons-material/LightbulbOutlined';
 import { useState } from 'react';
 import InfoPopup from '@/components/InfoPopup';
 import HelpPopup from '@/components/HelpPopup';
@@ -33,8 +33,8 @@ const MapControlIcons = () => {
         right={isLandscape ? 60 : 20}
         zIndex={1200}
       >
-        <Fab color="secondary" size="medium" onClick={() => setShowHelp(true)}>
-          <QuestionMarkIcon sx={{ fontSize: 18 }} />
+        <Fab color="info" size="medium" onClick={() => setShowHelp(true)}>
+          <LightbulbOutlined sx={{ fontSize: 20, color: "white" }} />
         </Fab>
         <Fab color="secondary" size="medium" onClick={() => setShowTabs(true)}>
           <Box
