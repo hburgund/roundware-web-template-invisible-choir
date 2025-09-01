@@ -259,13 +259,14 @@ const LoopingRecordingForm = () => {
               position: "absolute",
               top: 15,
               right: 90,
-              minWidth: 0,
-              p: 2.5,
+              minWidth: 45,
+              minHeight: 45,
+              p: 0,
               borderRadius: "50%",
               color: "white",
               borderColor: "rgba(255, 255, 255, 0.5)",
-              width: 40,
-              height: 40
+              width: 45,
+              height: 45,
             }}
             onClick={() => setShowHelp(true)}
           >
