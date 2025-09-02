@@ -17,6 +17,7 @@ import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 import AudioLevelMeter from "./components/AudioLevelMeter";
 import { useAudioLevelMeter } from "./hooks/useAudioLevelMeter";
 import HelpPopup from "@/components/HelpPopup";
+import BackButtonDialog from "@/components/elements/BackButtonDialog";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
@@ -29,6 +30,9 @@ const LoopingRecordingForm = () => {
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [nextTx, setNextTx] = useState<any>(null);
+
   
   // Audio level meter hook
   const { currentLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
@@ -85,6 +89,21 @@ const LoopingRecordingForm = () => {
   useEffect(() => {
     setCurrentPath(window.location.pathname);
   }, []);
+
+  // History blocking to prevent navigation until user confirms
+  useEffect(() => {
+    const unblock = history.block((tx) => {
+      if (currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage && !showLeaveDialog) {
+        console.log("🚫 Blocking navigation, showing leave dialog");
+        setShowLeaveDialog(true);
+        setNextTx(tx); // save the attempted navigation
+        return false; // block navigation for now
+      }
+      return; // allow navigation
+    });
+
+    return () => unblock();
+  }, [history, currentPath, userConfirmedLeaving, showJoinChoirPage, showLeaveDialog]);
 
   // Cleanup on unmount & back button handling
   useEffect(() => {
@@ -201,16 +220,24 @@ const LoopingRecordingForm = () => {
         cancelText="Cancel"
       />
 
-       {/* back to join choir page  */}
-      <Prompt
-        when={currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage}
-        message={JSON.stringify({
-          message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
-          stay: `Keep Recording`,
-          leave: `Delete Recording`,
-        })}
+      {/* Back Button Dialog */}
+      <BackButtonDialog
+        open={showLeaveDialog}
+        onClose={() => setShowLeaveDialog(false)}
+        onStay={() => {
+          setShowLeaveDialog(false)
+          setNextTx(null)
+        }}
+        onLeave={() => {
+          setShowLeaveDialog(false);
+          // Set flag to allow navigation and trigger cleanup
+          setUserConfirmedLeaving(true);
+        }}
+        title="Warning"
+        message="Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted."
+        stayText="Keep Recording"
+        leaveText="Delete Recording"
       />
-      
 
       <ConfirmationDialog
         open={showThankYouConfirm}
