@@ -53,6 +53,11 @@ export interface IRoundwareContext {
 	
 	// timestamp of last speaker update to trigger re-renders
 	lastSpeakerUpdateTime: Date | null;
+	
+	// track newly created speakers in current session for visual distinction
+	sessionCreatedSpeakerIds: number[];
+	setSessionCreatedSpeakerIds: React.Dispatch<React.SetStateAction<number[]>>;
+	clearSessionCreatedSpeakers: () => void;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

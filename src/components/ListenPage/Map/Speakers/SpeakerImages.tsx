@@ -9,13 +9,14 @@ import { point, Point, polygon, Position } from '@turf/helpers';
 import midpoint from '@turf/midpoint';
 import { useMemo } from 'react';
 import { ISpeakerData } from 'roundware-web-framework';
+import config from '@/config';
 interface Props {}
 
 const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 const SpeakerImages = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds } = useRoundware();
 
 	const overlayProps: (GroundOverlayProps & {
 		key: string;
@@ -79,7 +80,9 @@ const SpeakerImages = (props: Props) => {
 					},
 					url: speakerImage,
 					options: {
-						opacity: 0.2,
+						opacity: sessionCreatedSpeakerIds.includes(s.id) 
+							? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? 0.4)
+							: 0.2,
 					},
 					key: speakerImage + JSON.stringify(squarePoints),
 				};
@@ -88,7 +91,7 @@ const SpeakerImages = (props: Props) => {
 			});
 
 		return p;
-	}, [hideSpeakerPolygons, lastSpeakerUpdateTime]);
+	}, [hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds]);
 
 	return (
 		<>

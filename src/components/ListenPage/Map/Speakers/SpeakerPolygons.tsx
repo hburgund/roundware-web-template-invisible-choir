@@ -343,11 +343,17 @@ const calculateArcCurve = (
 };
 
 const SpeakerPolygons = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime } = useRoundware();
-
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers } = useRoundware();
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
 	const [googleMapElements, setGoogleMapElements] = useState<React.ReactElement[]>([]);
-
+	const [debugTestSpeakerId, setDebugTestSpeakerId] = useState<number | null>(null);
+	
+	// Debug state for real-time testing
+	const [debugColors, setDebugColors] = useState({
+		strokeColor: config.map.sessionCreatedSpeakerDefaults?.strokeColor ?? "#0000FF",
+		innerStrokeColor: config.map.sessionCreatedSpeakerDefaults?.innerStrokeColor ?? "#FFFFFF",
+	});
+	
 	/**
 	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
 	 */
@@ -395,10 +401,38 @@ const SpeakerPolygons = (props: Props) => {
 			const strokeOpacity = getStrokeOpacity(borderColor, config.map.speakerDisplayDefaults?.strokeOpacity || 1);
 			const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (speakerPolygonOptions?.strokeWeight || 0);
 
+			// Check if this is a newly created speaker in the current session
+			const isNewlyCreated = sessionCreatedSpeakerIds.includes(s.data.id) || s.data.id === debugTestSpeakerId;
+			
+			// Apply special styling for newly created speakers
+			const finalStrokeOpacity = isNewlyCreated 
+				? (config.map.sessionCreatedSpeakerDefaults?.strokeOpacity ?? 1.0)
+				: strokeOpacity;
+			const finalStrokeWeight = isNewlyCreated 
+				? (config.map.sessionCreatedSpeakerDefaults?.strokeWeight ?? Math.max(strokeWeight * 2, 4))
+				: strokeWeight;
+			const finalZIndex = isNewlyCreated ? 1000 : undefined; // Higher z-index for new speakers
+			const finalFillOpacity = isNewlyCreated 
+				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
+				: fillOpacity;
+			const finalStrokeColor = isNewlyCreated 
+				? (debugColors.strokeColor) // Use debug colors for real-time testing
+				: (baseBorderColor || baseFillColor || getColorForIndex(index));
+			
+			if (config.debugMode && isNewlyCreated) {
+				console.log(`Applying special styling to newly created speaker ${s.data.id}:`, {
+					strokeOpacity: finalStrokeOpacity,
+					strokeWeight: finalStrokeWeight,
+					zIndex: finalZIndex,
+					fillOpacity: finalFillOpacity,
+					strokeColor: finalStrokeColor
+				});
+			}
+
 			const path = polygonToGoogleMapPaths(s.data.shape);
 			const center = speakerCenters[s.data.id];
 
-			// Create polygon
+			// Create main polygon
 			const polygon = (
 				<Polygon
 					key={`polygon-${s.data.id}`}
@@ -406,26 +440,66 @@ const SpeakerPolygons = (props: Props) => {
 					options={{
 						...options,
 						fillColor: baseFillColor || getColorForIndex(index),
-						fillOpacity: fillOpacity,
-						strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
-						strokeOpacity: strokeOpacity,
-						strokeWeight: strokeWeight,
+						fillOpacity: finalFillOpacity,
+						strokeColor: finalStrokeColor,
+						strokeOpacity: finalStrokeOpacity,
+						strokeWeight: finalStrokeWeight,
+						zIndex: finalZIndex,
 						// Handle speakers without loaded audio buffer
 						...(!s.buffer
 							? {
 									fillOpacity: 0,
-									strokeOpacity: strokeOpacity > 0 ? strokeOpacity : 1,
-									strokeWeight: strokeWeight > 0 ? strokeWeight : 1,
-									strokeColor: baseBorderColor || baseFillColor || getColorForIndex(index),
+									strokeOpacity: finalStrokeOpacity > 0 ? finalStrokeOpacity : 1,
+									strokeWeight: finalStrokeWeight > 0 ? finalStrokeWeight : 1,
+									strokeColor: finalStrokeColor,
 							  }
 							: {}),
 					}}
 				/>
 			);
 
+			// Create additional stroke layers for newly created speakers
+			let additionalStrokes: React.ReactElement[] = [];
+			if (isNewlyCreated) {
+				// Inner stroke (thinner, different color)
+				const innerStroke = (
+					<Polygon
+						key={`inner-stroke-${s.data.id}`}
+						path={path}
+						options={{
+							fillOpacity: 0, // No fill
+							strokeColor: debugColors.innerStrokeColor, // Use debug colors
+							strokeOpacity: config.map.sessionCreatedSpeakerDefaults?.innerStrokeOpacity ?? 0.8,
+							strokeWeight: Math.max(1, Math.floor(finalStrokeWeight / 2)), // Half the outer stroke weight
+							zIndex: (finalZIndex || 0) + 1, // Above the main polygon
+						}}
+					/>
+				);
+				
+				// Outer glow effect (very thin, semi-transparent)
+				const outerGlowColor = config.map.sessionCreatedSpeakerDefaults?.outerGlowColor === "auto" 
+					? finalStrokeColor 
+					: (config.map.sessionCreatedSpeakerDefaults?.outerGlowColor ?? finalStrokeColor);
+				const outerGlow = (
+					<Polygon
+						key={`outer-glow-${s.data.id}`}
+						path={path}
+						options={{
+							fillOpacity: 0, // No fill
+							strokeColor: outerGlowColor,
+							strokeOpacity: config.map.sessionCreatedSpeakerDefaults?.outerGlowOpacity ?? 0.3,
+							strokeWeight: finalStrokeWeight + 2, // Slightly larger than main stroke
+							zIndex: (finalZIndex || 0) - 1, // Below the main polygon
+						}}
+					/>
+				);
+				
+				additionalStrokes = [innerStroke, outerGlow];
+			}
+
 			// Skip creating markers with invalid centers
 			if (center.lat === 0 && center.lng === 0) {
-				return [polygon];
+				return [polygon, ...additionalStrokes];
 			}
 
 			// Create center marker
@@ -448,7 +522,7 @@ const SpeakerPolygons = (props: Props) => {
 				/>
 			);
 
-			return [polygon, marker];
+			return [polygon, marker, ...additionalStrokes];
 		});
 
 		// Second pass: create lines connecting child speakers to their parents
@@ -494,7 +568,83 @@ const SpeakerPolygons = (props: Props) => {
 
 		// Combine all elements and set state
 		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
-	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor]);
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor]);
+
+	/**
+	 * Debug function to randomly select a nearby speaker for testing
+	 */
+	const selectRandomNearbySpeaker = useCallback(() => {
+		if (!roundware.mixer?.mixParams?.listenerPoint) {
+			console.warn('No listener location available for debug speaker selection');
+			return;
+		}
+
+		const speakers = roundware.mixer.speakerEngine?.speakers
+			?.filter(({ data: speaker }: any) => !!speaker.shape)
+			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id))
+			?.filter((s: any) => !sessionCreatedSpeakerIds.includes(s.data.id)); // Don't select already selected speakers
+
+		if (!speakers || speakers.length === 0) {
+			console.warn('No available speakers for debug selection');
+			return;
+		}
+
+		// Calculate distances to listener and sort by proximity
+		const listenerPoint = roundware.mixer.mixParams.listenerPoint;
+		const speakersWithDistance = speakers.map((s: any) => {
+			const center = calculatePolygonCenter(s.data.shape);
+			const distance = Math.sqrt(
+				Math.pow(center.lat - listenerPoint.geometry.coordinates[1], 2) + 
+				Math.pow(center.lng - listenerPoint.geometry.coordinates[0], 2)
+			);
+			return { speaker: s, distance, center };
+		});
+
+		// Sort by distance and take the closest one
+		speakersWithDistance.sort((a, b) => a.distance - b.distance);
+		const closestSpeaker = speakersWithDistance[0];
+
+		if (closestSpeaker) {
+			setDebugTestSpeakerId(closestSpeaker.speaker.data.id);
+			console.log(`Debug: Selected speaker ${closestSpeaker.speaker.data.id} at distance ${closestSpeaker.distance.toFixed(4)}`);
+		}
+	}, [roundware.mixer?.mixParams?.listenerPoint, roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, sessionCreatedSpeakerIds]);
+
+	// Clear debug test speaker
+	const clearDebugTestSpeaker = useCallback(() => {
+		setDebugTestSpeakerId(null);
+		console.log('Debug: Cleared test speaker selection');
+	}, []);
+
+	// Get current listener location for debugging
+	const getCurrentListenerLocation = useCallback(() => {
+		const listenerPoint = roundware.mixer?.mixParams?.listenerPoint;
+		if (listenerPoint) {
+			const lat = listenerPoint.geometry.coordinates[1];
+			const lng = listenerPoint.geometry.coordinates[0];
+			console.log(`Debug: Current listener location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+			return { lat, lng };
+		}
+		return null;
+	}, [roundware.mixer?.mixParams?.listenerPoint]);
+
+	// Show available speakers for debugging
+	const showAvailableSpeakers = useCallback(() => {
+		const speakers = roundware.mixer.speakerEngine?.speakers
+			?.filter(({ data: speaker }: any) => !!speaker.shape)
+			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id));
+
+		if (speakers && speakers.length > 0) {
+			console.log(`Debug: ${speakers.length} available speakers:`, speakers.map((s: any) => ({
+				id: s.data.id,
+				hasShape: !!s.data.shape,
+				isHidden: hideSpeakerPolygons.includes(s.data.id),
+				isSessionSpeaker: sessionCreatedSpeakerIds.includes(s.data.id)
+			})));
+		} else {
+			console.log('Debug: No available speakers found');
+		}
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, sessionCreatedSpeakerIds]);
 
 	useEffect(() => {
 		// Update immediately on mount
@@ -550,6 +700,78 @@ const SpeakerPolygons = (props: Props) => {
 					<div>
 						<p>strokeWeight</p>
 						<input type='number' value={options?.strokeWeight?.toString()} onChange={(e) => setOptions((prev) => ({ ...prev, strokeWeight: Number(e.target.value) }))} />
+					</div>
+					
+					<div>
+						<p>New Speakers: {sessionCreatedSpeakerIds.length}</p>
+						<button onClick={() => clearSessionCreatedSpeakers()}>Clear</button>
+					</div>
+					
+					<div>
+						<p>New Speaker Stroke Color:</p>
+						<input 
+							type="color" 
+							value={debugColors.strokeColor}
+							onChange={(e) => {
+								setDebugColors(prev => ({ ...prev, strokeColor: e.target.value }));
+								console.log("Stroke color changed to:", e.target.value);
+							}}
+						/>
+						<div style={{ 
+							width: '20px', 
+							height: '20px', 
+							backgroundColor: debugColors.strokeColor, 
+							border: '1px solid #ccc',
+							display: 'inline-block',
+							marginLeft: '10px'
+						}}></div>
+					</div>
+					
+					<div>
+						<p>Inner Stroke Color:</p>
+						<input 
+							type="color" 
+							value={debugColors.innerStrokeColor}
+							onChange={(e) => {
+								setDebugColors(prev => ({ ...prev, innerStrokeColor: e.target.value }));
+								console.log("Inner stroke color changed to:", e.target.value);
+							}}
+						/>
+						<div style={{ 
+							width: '20px', 
+							height: '20px', 
+							backgroundColor: debugColors.innerStrokeColor, 
+							border: '1px solid #ccc',
+							display: 'inline-block',
+							marginLeft: '10px'
+						}}></div>
+					</div>
+					
+					<div>
+						<p>Debug Colors:</p>
+						<button onClick={() => {
+							setDebugColors({
+								strokeColor: config.map.sessionCreatedSpeakerDefaults?.strokeColor ?? "#0000FF",
+								innerStrokeColor: config.map.sessionCreatedSpeakerDefaults?.innerStrokeColor ?? "#FFFFFF",
+							});
+							console.log("Debug colors reset to config defaults");
+						}}>Reset to Config</button>
+					</div>
+
+					<div>
+						<p>Debug Test Speaker:</p>
+						<button onClick={selectRandomNearbySpeaker}>Select Random Nearby</button>
+						<button onClick={clearDebugTestSpeaker}>Clear Debug</button>
+						<button onClick={getCurrentListenerLocation}>Show Listener Location</button>
+						<button onClick={showAvailableSpeakers}>Show Available Speakers</button>
+						{debugTestSpeakerId && (
+							<>
+								<p>Selected Speaker: {debugTestSpeakerId}</p>
+								<p style={{ fontSize: '12px', color: '#666' }}>
+									This speaker will now display with session speaker styling
+								</p>
+							</>
+						)}
 					</div>
 				</CustomMapControl>
 			)}

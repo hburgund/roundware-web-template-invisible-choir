@@ -41,6 +41,7 @@ const RoundwareProvider = (props: PropTypes) => {
 
 	const [hideSpeakerPolygons, setHideSpeakerPolygons] = useState<IRoundwareContext[`hideSpeakerPolygons`]>(config.features.speakerToggleIds?.[0] ? [config.features.speakerToggleIds?.[0]] : []);
 	const [lastSpeakerUpdateTime, setLastSpeakerUpdateTime] = useState<Date>(new Date());
+	const [sessionCreatedSpeakerIds, setSessionCreatedSpeakerIds] = useState<IRoundwareContext[`sessionCreatedSpeakerIds`]>([]);
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -242,6 +243,15 @@ const RoundwareProvider = (props: PropTypes) => {
 						// Add new speaker
 						currentSpeakers.push(updatedSpeaker);
 						newSpeakers.push(updatedSpeaker);
+						
+						// Track newly created speakers in current session
+						setSessionCreatedSpeakerIds(prev => {
+							const newIds = [...prev, updatedSpeaker.id];
+							if (config.debugMode) {
+								console.log(`Tracking newly created speaker ${updatedSpeaker.id} in session. Total new speakers: ${newIds.length}`);
+							}
+							return newIds;
+						});
 					}
 				});
 
@@ -623,7 +633,15 @@ const RoundwareProvider = (props: PropTypes) => {
 		}, config.listen.speakerUpdateInterval);
 
 		return () => clearInterval(interval);
-	}, [roundware?.project]);	
+	}, [roundware?.project]);
+	
+	// Reset session tracking when project changes or component unmounts
+	useEffect(() => {
+		return () => {
+			// Clear session tracking when unmounting
+			setSessionCreatedSpeakerIds([]);
+		};
+	}, [roundware?.project]);
 
 	const geoListenMode = (roundware?.mixer && roundware?.mixer?.mixParams?.geoListenMode) || GeoListenMode?.DISABLED;
 	const setGeoListenMode = (modeName: GeoListenModeType) => {
@@ -651,6 +669,10 @@ const RoundwareProvider = (props: PropTypes) => {
 		setBeforeDateFilter(null);
 		setDescriptionFilter(null);
 		setSelectedTags(null);
+	};
+	
+	const clearSessionCreatedSpeakers = () => {
+		setSessionCreatedSpeakerIds([]);
 	};
 	return (
 		<RoundwareContext.Provider
@@ -690,6 +712,9 @@ const RoundwareProvider = (props: PropTypes) => {
 				hideSpeakerPolygons,
 				setHideSpeakerPolygons,
 				lastSpeakerUpdateTime,
+				sessionCreatedSpeakerIds,
+				setSessionCreatedSpeakerIds,
+				clearSessionCreatedSpeakers,
 			}}
 		>
 			{props.children}

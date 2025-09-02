@@ -187,6 +187,18 @@ export type IConfig = {
       strokeOpacity: number;
       fillOpacity: number;
     };
+    /** Styling for newly created speakers in current session */
+    sessionCreatedSpeakerDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+      strokeColor: string;
+      // Enhanced visual effects
+      innerStrokeColor: string;
+      innerStrokeOpacity: number;
+      outerGlowColor: "auto" | string;
+      outerGlowOpacity: number;
+    };
     /** Styling for speaker center markers and connection lines */
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===

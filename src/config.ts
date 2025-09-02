@@ -134,6 +134,18 @@ let config: IConfig = {
       strokeOpacity: 0.5,
       fillOpacity: 0.25,
     },
+    // Styling for newly created speakers in current session
+    sessionCreatedSpeakerDefaults: {
+      strokeWeight: 6,
+      strokeOpacity: 1.0,
+      fillOpacity: 0.4,
+      strokeColor: "#0000FF", // Blue color for new speakers
+      // Enhanced visual effects
+      innerStrokeColor: "#FFFFFF", // White inner stroke
+      innerStrokeOpacity: 0.8,
+      outerGlowColor: "auto", // "auto" uses strokeColor, or specify hex color
+      outerGlowOpacity: 0.3,
+    },
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===
       curveType: "bezier",
