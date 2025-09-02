@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { isAndroid, isIOS } from 'react-device-detect';
 
-const AddLoopVoiceButton = () => {
+const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 	const { roundware, forceUpdate } = useRoundware();
 	const history = useHistory();
 
@@ -28,11 +28,11 @@ const AddLoopVoiceButton = () => {
 	// show tooltip on mobile devices
 	useEffect(() => {
 		const hasShownTooltipBefore = localStorage.getItem('hasShownAddChoirTooltip');
-		if (isMobile && showAddChoirButton && !hasShownTooltip && !hasShownTooltipBefore) {
+		if (isMobile && showAddChoirButton && !hasShownTooltip && !hasShownTooltipBefore && !showLaunch) {
 			setHasShownTooltip(true);
 			localStorage.setItem('hasShownAddChoirTooltip', 'true');
 		}
-	}, [showAddChoirButton, hasShownTooltip]);
+	}, [showAddChoirButton, hasShownTooltip, showLaunch]);
 
 	// Function to check if user is within any speaker range
 	const checkChoirRange = () => {
