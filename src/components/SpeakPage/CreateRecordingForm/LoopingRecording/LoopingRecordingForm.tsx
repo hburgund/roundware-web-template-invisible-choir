@@ -1,7 +1,8 @@
 import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { Box, Button } from "@mui/material";
+import { LightbulbOutlined } from "@mui/icons-material";
+import { Box, Button, Fab } from "@mui/material";
 import { useState, useEffect } from "react";
 import { Prompt, useHistory } from "react-router";
 import JoinChoir from "./components/JoinChoir";
@@ -9,23 +10,30 @@ import RecordingControls from "./components/RecordingControls";
 import SubmissionControls from "./components/SubmissionControls";
 import ProcessingOverlay from "./components/ProcessingOverlay";
 import { useLoopContext, withLoopContext } from "./LoopContext";
-import { useRoundware } from "@/hooks";
+import { useRoundware, useCurrentScreen } from "@/hooks";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 import AudioLevelMeter from "./components/AudioLevelMeter";
 import { useAudioLevelMeter } from "./hooks/useAudioLevelMeter";
+import HelpPopup from "@/components/HelpPopup";
+import BackButtonDialog from "@/components/elements/BackButtonDialog";
 
 const LoopingRecordingForm = () => {
   const { recorder, submission, location, loop } = useLoopContext();
   const { roundware } = useRoundware();
+  const currentScreen = useCurrentScreen(loop.mode);
   const [showJoinChoirPage, setShowJoinChoirPage] = useState(true);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showRerecordConfirm, setShowRerecordConfirm] = useState(false);
   const [showThankYouConfirm, setShowThankYouConfirm] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [userConfirmedLeaving, setUserConfirmedLeaving] = useState(false);
-  
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [nextTx, setNextTx] = useState<any>(null);
+
+
   // Audio level meter hook
   const { immediateLevel, averageLevel, isVisible: isMeterVisible } = useAudioLevelMeter();
   const [currentPath, setCurrentPath] = useState<string | null>(null);
@@ -81,6 +89,21 @@ const LoopingRecordingForm = () => {
   useEffect(() => {
     setCurrentPath(window.location.pathname);
   }, []);
+
+  // History blocking to prevent navigation until user confirms
+  useEffect(() => {
+    const unblock = history.block((tx) => {
+      if (currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage && !showLeaveDialog) {
+        console.log("🚫 Blocking navigation, showing leave dialog");
+        setShowLeaveDialog(true);
+        setNextTx(tx); // save the attempted navigation
+        return false; // block navigation for now
+      }
+      return; // allow navigation
+    });
+
+    return () => unblock();
+  }, [history, currentPath, userConfirmedLeaving, showJoinChoirPage, showLeaveDialog]);
 
   // Cleanup on unmount & back button handling
   useEffect(() => {
@@ -191,22 +214,30 @@ const LoopingRecordingForm = () => {
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Leave Choir"
-        description="Are you sure you want to leave this choir? 
+        description="Are you sure you want to leave this choir?
         You will lose your recording."
         confirmText="Yes, Leave"
         cancelText="Cancel"
       />
 
-       {/* back to join choir page  */}
-      <Prompt
-        when={currentPath === "/speak/recording" && !userConfirmedLeaving && !showJoinChoirPage}
-        message={JSON.stringify({
-          message: `Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted.`,
-          stay: `Keep Recording`,
-          leave: `Delete Recording`,
-        })}
+      {/* Back Button Dialog */}
+      <BackButtonDialog
+        open={showLeaveDialog}
+        onClose={() => setShowLeaveDialog(false)}
+        onStay={() => {
+          setShowLeaveDialog(false)
+          setNextTx(null)
+        }}
+        onLeave={() => {
+          setShowLeaveDialog(false);
+          // Set flag to allow navigation and trigger cleanup
+          setUserConfirmedLeaving(true);
+        }}
+        title="Warning"
+        message="Are you sure you want to leave without submitting your recording? If you do, your recording will be deleted."
+        stayText="Keep Recording"
+        leaveText="Delete Recording"
       />
-      
 
       <ConfirmationDialog
         open={showThankYouConfirm}
@@ -228,23 +259,51 @@ const LoopingRecordingForm = () => {
       />
 
       {!showJoinChoirPage && (
-        <Button
-          variant="outlined"
-          size="small"
-          sx={{
-            position: "absolute",
-            top: 15,
-            right: 25,
-            minWidth: 0,
-            p: 1,
-            borderRadius: "50%",
-            color: "white",
-            borderColor: "rgba(255, 255, 255, 0.5)"
-          }}
-          onClick={() => setShowCloseConfirm(true)}
-        >
-          <Close />
-        </Button>
+        <>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 30,
+              right: 25,
+              minWidth: 45,
+              minHeight: 45,
+              width: 45,
+              height: 45,
+              p: 0,
+              borderRadius: "50%",
+              color: "white",
+              borderColor: "rgba(255, 255, 255, 0.5)"
+            }}
+            onClick={() => setShowCloseConfirm(true)}
+          >
+            <Close />
+          </Button>
+
+          {/* Help Button */}
+          <Button
+            variant="contained"
+            color="info"
+            size="large"
+            sx={{
+              position: "absolute",
+              top: 30,
+              right: 90,
+              minWidth: 45,
+              minHeight: 45,
+              p: 0,
+              borderRadius: "50%",
+              color: "white",
+              borderColor: "rgba(255, 255, 255, 0.5)",
+              width: 45,
+              height: 45,
+            }}
+            onClick={() => setShowHelp(true)}
+          >
+            <LightbulbOutlined sx={{ fontSize: 20 }} />
+          </Button>
+        </>
       )}
 
       <ProcessingOverlay
@@ -257,11 +316,17 @@ const LoopingRecordingForm = () => {
         onClose={() => setShowMicrophoneHelp(false)}
       />
 
+      <HelpPopup
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        currentScreen={currentScreen}
+      />
+
       {/* Audio Level Meter - displays during recording */}
-      <AudioLevelMeter 
-        immediateLevel={immediateLevel} 
+      <AudioLevelMeter
+        immediateLevel={immediateLevel}
         averageLevel={averageLevel}
-        isVisible={isMeterVisible} 
+        isVisible={isMeterVisible}
       />
     </Box>
   );

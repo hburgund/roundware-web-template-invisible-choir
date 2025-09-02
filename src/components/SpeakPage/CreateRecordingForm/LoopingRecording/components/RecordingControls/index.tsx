@@ -201,7 +201,11 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
       }}
     >
       {/* StepIndicator at the top */}
-      <Box pt={15} pb={2}>
+      <Box pt={15} pb={0}
+        sx={{
+          transform: "translateY(20px)"
+        }}
+      >
         <StepIndicator />
       </Box>
       
