@@ -1,12 +1,11 @@
-import { Paper, ThemeProvider } from '@mui/material';
+import WarningDialog from '@/components/elements/WarningDialog';
 import { Feature, FeatureCollection, LineString, MultiLineString, Point, point } from '@turf/helpers';
 import pointToLine from '@turf/point-to-line-distance';
 import polygonToLineString from '@turf/polygon-to-line';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { useRoundware } from '@/hooks';
 import { isNumber } from 'lodash';
-import { useMemo } from 'react';
-import { lightTheme } from '@/styles';
+import { useMemo, useState } from 'react';
 
 type Props = {};
 export const normalizeCoords = (coordinates: number[]) => {
@@ -29,6 +28,7 @@ export function coordsToPoints({ latitude, longitude }: { latitude: number; long
 
 const OutOfRangeMessage = (props: Props) => {
 	const { roundware, lastSpeakerUpdateTime } = useRoundware();
+	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const show = useMemo(() => {
 		if (!roundware.project.data?.out_of_range_message || !isNumber(roundware.project.outOfRangeDistance)) {
@@ -111,25 +111,30 @@ const OutOfRangeMessage = (props: Props) => {
 		return true;
 	}, [roundware.project.data?.out_of_range_message, roundware.project.outOfRangeDistance, roundware.listenerLocation, roundware.speakers(), lastSpeakerUpdateTime]);
 
+	// Update dialog state when show condition changes
+	useMemo(() => {
+		setDialogOpen(show);
+	}, [show]);
+
+	const handleClose = () => {
+		setDialogOpen(false);
+	};
+
+	const handleAcknowledge = () => {
+		setDialogOpen(false);
+	};
+
 	if (show) {
 		return (
-			<ThemeProvider theme={lightTheme}>
-				<Paper
-					sx={{
-						position: 'absolute',
-						top: '10%',
-						left: '50%',
-						transform: 'translate(-50%, -50%)',
-						zIndex: 1000,
-						p: 2,
-						borderRadius: 2,
-					}}
-					variant='elevation'
-					elevation={8}
-				>
-					{roundware.project.data?.out_of_range_message}
-				</Paper>
-			</ThemeProvider>
+			<WarningDialog
+				open={dialogOpen}
+				onSecondary={handleClose}
+				onPrimary={handleAcknowledge}
+				title="Out of Range"
+				message={roundware.project.data?.out_of_range_message || 'You are out of range of this Roundware project. Please go somewhere within range and try again. Thank you.'}
+				showSecondaryButton={false}
+				primaryText="OK"
+			/>
 		);
 	}
 	return null;
