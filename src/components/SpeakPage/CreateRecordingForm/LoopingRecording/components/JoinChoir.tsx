@@ -17,6 +17,7 @@ import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissi
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import { getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils";
+import { useRoundware } from "@/hooks";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -33,6 +34,7 @@ const JoinChoir = ({
   onPermissionDenied,
   onAudioDeviceMissing,
 }: JoinChoirProps) => {
+  const { roundware } = useRoundware();
   const [isConsentChecked, setIsConsentChecked] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
@@ -40,6 +42,10 @@ const JoinChoir = ({
   const [showMicrophonePermissionDialog, setShowMicrophonePermissionDialog] = useState(false);
   const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
+
+  
+  const legalAgreementText = roundware?.project?.legalAgreement || 
+    "I consent to my recording being used solely for the artistic purposes of Invisible Choir";
 
   const handleContinue = async () => {
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
@@ -262,8 +268,7 @@ const JoinChoir = ({
                     }
                     label={
                       <Typography variant="body2" fontSize={14}>
-                        I consent to my recording being used solely for the artistic
-                        purposes of Invisible Choir
+                        {legalAgreementText}
                       </Typography>
                     }
                   />
@@ -338,8 +343,7 @@ const JoinChoir = ({
               }
               label={
                 <Typography variant="body2" fontSize={14}>
-                  I consent to my recording being used solely for the artistic
-                  purposes of Invisible Choir
+                  {legalAgreementText}
                 </Typography>
               }
             />
