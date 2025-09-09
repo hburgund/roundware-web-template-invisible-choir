@@ -146,6 +146,19 @@ let config: IConfig = {
       outerGlowColor: "auto", // "auto" uses strokeColor, or specify hex color
       outerGlowOpacity: 0.3,
     },
+    // Styling for speakers that are currently playing audio
+    playingSpeakerDefaults: {
+      strokeWeight: 4,
+      strokeOpacity: 1.0,
+      fillOpacity: 0.4, // More opaque when playing
+      strokeColor: "#00FF00", // White border for playing speakers
+    },
+    // Styling for speakers that are not currently playing
+    nonPlayingSpeakerDefaults: {
+      strokeWeight: 0, // No border for non-playing speakers
+      strokeOpacity: 0,
+      fillOpacity: 0.1, // More transparent when not playing
+    },
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===
       curveType: "bezier",

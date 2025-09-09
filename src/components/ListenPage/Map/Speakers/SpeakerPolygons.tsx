@@ -354,6 +354,9 @@ const SpeakerPolygons = (props: Props) => {
 		innerStrokeColor: config.map.sessionCreatedSpeakerDefaults?.innerStrokeColor ?? "#FFFFFF",
 	});
 	
+	// Track which speakers are currently playing
+	const [playingSpeakerIds, setPlayingSpeakerIds] = useState<Set<number>>(new Set());
+	
 	/**
 	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
 	 */
@@ -404,6 +407,9 @@ const SpeakerPolygons = (props: Props) => {
 			// Check if this is a newly created speaker in the current session
 			const isNewlyCreated = sessionCreatedSpeakerIds.includes(s.data.id) || s.data.id === debugTestSpeakerId;
 			
+			// Check if this speaker is currently playing
+			const isPlaying = playingSpeakerIds.has(s.data.id);
+			
 			// Apply special styling for newly created speakers
 			const finalStrokeOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeOpacity ?? 1.0)
@@ -418,6 +424,28 @@ const SpeakerPolygons = (props: Props) => {
 			const finalStrokeColor = isNewlyCreated 
 				? (debugColors.strokeColor) // Use debug colors for real-time testing
 				: (baseBorderColor || baseFillColor || getColorForIndex(index));
+			
+			// Apply playing/non-playing styles (only if not newly created)
+			let playingStrokeOpacity = finalStrokeOpacity;
+			let playingStrokeWeight = finalStrokeWeight;
+			let playingFillOpacity = finalFillOpacity;
+			let playingStrokeColor = finalStrokeColor;
+			
+			if (!isNewlyCreated) {
+				if (isPlaying) {
+					// Apply playing speaker styles
+					playingStrokeOpacity = config.map.playingSpeakerDefaults?.strokeOpacity ?? 1.0;
+					playingStrokeWeight = config.map.playingSpeakerDefaults?.strokeWeight ?? 4;
+					playingFillOpacity = config.map.playingSpeakerDefaults?.fillOpacity ?? 0.4;
+					playingStrokeColor = config.map.playingSpeakerDefaults?.strokeColor ?? "#FFFFFF";
+				} else {
+					// Apply non-playing speaker styles
+					playingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? 0;
+					playingStrokeWeight = config.map.nonPlayingSpeakerDefaults?.strokeWeight ?? 0;
+					playingFillOpacity = config.map.nonPlayingSpeakerDefaults?.fillOpacity ?? 0.15;
+					playingStrokeColor = finalStrokeColor; // Keep original color
+				}
+			}
 			
 			if (config.debugMode && isNewlyCreated) {
 				console.log(`Applying special styling to newly created speaker ${s.data.id}:`, {
@@ -440,18 +468,18 @@ const SpeakerPolygons = (props: Props) => {
 					options={{
 						...options,
 						fillColor: baseFillColor || getColorForIndex(index),
-						fillOpacity: finalFillOpacity,
-						strokeColor: finalStrokeColor,
-						strokeOpacity: finalStrokeOpacity,
-						strokeWeight: finalStrokeWeight,
+						fillOpacity: playingFillOpacity,
+						strokeColor: playingStrokeColor,
+						strokeOpacity: playingStrokeOpacity,
+						strokeWeight: playingStrokeWeight,
 						zIndex: finalZIndex,
 						// Handle speakers without loaded audio buffer
 						...(!s.buffer
 							? {
 									fillOpacity: 0,
-									strokeOpacity: finalStrokeOpacity > 0 ? finalStrokeOpacity : 1,
-									strokeWeight: finalStrokeWeight > 0 ? finalStrokeWeight : 1,
-									strokeColor: finalStrokeColor,
+									strokeOpacity: playingStrokeOpacity > 0 ? playingStrokeOpacity : 1,
+									strokeWeight: playingStrokeWeight > 0 ? playingStrokeWeight : 1,
+									strokeColor: playingStrokeColor,
 							  }
 							: {}),
 					}}
@@ -568,7 +596,7 @@ const SpeakerPolygons = (props: Props) => {
 
 		// Combine all elements and set state
 		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
-	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor]);
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds]);
 
 	/**
 	 * Debug function to randomly select a nearby speaker for testing
@@ -682,6 +710,74 @@ const SpeakerPolygons = (props: Props) => {
 			}
 		};
 	}, [roundware.speakers(), roundware.mixer?.speakerEngine?.speakers, updatePolygons]);
+
+	// Handle playing state tracking
+	useEffect(() => {
+		if (!roundware.mixer?.speakerEngine) return;
+
+		const speakerEngine = roundware.mixer.speakerEngine;
+
+		// Listen to the main event that tells us which tracks are playing
+		const handlePlayingTracksUpdated = (playingTracks: (number | null)[]) => {
+			const playingIds = new Set(playingTracks.filter(id => id !== null) as number[]);
+			setPlayingSpeakerIds(playingIds);
+			updatePolygons(); // Trigger visual update
+		};
+
+		// Listen to individual speaker events for immediate feedback
+		const handleSpeakerPlaying = (speakerId: number) => {
+			setPlayingSpeakerIds(prev => new Set(Array.from(prev).concat(speakerId)));
+			updatePolygons();
+		};
+
+		const handleSpeakerFinished = (speakerId: number) => {
+			setPlayingSpeakerIds(prev => {
+				const newSet = new Set(prev);
+				newSet.delete(speakerId);
+				return newSet;
+			});
+			updatePolygons();
+		};
+
+		// Set up event listeners
+		speakerEngine.on('playingTracksUpdated', handlePlayingTracksUpdated);
+
+		// Set up individual speaker event listeners and store references for cleanup
+		const speakerEventHandlers: Array<{
+			speaker: any;
+			playingHandler: () => void;
+			finishedHandler: () => void;
+			abortedHandler: () => void;
+		}> = [];
+
+		speakerEngine.speakers?.forEach((speaker: any) => {
+			const playingHandler = () => handleSpeakerPlaying(speaker.data.id);
+			const finishedHandler = () => handleSpeakerFinished(speaker.data.id);
+			const abortedHandler = () => handleSpeakerFinished(speaker.data.id);
+
+			speaker.on('playing', playingHandler);
+			speaker.on('trackFinished', finishedHandler);
+			speaker.on('trackAborted', abortedHandler);
+
+			// Store references for cleanup
+			speakerEventHandlers.push({
+				speaker,
+				playingHandler,
+				finishedHandler,
+				abortedHandler
+			});
+		});
+
+		return () => {
+			// Cleanup
+			speakerEngine.off('playingTracksUpdated', handlePlayingTracksUpdated);
+			speakerEventHandlers.forEach(({ speaker, playingHandler, finishedHandler, abortedHandler }) => {
+				speaker.off('playing', playingHandler);
+				speaker.off('trackFinished', finishedHandler);
+				speaker.off('trackAborted', abortedHandler);
+			});
+		};
+	}, [roundware.mixer?.speakerEngine]);
 
 	return (
 		<div>

@@ -199,6 +199,19 @@ export type IConfig = {
       outerGlowColor: "auto" | string;
       outerGlowOpacity: number;
     };
+    /** Styling for speakers that are currently playing audio */
+    playingSpeakerDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+      strokeColor: string;
+    };
+    /** Styling for speakers that are not currently playing */
+    nonPlayingSpeakerDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+    };
     /** Styling for speaker center markers and connection lines */
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===
