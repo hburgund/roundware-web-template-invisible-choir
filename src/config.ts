@@ -159,6 +159,16 @@ let config: IConfig = {
       strokeOpacity: 0,
       fillOpacity: 0.1, // More transparent when not playing
     },
+    // Styling for recently created speakers (based on creation time)
+    recentSpeakerDefaults: {
+      strokeWeight: 0, // No border for recent speakers
+      strokeOpacity: 0,
+      fillOpacity: 0.7, // Higher opacity for recent speakers
+      fillColor: "#808080", // Grey fill color for recent speakers
+      strokeColor: "#000000", // Black border (for future use)
+    },
+    // Number of most recent speakers to highlight
+    recentSpeakerCount: 5,
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===
       curveType: "bezier",

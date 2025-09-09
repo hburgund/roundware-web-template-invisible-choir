@@ -357,6 +357,9 @@ const SpeakerPolygons = (props: Props) => {
 	// Track which speakers are currently playing
 	const [playingSpeakerIds, setPlayingSpeakerIds] = useState<Set<number>>(new Set());
 	
+	// Track which speakers are recent (based on creation time)
+	const [recentSpeakerIds, setRecentSpeakerIds] = useState<Set<number>>(new Set());
+	
 	/**
 	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
 	 */
@@ -373,6 +376,48 @@ const SpeakerPolygons = (props: Props) => {
 		
 		return getColorForIndex(fallbackIndex);
 	}, []);
+
+	/**
+	 * Calculate and update the set of recent speakers based on update time
+	 */
+	const updateRecentSpeakers = useCallback(() => {
+		console.log('🔄 updateRecentSpeakers called');
+		if (!roundware.speakers || !Array.isArray(roundware.speakers())) {
+			console.log('❌ No speakers available or not an array');
+			return;
+		}
+
+		const speakers = roundware.speakers();
+		const recentCount = config.map.recentSpeakerCount || 4;
+		console.log('📊 Starting recent speakers calculation with', speakers.length, 'total speakers');
+		
+		// Filter speakers with valid updated timestamps and sort by update time (newest first)
+		const speakersWithValidUpdated = speakers
+			.filter(speaker => speaker.updated && !isNaN(new Date(speaker.updated).getTime()))
+			.sort((a, b) => new Date(b.updated!).getTime() - new Date(a.updated!).getTime());
+
+		// Take the most recent speakers
+		const recentSpeakers = speakersWithValidUpdated.slice(0, recentCount);
+		const recentIds = new Set(recentSpeakers.map(speaker => speaker.id));
+
+		// Debug logging for recent speakers
+		console.log('=== RECENT SPEAKERS DEBUG ===');
+		console.log(`Total speakers: ${speakers.length}`);
+		console.log(`Speakers with valid updated timestamps: ${speakersWithValidUpdated.length}`);
+		console.log(`Recent count setting: ${recentCount}`);
+		console.log('All speakers with timestamps (sorted newest first):');
+		speakersWithValidUpdated.forEach((speaker, index) => {
+			console.log(`  ${index + 1}. ID: ${speaker.id}, Updated: ${speaker.updated}, Date: ${new Date(speaker.updated!).toISOString()}`);
+		});
+		console.log('Selected recent speakers:');
+		recentSpeakers.forEach((speaker, index) => {
+			console.log(`  ${index + 1}. ID: ${speaker.id}, Updated: ${speaker.updated}`);
+		});
+		console.log('Recent speaker IDs set:', Array.from(recentIds));
+		console.log('=== END RECENT SPEAKERS DEBUG ===');
+
+		setRecentSpeakerIds(recentIds);
+	}, [roundware.speakers]);
 
 	const updatePolygons = useCallback(() => {
 		const speakers = roundware.mixer.speakerEngine?.speakers
@@ -410,6 +455,14 @@ const SpeakerPolygons = (props: Props) => {
 			// Check if this speaker is currently playing
 			const isPlaying = playingSpeakerIds.has(s.data.id);
 			
+			// Check if this speaker is recent (based on update time)
+			const isRecent = recentSpeakerIds.has(s.data.id);
+			
+			// Debug logging for speaker styling decisions
+			if (isRecent || isPlaying || isNewlyCreated) {
+				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, updated=${s.data.updated}`);
+			}
+			
 			// Apply special styling for newly created speakers
 			const finalStrokeOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeOpacity ?? 1.0)
@@ -425,25 +478,33 @@ const SpeakerPolygons = (props: Props) => {
 				? (debugColors.strokeColor) // Use debug colors for real-time testing
 				: (baseBorderColor || baseFillColor || getColorForIndex(index));
 			
-			// Apply playing/non-playing styles (only if not newly created)
-			let playingStrokeOpacity = finalStrokeOpacity;
-			let playingStrokeWeight = finalStrokeWeight;
-			let playingFillOpacity = finalFillOpacity;
-			let playingStrokeColor = finalStrokeColor;
+			// Apply styling with priority: newlyCreated > playing > recent > default
+			let finalPlayingStrokeOpacity = finalStrokeOpacity;
+			let finalPlayingStrokeWeight = finalStrokeWeight;
+			let finalPlayingFillOpacity = finalFillOpacity;
+			let finalPlayingStrokeColor = finalStrokeColor;
+			let finalPlayingFillColor = baseFillColor || getColorForIndex(index);
 			
 			if (!isNewlyCreated) {
 				if (isPlaying) {
-					// Apply playing speaker styles
-					playingStrokeOpacity = config.map.playingSpeakerDefaults?.strokeOpacity ?? 1.0;
-					playingStrokeWeight = config.map.playingSpeakerDefaults?.strokeWeight ?? 4;
-					playingFillOpacity = config.map.playingSpeakerDefaults?.fillOpacity ?? 0.4;
-					playingStrokeColor = config.map.playingSpeakerDefaults?.strokeColor ?? "#FFFFFF";
+					// Apply playing speaker styles (highest priority after newly created)
+					finalPlayingStrokeOpacity = config.map.playingSpeakerDefaults?.strokeOpacity ?? 1.0;
+					finalPlayingStrokeWeight = config.map.playingSpeakerDefaults?.strokeWeight ?? 4;
+					finalPlayingFillOpacity = config.map.playingSpeakerDefaults?.fillOpacity ?? 0.4;
+					finalPlayingStrokeColor = config.map.playingSpeakerDefaults?.strokeColor ?? "#FFFFFF";
+				} else if (isRecent) {
+					// Apply recent speaker styles (second priority)
+					finalPlayingStrokeOpacity = config.map.recentSpeakerDefaults?.strokeOpacity ?? 0;
+					finalPlayingStrokeWeight = config.map.recentSpeakerDefaults?.strokeWeight ?? 0;
+					finalPlayingFillOpacity = config.map.recentSpeakerDefaults?.fillOpacity ?? 0.4;
+					finalPlayingFillColor = config.map.recentSpeakerDefaults?.fillColor ?? "#808080";
+					finalPlayingStrokeColor = config.map.recentSpeakerDefaults?.strokeColor ?? "#000000";
 				} else {
-					// Apply non-playing speaker styles
-					playingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? 0;
-					playingStrokeWeight = config.map.nonPlayingSpeakerDefaults?.strokeWeight ?? 0;
-					playingFillOpacity = config.map.nonPlayingSpeakerDefaults?.fillOpacity ?? 0.15;
-					playingStrokeColor = finalStrokeColor; // Keep original color
+					// Apply non-playing speaker styles (default)
+					finalPlayingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? 0;
+					finalPlayingStrokeWeight = config.map.nonPlayingSpeakerDefaults?.strokeWeight ?? 0;
+					finalPlayingFillOpacity = config.map.nonPlayingSpeakerDefaults?.fillOpacity ?? 0.1;
+					finalPlayingStrokeColor = finalStrokeColor; // Keep original color
 				}
 			}
 			
@@ -467,19 +528,19 @@ const SpeakerPolygons = (props: Props) => {
 					path={path}
 					options={{
 						...options,
-						fillColor: baseFillColor || getColorForIndex(index),
-						fillOpacity: playingFillOpacity,
-						strokeColor: playingStrokeColor,
-						strokeOpacity: playingStrokeOpacity,
-						strokeWeight: playingStrokeWeight,
+						fillColor: finalPlayingFillColor,
+						fillOpacity: finalPlayingFillOpacity,
+						strokeColor: finalPlayingStrokeColor,
+						strokeOpacity: finalPlayingStrokeOpacity,
+						strokeWeight: finalPlayingStrokeWeight,
 						zIndex: finalZIndex,
 						// Handle speakers without loaded audio buffer
 						...(!s.buffer
 							? {
 									fillOpacity: 0,
-									strokeOpacity: playingStrokeOpacity > 0 ? playingStrokeOpacity : 1,
-									strokeWeight: playingStrokeWeight > 0 ? playingStrokeWeight : 1,
-									strokeColor: playingStrokeColor,
+									strokeOpacity: finalPlayingStrokeOpacity > 0 ? finalPlayingStrokeOpacity : 1,
+									strokeWeight: finalPlayingStrokeWeight > 0 ? finalPlayingStrokeWeight : 1,
+									strokeColor: finalPlayingStrokeColor,
 							  }
 							: {}),
 					}}
@@ -596,7 +657,7 @@ const SpeakerPolygons = (props: Props) => {
 
 		// Combine all elements and set state
 		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
-	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds]);
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds, recentSpeakerIds]);
 
 	/**
 	 * Debug function to randomly select a nearby speaker for testing
@@ -685,6 +746,12 @@ const SpeakerPolygons = (props: Props) => {
 			updatePolygons();
 		}
 	}, [lastSpeakerUpdateTime, updatePolygons]);
+
+	// Update recent speakers when speakers are updated
+	useEffect(() => {
+		console.log('🎯 useEffect triggered for recent speakers update, lastSpeakerUpdateTime:', lastSpeakerUpdateTime);
+		updateRecentSpeakers();
+	}, [lastSpeakerUpdateTime, updateRecentSpeakers]);
 
 	useEffect(() => {
 		if (!Array.isArray(roundware.speakers())) {

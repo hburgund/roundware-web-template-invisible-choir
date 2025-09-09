@@ -212,6 +212,16 @@ export type IConfig = {
       strokeOpacity: number;
       fillOpacity: number;
     };
+    /** Styling for recently created speakers (based on creation time) */
+    recentSpeakerDefaults: {
+      strokeWeight: number;
+      strokeOpacity: number;
+      fillOpacity: number;
+      fillColor: string;
+      strokeColor: string;
+    };
+    /** Number of most recent speakers to highlight */
+    recentSpeakerCount: number;
     /** Styling for speaker center markers and connection lines */
     speakerConnectorStyles: {
       // === CURVE BEHAVIOR (applies to both arc and bezier) ===
