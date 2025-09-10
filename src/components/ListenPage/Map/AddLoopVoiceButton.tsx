@@ -112,11 +112,13 @@ const AddLoopVoiceButton = () => {
 							animation="pulse"
 							sx={{
 								position: 'absolute',
-								width: 160,
-								height: 160,
+								width: 70,
+								height: 70,
 								top: '50%',
 								left: '50%',
 								transform: 'translate(-50%, -50%)',
+								bgcolor: 'secondary.main',
+								opacity: 0.6
 							}}
 						/>
 					)}
@@ -129,17 +131,39 @@ const AddLoopVoiceButton = () => {
 					>
 						<Fab 
 							size="large" 
-							color={isInChoirRange ? "secondary" : "primary"}
+							color={isInChoirRange ? "primary" : "primary"}
 							onClick={handleClick}
 							disabled={!isInChoirRange}
 							sx={{ 
 								pointerEvents: 'auto',
+								width: 120,
+								height: 120,
+								backgroundColor: 'transparent',
+								boxShadow: 'none',
 								opacity: isInChoirRange ? 1 : 0.7, // Slightly transparent when disabled
+								position: 'relative',
+								'&:hover': {
+									backgroundColor: 'rgba(0, 0, 0, 0.04)',
+									boxShadow: 'none'
+								},
 								'&.Mui-disabled': {
-									// Explicitly maintain the dark green color and semi-transparency
-									backgroundColor: 'secondary.main',
+									backgroundColor: 'transparent',
 									opacity: 0.7,
 									color: 'white', // Ensure text stays white
+									width: 120,
+									height: 120,
+									'&::before': {
+										content: '""',
+										position: 'absolute',
+										top: '50%',
+										left: '50%',
+										transform: 'translate(-50%, -50%)',
+										width: 70,
+										height: 70,
+										backgroundColor: 'secondary.main',
+										borderRadius: '50%',
+										zIndex: -1,
+									}
 								}
 							}}
 						>
