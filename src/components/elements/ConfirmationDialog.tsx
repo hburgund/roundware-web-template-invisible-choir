@@ -10,6 +10,7 @@ interface ConfirmationDialogProps {
   description: string;
   confirmText: string;
   cancelText?: string;
+  showCloseButton?: boolean;
 }
 
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -20,7 +21,8 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   title,
   description,
   confirmText,
-  cancelText
+  cancelText,
+  showCloseButton
 }) => {
   return (
     <FullScreenOverlay
@@ -29,6 +31,7 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       icon={icon}
       title={title}
       description={description}
+      showCloseButton={showCloseButton}
       primaryButton={{
         text: confirmText,
         onClick: onConfirm

@@ -256,6 +256,7 @@ const LoopingRecordingForm = () => {
         description="Your voice has been added to the choir and can now be heard with the other voices in this location."
         confirmText="Listen"
         cancelText=""
+        showCloseButton={false}
       />
 
       {!showJoinChoirPage && (
