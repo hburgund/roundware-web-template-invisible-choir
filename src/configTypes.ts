@@ -280,6 +280,8 @@ export type IConfig = {
     useListenMapBounds: boolean;
     /** should the bounds markers be shown;  */
     showBoundsMarkers: boolean;
+    /** should the listener location marker (walking mode pin) be shown;  */
+    showListenerLocationMarker: boolean;
     /**
      *  'none' will not restrict the map area
      * 'auto' will restrict the map area to the bounds according to the speaker regions

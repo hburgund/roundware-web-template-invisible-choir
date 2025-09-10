@@ -4,6 +4,7 @@ import { Circle, InfoWindow, Marker, useGoogleMap } from '@react-google-maps/api
 import React from 'react';
 import { useRoundware } from '../../../../hooks';
 import WalkingModePin from '../../../../assets/walkingModePin.svg';
+import config from '@/config';
 const ListenerLocationMarker = () => {
 	const { roundware } = useRoundware();
 	const map = useGoogleMap();
@@ -12,6 +13,11 @@ const ListenerLocationMarker = () => {
 	const lat = loc && loc.latitude;
 	const lng = loc && loc.longitude;
 	const center = { lat: lat!, lng: lng! };
+
+	// Don't render if the feature is disabled
+	if (!config.map.showListenerLocationMarker) {
+		return null;
+	}
 
 	// if (!ready) {
 	//   return null;

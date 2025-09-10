@@ -205,6 +205,7 @@ let config: IConfig = {
     },
     useListenMapBounds: false,
     showBoundsMarkers: false,
+    showListenerLocationMarker: false,
     bounds: "none",
     boundsPoints: {
       swLat: 3,
@@ -215,7 +216,7 @@ let config: IConfig = {
     assetTypeDisplay: ["audio", "photo", "text"],
 
     assetDisplay: "circle",
-    rangeCircleOverlayVisible: true,
+    rangeCircleOverlayVisible: false,
   },
 
   ui: {
