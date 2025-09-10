@@ -41,21 +41,71 @@ const ControlButton = memo(
         }}
       >
         {mode === "idle" ? (
-          <IconButton size="large" onClick={onPlayClick}>
-            <img 
-              src={playIcon} 
-              alt="play" 
-              style={{ width: 60, height: 60 }}
-            />
-          </IconButton>
+          <Box
+            sx={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <IconButton size="large" onClick={onPlayClick}>
+              <img 
+                src={playIcon} 
+                alt="play" 
+                style={{ width: 60, height: 60 }}
+              />
+            </IconButton>
+            <Typography
+              variant="body2"
+              sx={{
+                position: "absolute",
+                top: "100%",
+                marginTop: "-3px",
+                color: "white",
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                lineHeight: 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              PLAY
+            </Typography>
+          </Box>
         ) : mode === "playing-speaker" ? (
-          <IconButton onClick={onRecordClick}>
-            <img 
-              src={micIcon} 
-              alt="mic" 
-              style={{ width: 60, height: 60 }}
-            />
-          </IconButton>
+          <Box
+            sx={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <IconButton onClick={onRecordClick}>
+              <img 
+                src={micIcon} 
+                alt="mic" 
+                style={{ width: 60, height: 60 }}
+              />
+            </IconButton>
+            <Typography
+              variant="body2"
+              sx={{
+                position: "absolute",
+                top: "100%",
+                marginTop: "0px",
+                color: "white",
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+                lineHeight: 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              RECORD
+            </Typography>
+          </Box>
         ) : mode === "recording" ? (
           <Box
             width={60}
