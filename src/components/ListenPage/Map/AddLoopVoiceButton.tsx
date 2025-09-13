@@ -1,6 +1,6 @@
 import { Mic } from '@mui/icons-material';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { Box, Tooltip, Skeleton, Fade, Fab, Typography } from '@mui/material';
+import { Box, Tooltip, Skeleton, Fade, Fab, Typography, Zoom, Grow } from '@mui/material';
 import { point } from '@turf/helpers';
 import { useRoundware } from '@/hooks/index';
 import { useState, useEffect } from 'react';
@@ -13,6 +13,8 @@ const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 
 	const [showAddChoirButton, setShowAddChoirButton] = useState(true);
 	const [hasShownTooltip, setHasShownTooltip] = useState(false);
+	const [isZooming, setIsZooming] = useState(false);
+	const [showZoomBackground, setShowZoomBackground] = useState(false);
 
 	const [isInChoirRange, setIsInChoirRange] = useState(false);
 
@@ -79,93 +81,132 @@ const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 			return; // Do nothing if not in range
 		}
 
-		setShowAddChoirButton(false);
-		const lat = roundware.listenerLocation.latitude as number;
-		const lng = roundware.listenerLocation.longitude as number;
+		// Start zoom animation
+		setIsZooming(true);
+		setShowZoomBackground(true);
 		
-		roundware.mixer.stop();
-		forceUpdate();
-		history.push({
-			pathname: '/speak',
-			search: `?lat=${lat}&lng=${lng}`,
-		});
+		// After zoom animation completes, navigate
+		setTimeout(() => {
+			setShowAddChoirButton(false);
+			const lat = roundware.listenerLocation.latitude as number;
+			const lng = roundware.listenerLocation.longitude as number;
+			
+			roundware.mixer.stop();
+			forceUpdate();
+			history.push({
+				pathname: '/speak',
+				search: `?lat=${lat}&lng=${lng}`,
+			});
+		}, 50);
 	};
 
 	return (
-		<Fade in={showAddChoirButton} timeout={1000}>
+		<>
+			{/* Zoom background overlay */}
 			<Box
-				display="flex"
-				alignItems="center"
-				justifyContent="center"
-				position="absolute"
-				width="100%"
-				height="100%"
-				sx={{ 
-					'& .MuiFab-root': { width: 120, height: 120 },
-					pointerEvents: 'none'
-				}}>
-				<Box sx={{ position: 'relative' }}>
-					{/* Show skeleton animation only when in choir range */}
-					{isInChoirRange && (
-						<Skeleton
-							variant="circular"
-							animation="pulse"
-							sx={{
-								position: 'absolute',
-								width: 160,
-								height: 160,
-								top: '50%',
-								left: '50%',
-								transform: 'translate(-50%, -50%)',
-							}}
-						/>
-					)}
-					
-					<Tooltip 
-						title={isInChoirRange ? "TAP TO JOIN CHOIR" : "Move closer to a choir location to join"} 
-						arrow 
-						placement="bottom"
-						{...tooltipProps}
-					>
-						<Fab 
-							size="large" 
-							color={isInChoirRange ? "secondary" : "primary"}
-							onClick={handleClick}
-							disabled={!isInChoirRange}
-							sx={{ 
-								pointerEvents: 'auto',
-								opacity: isInChoirRange ? 1 : 0.7, // Slightly transparent when disabled
-								'&.Mui-disabled': {
-									// Explicitly maintain the dark green color and semi-transparency
-									backgroundColor: 'secondary.main',
-									opacity: 0.7,
-									color: 'white', // Ensure text stays white
-								}
-							}}
-						>
-							{isInChoirRange ? (
-								<AddCircleOutlineIcon fontSize="large" color="primary" />
-							) : (
-								<Typography 
-									variant="caption" 
-									sx={{ 
-										textAlign: 'center',
-										lineHeight: 1.2,
-										fontSize: '0.65rem',
-										fontWeight: 'bold',
-										color: 'white' // White text for disabled state
-									}}
-								>
-									NO CHOIR
-									<br />
-									TO JOIN
-								</Typography>
-							)}
-						</Fab>
-					</Tooltip>
-				</Box>
+				sx={{
+					position: 'fixed',
+					top: '50%',
+					left: '50%',
+					width: '100vw',
+					height: '100vw',
+					transform: 'translate(-50%, -50%)',
+					backgroundColor: 'secondary.main',
+					borderRadius: '50%',
+					zIndex: 9999,
+					display: showZoomBackground ? 'flex' : 'none',
+					alignItems: 'center',
+					justifyContent: 'center',
+					animation: showZoomBackground ? 'zoomIn 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards' : 'none',
+					willChange: 'transform',
+					'@keyframes zoomIn': {
+						'0%': {
+							transform: 'translate(-50%, -50%) scale(0)',
+						},
+						'100%': {
+							transform: 'translate(-50%, -50%) scale(2.5)',
+						},
+					},
+				}}
+			>
+				
 			</Box>
-		</Fade>
+
+			<Fade in={showAddChoirButton} timeout={1000}>
+				<Box
+					display="flex"
+					alignItems="center"
+					justifyContent="center"
+					position="absolute"
+					width="100%"
+					height="100%"
+					sx={{ 
+						'& .MuiFab-root': { width: 120, height: 120 },
+						pointerEvents: 'none'
+					}}>
+					<Box sx={{ position: 'relative' }}>
+						{/* Show skeleton animation only when in choir range */}
+						{isInChoirRange && (
+							<Skeleton
+								variant="circular"
+								animation="pulse"
+								sx={{
+									position: 'absolute',
+									width: 160,
+									height: 160,
+									top: '50%',
+									left: '50%',
+									transform: 'translate(-50%, -50%)',
+								}}
+							/>
+						)}
+						
+						<Tooltip 
+							title={isInChoirRange ? "TAP TO JOIN CHOIR" : "Move closer to a choir location to join"} 
+							arrow 
+							placement="bottom"
+							{...tooltipProps}
+						>
+							<Fab 
+								size="large" 
+								color={isInChoirRange ? "secondary" : "primary"}
+								onClick={handleClick}
+								disabled={!isInChoirRange || isZooming}
+								sx={{ 
+									pointerEvents: 'auto',
+									opacity: isInChoirRange ? 1 : 0.7, // Slightly transparent when disabled
+									'&.Mui-disabled': {
+										// Explicitly maintain the dark green color and semi-transparency
+										backgroundColor: 'secondary.main',
+										opacity: 0.7,
+										color: 'white', // Ensure text stays white
+									}
+								}}
+							>
+								{isInChoirRange ? (
+									<AddCircleOutlineIcon fontSize="large" color="primary" />
+								) : (
+									<Typography 
+										variant="caption" 
+										sx={{ 
+											textAlign: 'center',
+											lineHeight: 1.2,
+											fontSize: '0.65rem',
+											fontWeight: 'bold',
+											color: 'white' // White text for disabled state
+										}}
+									>
+										NO CHOIR
+										<br />
+										TO JOIN
+									</Typography>
+								)}
+							</Fab>
+						</Tooltip>
+					</Box>
+				</Box>
+			</Fade>
+		</>
 	);
 };
 
