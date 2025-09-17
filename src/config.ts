@@ -35,8 +35,11 @@ let config: IConfig = {
       prefetchDistanceMeters: 5,
       loopFractions: [1 / 8, 1 / 4, 1 / 2, 5 / 8, 3 / 4, 1 / 1],
       effects: {
-        delayTimeInMs: 50,
-        feedback: 0.5,
+        delayTimeInMs: 250,
+        feedback: 0.2,
+        wetDryRatio: 0.3,
+        reverbRoomSize: 0.6,
+        reverbDamping: 0.3,
         pan: [-0.8, -0.4, 0.4, 0.8],
       },
       // Variant URI configuration for speaker audio variants
