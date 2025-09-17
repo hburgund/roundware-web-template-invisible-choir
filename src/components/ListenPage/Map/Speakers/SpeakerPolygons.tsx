@@ -421,13 +421,40 @@ const SpeakerPolygons = (props: Props) => {
 
 	const updatePolygons = useCallback(() => {
 		const speakers = roundware.mixer.speakerEngine?.speakers
-			?.sort((a: any, b: any) => (a?.data.id > b?.data.id ? -1 : 1))
 			?.filter(({ data: speaker }: any) => !!speaker.shape)
-			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id));
+			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id))
+			?.sort((a: any, b: any) => {
+				// Sort by updated timestamp (most recent first), fallback to ID for speakers without timestamps
+				const aUpdated = a?.data?.updated ? new Date(a.data.updated).getTime() : 0;
+				const bUpdated = b?.data?.updated ? new Date(b.data.updated).getTime() : 0;
+				
+				// If both have valid timestamps, sort by timestamp (newest first)
+				if (aUpdated > 0 && bUpdated > 0) {
+					return bUpdated - aUpdated;
+				}
+				
+				// If only one has a timestamp, prioritize it
+				if (aUpdated > 0 && bUpdated === 0) return -1;
+				if (bUpdated > 0 && aUpdated === 0) return 1;
+				
+				// If neither has a timestamp, fallback to ID sorting
+				return (a?.data.id > b?.data.id ? -1 : 1);
+			});
 
 		if (!speakers) {
 			setGoogleMapElements([]);
 			return;
+		}
+
+		// Debug logging for speaker sorting
+		if (config.debugMode) {
+			console.log(`🗂️ Speaker sorting order (most recent first):`);
+			speakers.forEach((s: any, index: number) => {
+				const updated = s.data.updated ? new Date(s.data.updated).toISOString() : 'no timestamp';
+				const hasUpdatedTimestamp = s.data.updated && !isNaN(new Date(s.data.updated).getTime());
+				const zIndex = hasUpdatedTimestamp ? (10 + index) : 'undefined';
+				console.log(`  ${index + 1}. ID: ${s.data.id}, Updated: ${updated}, Z-Index: ${zIndex}`);
+			});
 		}
 
 		// Create a map of speaker IDs to their center positions for easy lookup
@@ -438,6 +465,11 @@ const SpeakerPolygons = (props: Props) => {
 
 		// First pass: create polygons and center markers
 		const polygonsAndMarkers = speakers.flatMap((s: any, index: number) => {
+			// Calculate z-index based on sort order (most recent = highest z-index)
+			// Base z-index starts at 10 for oldest speaker, counting up for more recent speakers
+			// This ensures most recently updated speakers appear on top
+			const baseZIndex = 10;
+			const calculatedZIndex = baseZIndex + index;
 			// Get fill color (from server or config fallback)
 			const fillColor = getSpeakerFillColor(s.data, index);
 			const baseFillColor = getBaseColor(fillColor);
@@ -458,11 +490,6 @@ const SpeakerPolygons = (props: Props) => {
 			// Check if this speaker is recent (based on update time)
 			const isRecent = recentSpeakerIds.has(s.data.id);
 			
-			// Debug logging for speaker styling decisions
-			if (isRecent || isPlaying || isNewlyCreated) {
-				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, updated=${s.data.updated}`);
-			}
-			
 			// Apply special styling for newly created speakers
 			const finalStrokeOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeOpacity ?? 1.0)
@@ -470,7 +497,15 @@ const SpeakerPolygons = (props: Props) => {
 			const finalStrokeWeight = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeWeight ?? Math.max(strokeWeight * 2, 4))
 				: strokeWeight;
-			const finalZIndex = isNewlyCreated ? 1000 : undefined; // Higher z-index for new speakers
+			// Use calculated z-index based on update time, but give newly created speakers highest priority
+			// If speaker has no updated timestamp, use undefined (default behavior)
+			const hasUpdatedTimestamp = s.data.updated && !isNaN(new Date(s.data.updated).getTime());
+			const finalZIndex = isNewlyCreated ? 1000 : (hasUpdatedTimestamp ? calculatedZIndex : undefined);
+			
+			// Debug logging for speaker styling decisions
+			if (isRecent || isPlaying || isNewlyCreated || config.debugMode) {
+				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, updated=${s.data.updated}, zIndex=${finalZIndex}, sortIndex=${index}`);
+			}
 			const finalFillOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
 				: fillOpacity;
