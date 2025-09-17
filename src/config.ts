@@ -39,6 +39,10 @@ let config: IConfig = {
         feedback: 0.5,
         pan: [-0.8, -0.4, 0.4, 0.8],
       },
+      // Variant URI configuration for speaker audio variants
+      minVariantLoops: 1, // Minimum loops per variant (default: 2)
+      maxVariantLoops: 2, // Maximum loops per variant (default: 4)
+      variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
     },
 
     skipDuration: 5,
@@ -61,13 +65,13 @@ let config: IConfig = {
       balanceRatio: 0.8, // Ratio for balancing click track against speaker audio (0.0 = no click, 1.0 = full click)
     },
     micRecordingEffects: false, // Disable real-time effects during recording for better reliability
-    
+
     /** volume levels for looping recording review stage */
     loopingRecordingVolumes: {
       baseLoopVolume: 0.5,    // Lower base loop volume for review
       userRecordingVolume: 1.0, // Higher user recording volume for review
     },
-    
+
     /** effects for looping recording playback review stage */
     loopingRecordingPlaybackEffects: {
       enabled: true,
@@ -87,7 +91,7 @@ let config: IConfig = {
         decayTime: 1.0,    // 1 second decay
       },
     },
-    
+
     // === ADVANCED AUDIO PROCESSING MINIMIZATION ===
     // These settings help minimize on-board processing in headphones and external mics
     audioProcessingMinimization: {
