@@ -46,6 +46,7 @@ let config: IConfig = {
       minVariantLoops: 1, // Minimum loops per variant (default: 2)
       maxVariantLoops: 2, // Maximum loops per variant (default: 4)
       variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
+      alwaysOnWhenAvailable: [393],
     },
 
     skipDuration: 5,
