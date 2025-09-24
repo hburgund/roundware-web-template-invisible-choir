@@ -29,11 +29,22 @@ let config: IConfig = {
       loop: true,
       acceptableDelayMs: 50,
       syncCheckInterval: 2500,
-      replaceWithNoneProbability: 0.2,
-      loopPointUpdateProbability: 0.8,
+      replaceWithNoneProbability: 0.0,
+      loopPointUpdateProbability: 0.7,
       slotConsiderationProbability: 0.5,
+      speakerRotationProbability: 0.8,
       prefetchDistanceMeters: 5,
-      loopFractions: [1 / 8, 1 / 4, 1 / 2, 5 / 8, 3 / 4, 1 / 1],
+      // loopFractions: [1/8, 1/4, 1/2, 5/8, 3/4, 1/1, 1/1, 1/1, 1/1, 1/2, 1/2],
+      loopFractions: [
+        // 1/8,
+        // 1/4,1/4,1/4,1/4,
+        // 1/2,1/2,1/2,1/2,
+        1/1,1/1,1/1,1/1,1/1,1/1,1/1,1/1,
+        // -1/1,
+        // -1/2,
+        // -1/8,
+        // -1/4,
+      ],
       effects: {
         delayTimeInMs: 250,
         feedback: 0.2,
@@ -43,9 +54,10 @@ let config: IConfig = {
         pan: [-0.8, -0.4, 0.4, 0.8],
       },
       // Variant URI configuration for speaker audio variants
-      minVariantLoops: 1, // Minimum loops per variant (default: 2)
-      maxVariantLoops: 2, // Maximum loops per variant (default: 4)
+      minVariantLoops: 2, // Minimum loops per variant (default: 2)
+      maxVariantLoops: 3, // Maximum loops per variant (default: 4)
       variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
+      newSpeakerFadeInDurationMs: 2000,
       alwaysOnWhenAvailable: [393],
     },
 
@@ -59,9 +71,9 @@ let config: IConfig = {
     defaultSpeakTags: [],
     recordingMethod: "looping",
     uploadAsSpeaker: true,
-    baseRecordingLoopSelectionMethod: "topAncestor", // "all" | "oldest" | "topAncestor"
+    baseRecordingLoopSelectionMethod: "all", // "all" | "oldest" | "topAncestor"
     speakerShape: "beechLeaf",
-    speakerShapeScale: 1.05,
+    speakerShapeScale: 1.00,
     beatsPerLoop: 8,
     clickTrack: {
       enabled: true,
@@ -72,7 +84,7 @@ let config: IConfig = {
 
     /** volume levels for looping recording review stage */
     loopingRecordingVolumes: {
-      baseLoopVolume: 0.5,    // Lower base loop volume for review
+      baseLoopVolume: 0.2,    // Lower base loop volume for review
       userRecordingVolume: 1.0, // Higher user recording volume for review
     },
 
@@ -128,8 +140,8 @@ let config: IConfig = {
     },
 
     zoom: {
-      high: 20,
-      low: 17,
+      high: 22,
+      low: 20,
       walking: 22,
     },
     speakerDisplay: "polygons",
