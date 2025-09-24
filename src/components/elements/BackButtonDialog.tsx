@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
-} from '@mui/material';
+import WarningDialog from './WarningDialog';
 
 export interface BackButtonDialogProps {
   open: boolean;
@@ -30,38 +23,16 @@ const BackButtonDialog: React.FC<BackButtonDialogProps> = ({
   leaveText,
 }) => {
   return (
-    <Dialog
+    <WarningDialog
       open={open}
-      onClose={onClose}
-      aria-labelledby="back-dialog-title"
-      aria-describedby="back-dialog-description"
-    >
-      <DialogTitle id="back-dialog-title">{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText id="back-dialog-description">
-          {message}
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={onStay}
-          color="primary"
-          variant="outlined"
-          sx={{ color: 'text.primary' }}
-        >
-          {stayText}
-        </Button>
-        <Button
-          onClick={onLeave}
-          color="primary"
-          variant="contained"
-          autoFocus
-          sx={{ color: 'white' }}
-        >
-          {leaveText}
-        </Button>
-      </DialogActions>
-    </Dialog>
+      onSecondary={onStay}
+      onPrimary={onLeave}
+      title={title}
+      message={message}
+      primaryText={leaveText}
+      secondaryText={stayText}
+      showSecondaryButton={true}
+    />
   );
 };
 

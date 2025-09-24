@@ -8,7 +8,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Fade, useMediaQuery } from "@mui/material";
+import { Fade, Slide, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { isAndroid, isIOS } from 'react-device-detect';
 import JoinChoirBackground from "./JoinChoirBackground";
@@ -17,6 +17,7 @@ import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissi
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import { getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils";
+import { useRoundware } from "@/hooks";
 
 interface JoinChoirProps {
   onContinue: () => void;
@@ -33,6 +34,7 @@ const JoinChoir = ({
   onPermissionDenied,
   onAudioDeviceMissing,
 }: JoinChoirProps) => {
+  const { roundware } = useRoundware();
   const [isConsentChecked, setIsConsentChecked] = useState(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
@@ -40,6 +42,10 @@ const JoinChoir = ({
   const [showMicrophonePermissionDialog, setShowMicrophonePermissionDialog] = useState(false);
   const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
+
+  
+  const legalAgreementText = roundware?.project?.legalAgreement || 
+    "I consent to my recording being used solely for the artistic purposes of Invisible Choir";
 
   const handleContinue = async () => {
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
@@ -181,24 +187,44 @@ const JoinChoir = ({
 
   if (shouldUseLandscapeLayout) {
     return (
-      <Fade mountOnEnter unmountOnExit in={true}>
-        <Box>
-          {/* Landscape mode layout */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          overflow: "hidden",
+          WebkitOverflowScrolling: "touch",
+          willChange: "transform",
+        }}
+      >
+        <JoinChoirBackground />
+        <Slide 
+          direction="up" 
+          in={true} 
+          mountOnEnter 
+          unmountOnExit 
+          timeout={200}
+          easing={{
+            enter: 'cubic-bezier(0.0, 0, 0.2, 1)',
+            exit: 'cubic-bezier(0.4, 0, 1, 1)',
+          }}
+        >
           <Box
             sx={{
               "& .MuiFab-root": { width: 260, height: 260 },
               mx: "auto",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            position={"absolute"}
-            top={0}
-            left={0}
-            right={0}
-            bottom={0}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
           >
-            <JoinChoirBackground />
             <Box
               sx={{
                 position: "relative",
@@ -262,8 +288,7 @@ const JoinChoir = ({
                     }
                     label={
                       <Typography variant="body2" fontSize={14}>
-                        I consent to my recording being used solely for the artistic
-                        purposes of Invisible Choir
+                        {legalAgreementText}
                       </Typography>
                     }
                   />
@@ -284,31 +309,52 @@ const JoinChoir = ({
               </Box>
             </Box>
           </Box>
-        </Box>
-      </Fade>
+        </Slide>
+      </Box>
     );
   }
 
   // Portrait mode layout (original)
   return (
-    <Fade mountOnEnter unmountOnExit in={true}>
-      <Box>
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: "hidden",
+        WebkitOverflowScrolling: "touch",
+        willChange: "transform",
+      }}
+    >
+      <JoinChoirBackground />
+      <Slide 
+        direction="up" 
+        in={true} 
+        mountOnEnter 
+        unmountOnExit 
+        timeout={200}
+        easing={{
+          enter: 'cubic-bezier(0.0, 0, 0.2, 1)',
+          exit: 'cubic-bezier(0.4, 0, 1, 1)',
+        }}
+      >
         <Box
           display="flex"
           flexDirection="column"
           sx={{
             "& .MuiFab-root": { width: 300, height: 300 },
             mx: "auto",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: "center",
+            alignItems: "center",
           }}
-          position={"absolute"}
-          top={0}
-          left={0}
-          right={0}
-          bottom={0}
-          justifyContent={"center"}
-          alignItems={"center"}
         >
-          <JoinChoirBackground />
           <Box sx={{ position: "relative" }}>
             <Skeleton
               variant="circular"
@@ -338,8 +384,7 @@ const JoinChoir = ({
               }
               label={
                 <Typography variant="body2" fontSize={14}>
-                  I consent to my recording being used solely for the artistic
-                  purposes of Invisible Choir
+                  {legalAgreementText}
                 </Typography>
               }
             />
@@ -356,6 +401,7 @@ const JoinChoir = ({
             Cancel
           </Button>
         </Box>
+      </Slide>
 
         <MicrophonePermissionDialog
           open={showMicrophonePermissionDialog}
@@ -379,7 +425,6 @@ const JoinChoir = ({
           onClose={() => setShowMicrophoneHelp(false)}
         />
       </Box>
-    </Fade>
   );
 };
 

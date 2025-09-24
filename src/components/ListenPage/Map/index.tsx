@@ -271,7 +271,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 
 						<OutOfRangeMessage />
 							
-						<AddLoopVoiceButton />
+						<AddLoopVoiceButton showLaunch={showLaunch} />
 
 						<Fade in={showLaunch} timeout={1000}>
 							<Box
