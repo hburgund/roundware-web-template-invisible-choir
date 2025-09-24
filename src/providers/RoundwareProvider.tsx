@@ -42,6 +42,7 @@ const RoundwareProvider = (props: PropTypes) => {
 	const [hideSpeakerPolygons, setHideSpeakerPolygons] = useState<IRoundwareContext[`hideSpeakerPolygons`]>(config.features.speakerToggleIds?.[0] ? [config.features.speakerToggleIds?.[0]] : []);
 	const [lastSpeakerUpdateTime, setLastSpeakerUpdateTime] = useState<Date>(new Date());
 	const [sessionCreatedSpeakerIds, setSessionCreatedSpeakerIds] = useState<IRoundwareContext[`sessionCreatedSpeakerIds`]>([]);
+	const [playingSpeakerIds, setPlayingSpeakerIds] = useState<IRoundwareContext[`playingSpeakerIds`]>(new Set());
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -674,6 +675,71 @@ const RoundwareProvider = (props: PropTypes) => {
 	const clearSessionCreatedSpeakers = () => {
 		setSessionCreatedSpeakerIds([]);
 	};
+
+	// Set up event listeners for playing state tracking (shared across components)
+	useEffect(() => {
+		if (!roundware.mixer?.speakerEngine) return;
+
+		const speakerEngine = roundware.mixer.speakerEngine;
+
+		// Listen to the main event that tells us which tracks are playing
+		const handlePlayingTracksUpdated = (playingTracks: (number | null)[]) => {
+			const playingIds = new Set(playingTracks.filter(id => id !== null) as number[]);
+			setPlayingSpeakerIds(playingIds);
+		};
+
+		// Listen to individual speaker events for immediate feedback
+		const handleSpeakerPlaying = (speakerId: number) => {
+			setPlayingSpeakerIds(prev => new Set(Array.from(prev).concat(speakerId)));
+		};
+
+		const handleSpeakerFinished = (speakerId: number) => {
+			setPlayingSpeakerIds(prev => {
+				const newSet = new Set(prev);
+				newSet.delete(speakerId);
+				return newSet;
+			});
+		};
+
+		// Set up event listeners
+		speakerEngine.on('playingTracksUpdated', handlePlayingTracksUpdated);
+
+		// Set up individual speaker event listeners and store references for cleanup
+		const speakerEventHandlers: Array<{
+			speaker: any;
+			playingHandler: () => void;
+			finishedHandler: () => void;
+			abortedHandler: () => void;
+		}> = [];
+
+		speakerEngine.speakers?.forEach((speaker: any) => {
+			const playingHandler = () => handleSpeakerPlaying(speaker.data.id);
+			const finishedHandler = () => handleSpeakerFinished(speaker.data.id);
+			const abortedHandler = () => handleSpeakerFinished(speaker.data.id);
+
+			speaker.on('playing', playingHandler);
+			speaker.on('finished', finishedHandler);
+			speaker.on('aborted', abortedHandler);
+
+			speakerEventHandlers.push({
+				speaker,
+				playingHandler,
+				finishedHandler,
+				abortedHandler,
+			});
+		});
+
+		return () => {
+			// Clean up event listeners
+			speakerEngine.off('playingTracksUpdated', handlePlayingTracksUpdated);
+			speakerEventHandlers.forEach(({ speaker, playingHandler, finishedHandler, abortedHandler }) => {
+				speaker.off('playing', playingHandler);
+				speaker.off('finished', finishedHandler);
+				speaker.off('aborted', abortedHandler);
+			});
+		};
+	}, [roundware.mixer?.speakerEngine]);
+
 	return (
 		<RoundwareContext.Provider
 			value={{
@@ -715,6 +781,8 @@ const RoundwareProvider = (props: PropTypes) => {
 				sessionCreatedSpeakerIds,
 				setSessionCreatedSpeakerIds,
 				clearSessionCreatedSpeakers,
+				playingSpeakerIds,
+				setPlayingSpeakerIds,
 			}}
 		>
 			{props.children}

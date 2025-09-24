@@ -343,7 +343,7 @@ const calculateArcCurve = (
 };
 
 const SpeakerPolygons = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers, playingSpeakerIds } = useRoundware();
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
 	const [googleMapElements, setGoogleMapElements] = useState<React.ReactElement[]>([]);
 	const [debugTestSpeakerId, setDebugTestSpeakerId] = useState<number | null>(null);
@@ -353,9 +353,6 @@ const SpeakerPolygons = (props: Props) => {
 		strokeColor: config.map.sessionCreatedSpeakerDefaults?.strokeColor ?? "#0000FF",
 		innerStrokeColor: config.map.sessionCreatedSpeakerDefaults?.innerStrokeColor ?? "#FFFFFF",
 	});
-	
-	// Track which speakers are currently playing
-	const [playingSpeakerIds, setPlayingSpeakerIds] = useState<Set<number>>(new Set());
 	
 	// Track which speakers are recent (based on creation time)
 	const [recentSpeakerIds, setRecentSpeakerIds] = useState<Set<number>>(new Set());
@@ -813,73 +810,11 @@ const SpeakerPolygons = (props: Props) => {
 		};
 	}, [roundware.speakers(), roundware.mixer?.speakerEngine?.speakers, updatePolygons]);
 
-	// Handle playing state tracking
+	// Handle playing state tracking - now using shared state from context
 	useEffect(() => {
-		if (!roundware.mixer?.speakerEngine) return;
-
-		const speakerEngine = roundware.mixer.speakerEngine;
-
-		// Listen to the main event that tells us which tracks are playing
-		const handlePlayingTracksUpdated = (playingTracks: (number | null)[]) => {
-			const playingIds = new Set(playingTracks.filter(id => id !== null) as number[]);
-			setPlayingSpeakerIds(playingIds);
-			updatePolygons(); // Trigger visual update
-		};
-
-		// Listen to individual speaker events for immediate feedback
-		const handleSpeakerPlaying = (speakerId: number) => {
-			setPlayingSpeakerIds(prev => new Set(Array.from(prev).concat(speakerId)));
-			updatePolygons();
-		};
-
-		const handleSpeakerFinished = (speakerId: number) => {
-			setPlayingSpeakerIds(prev => {
-				const newSet = new Set(prev);
-				newSet.delete(speakerId);
-				return newSet;
-			});
-			updatePolygons();
-		};
-
-		// Set up event listeners
-		speakerEngine.on('playingTracksUpdated', handlePlayingTracksUpdated);
-
-		// Set up individual speaker event listeners and store references for cleanup
-		const speakerEventHandlers: Array<{
-			speaker: any;
-			playingHandler: () => void;
-			finishedHandler: () => void;
-			abortedHandler: () => void;
-		}> = [];
-
-		speakerEngine.speakers?.forEach((speaker: any) => {
-			const playingHandler = () => handleSpeakerPlaying(speaker.data.id);
-			const finishedHandler = () => handleSpeakerFinished(speaker.data.id);
-			const abortedHandler = () => handleSpeakerFinished(speaker.data.id);
-
-			speaker.on('playing', playingHandler);
-			speaker.on('trackFinished', finishedHandler);
-			speaker.on('trackAborted', abortedHandler);
-
-			// Store references for cleanup
-			speakerEventHandlers.push({
-				speaker,
-				playingHandler,
-				finishedHandler,
-				abortedHandler
-			});
-		});
-
-		return () => {
-			// Cleanup
-			speakerEngine.off('playingTracksUpdated', handlePlayingTracksUpdated);
-			speakerEventHandlers.forEach(({ speaker, playingHandler, finishedHandler, abortedHandler }) => {
-				speaker.off('playing', playingHandler);
-				speaker.off('trackFinished', finishedHandler);
-				speaker.off('trackAborted', abortedHandler);
-			});
-		};
-	}, [roundware.mixer?.speakerEngine]);
+		// Trigger visual update when playing state changes
+		updatePolygons();
+	}, [playingSpeakerIds, updatePolygons]);
 
 	return (
 		<div>

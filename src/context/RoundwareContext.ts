@@ -58,6 +58,10 @@ export interface IRoundwareContext {
 	sessionCreatedSpeakerIds: number[];
 	setSessionCreatedSpeakerIds: React.Dispatch<React.SetStateAction<number[]>>;
 	clearSessionCreatedSpeakers: () => void;
+	
+	// track which speakers are currently playing (shared across components)
+	playingSpeakerIds: Set<number>;
+	setPlayingSpeakerIds: React.Dispatch<React.SetStateAction<Set<number>>>;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

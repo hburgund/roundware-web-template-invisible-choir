@@ -231,12 +231,14 @@ export const useBaseSpeakerAudio = (
       baseLoop: null;
       isReady: false;
     } => {
-  const { roundware } = useRoundware();
+  const { roundware, playingSpeakerIds } = useRoundware();
 
   const [baseSpeakers, setBaseSpeakers] = useState<ISpeakerData[]>([]);
   const [duration, setAudioDuration] = useState<number | null>(null);
   const [baseLoopWithClick, setBaseLoopWithClick] = useState<AudioBuffer | null>(null);
   const [baseLoopWithoutClick, setBaseLoopWithoutClick] = useState<AudioBuffer | null>(null);
+
+  // Playing state is now managed by the shared context
 
   useEffect(() => {
     console.log('[useBaseSpeakerAudio] useEffect triggered with lat:', lat, 'lng:', lng);
@@ -310,8 +312,46 @@ export const useBaseSpeakerAudio = (
     
     switch (finalConfig.speak.baseRecordingLoopSelectionMethod) {
       case "all":
-        baseSpeakersTemp = sts;
-        console.debug(`Base loop selection: "all" - using ${sts.length} speakers`);
+        // Use the same playingSpeakerIds state that SpeakerPolygons uses
+        console.debug(`Base loop selection: "all" - found ${playingSpeakerIds.size} currently playing speakers (IDs: [${Array.from(playingSpeakerIds).join(', ')}])`);
+        console.debug(`Base loop selection: "all" - available speakers at location: ${sts.length} (IDs: [${sts.map(s => s.data.id).join(', ')}])`);
+        
+        // Filter to only currently playing speakers
+        let playingSpeakers = sts.filter(speaker => 
+          playingSpeakerIds.has(speaker.data.id)
+        );
+        
+        console.debug(`Base loop selection: "all" - filtered to ${playingSpeakers.length} playing speakers at location`);
+        
+        // If no playing speakers found via event state, try direct audio element check as fallback
+        if (playingSpeakers.length === 0 && roundware.mixer?.speakerEngine?.speakers) {
+          console.debug(`Base loop selection: "all" - no playing speakers via event state, trying direct audio element check...`);
+          
+          const directPlayingSpeakers = sts.filter(speaker => {
+            const speakerEngineSpeaker = roundware.mixer.speakerEngine.speakers.find((se: any) => se.data.id === speaker.data.id);
+            if (speakerEngineSpeaker?.player?.audio) {
+              const isPlaying = !speakerEngineSpeaker.player.audio.paused && !speakerEngineSpeaker.player.audio.ended;
+              console.debug(`Speaker ${speaker.data.id} direct check: paused=${speakerEngineSpeaker.player.audio.paused}, ended=${speakerEngineSpeaker.player.audio.ended}, isPlaying=${isPlaying}`);
+              return isPlaying;
+            }
+            return false;
+          });
+          
+          if (directPlayingSpeakers.length > 0) {
+            playingSpeakers = directPlayingSpeakers;
+            console.debug(`Base loop selection: "all" - found ${playingSpeakers.length} playing speakers via direct audio check`);
+          }
+        }
+        
+        if (playingSpeakers.length > 0) {
+          baseSpeakersTemp = playingSpeakers;
+          console.debug(`Base loop selection: "all" - using ${playingSpeakers.length} currently playing speakers`);
+        } else {
+          // Fallback to topAncestor if no speakers are playing
+          const topAncestor = findTopAncestorSpeaker(sts);
+          baseSpeakersTemp = topAncestor ? [topAncestor] : sts;
+          console.warn(`Base loop selection: "all" - no speakers currently playing, falling back to topAncestor: ${topAncestor?.data?.id}, using ${baseSpeakersTemp.length} speakers`);
+        }
         break;
       case "topAncestor":
         const topAncestor = findTopAncestorSpeaker(sts);
