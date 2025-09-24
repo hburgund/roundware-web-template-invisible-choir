@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLoopContext } from '../LoopContext';
-import { createAudioLevelMonitor } from '@/utils';
+import { createAudioLevelMonitorFromNode } from '@/utils';
 
 export const useAudioLevelMeter = () => {
   const { recorder, loop } = useLoopContext();
@@ -9,7 +9,7 @@ export const useAudioLevelMeter = () => {
   const [isVisible, setIsVisible] = useState(false);
   const immediateLevelUpdateRef = useRef<number | null>(null);
   const averageLevelUpdateRef = useRef<number | null>(null);
-  const levelMonitorRef = useRef<ReturnType<typeof createAudioLevelMonitor> | null>(null);
+  const levelMonitorRef = useRef<ReturnType<typeof createAudioLevelMonitorFromNode> | null>(null);
   
   // For fast attack, gradual decay behavior
   const smoothedImmediateLevel = useRef(0);
@@ -60,9 +60,9 @@ export const useAudioLevelMeter = () => {
     }
   }, [loop.mode]);
   
-  // Create separate level monitor for the meter
+  // Create level monitor that monitors the compressed signal from the audio chain
   useEffect(() => {
-    if (!isVisible || !recorder.recorderStream) {
+    if (!isVisible || !recorder.audioChain?.compressor?.output || !recorder.audioChain?.audioContext) {
       // Clean up existing monitor
       if (levelMonitorRef.current) {
         levelMonitorRef.current.stopMonitoring();
@@ -71,14 +71,20 @@ export const useAudioLevelMeter = () => {
       return;
     }
     
-    // Create a separate level monitor for the meter
-    const audioContext = new AudioContext();
-    levelMonitorRef.current = createAudioLevelMonitor(
-      audioContext,
-      recorder.recorderStream,
+    // Create a separate level monitor that monitors the compressed signal
+    // Use the same AudioContext as the audio chain to avoid cross-context issues
+    levelMonitorRef.current = createAudioLevelMonitorFromNode(
+      recorder.audioChain.audioContext,
+      recorder.audioChain.compressor.output,
       (immediateLevel, averageLevel, rmsLevel, dbLevel) => {
-        updateImmediateLevel(immediateLevel);
-        updateAverageLevel(averageLevel);
+        // Adjust levels to account for makeup gain (6 dB = ~2x amplification)
+        // Convert makeup gain from dB to linear scale: 6 dB = 10^(6/20) ≈ 2
+        const makeupGainLinear = Math.pow(10, 6 / 20); // ≈ 2
+        const adjustedImmediateLevel = immediateLevel / makeupGainLinear;
+        const adjustedAverageLevel = averageLevel / makeupGainLinear;
+        
+        updateImmediateLevel(adjustedImmediateLevel);
+        updateAverageLevel(adjustedAverageLevel);
       }
     );
     
@@ -89,9 +95,9 @@ export const useAudioLevelMeter = () => {
         levelMonitorRef.current.stopMonitoring();
         levelMonitorRef.current = null;
       }
-      audioContext.close();
+      // Don't close the audio context here as it's managed by the audio chain
     };
-  }, [isVisible, recorder.recorderStream]);
+  }, [isVisible, recorder.audioChain]);
   
   return {
     immediateLevel,

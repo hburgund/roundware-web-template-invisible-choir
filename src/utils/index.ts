@@ -325,6 +325,173 @@ export const createConservativeGainNode = (audioContext: AudioContext, initialGa
 };
 
 /**
+ * Creates a hard compressor to counteract AGC issues from external devices
+ * Uses settings matching server-side compression parameters
+ */
+export const createHardCompressor = (audioContext: AudioContext) => {
+  const compressor = audioContext.createDynamicsCompressor();
+  
+  // Balanced aggressive settings to smooth AGC jumps
+  compressor.threshold.value = -40.0; // -40 dB threshold (more sensitive than original)
+  compressor.knee.value = 0; // Hard knee for aggressive compression
+  compressor.ratio.value = 12.0; // 12:1 ratio (more aggressive than original 8:1)
+  compressor.attack.value = 0.001; // 1ms attack time (reasonable and fast)
+  compressor.release.value = 0.1; // 100ms release time (good for smoothing)
+  
+  // Add makeup gain to compensate for volume reduction
+  const makeupGain = audioContext.createGain();
+  makeupGain.gain.value = 6.0; // 6 dB makeup gain (back to original)
+  
+  // Connect compressor to makeup gain
+  compressor.connect(makeupGain);
+  
+  // Log compressor settings for verification
+  console.log('🎛️ Balanced aggressive compressor created with settings:', {
+    threshold: compressor.threshold.value,
+    knee: compressor.knee.value,
+    ratio: compressor.ratio.value,
+    attack: compressor.attack.value,
+    release: compressor.release.value,
+    makeupGain: makeupGain.gain.value
+  });
+  
+  return {
+    compressor,
+    makeupGain,
+    // Return the makeup gain as the output node for easy chaining
+    output: makeupGain
+  };
+};
+
+/**
+ * Enhanced audio level monitoring system with professional metering
+ * Provides RMS levels, decibel conversion, and smooth level changes
+ * This version works with an existing audio node (for compressed signal monitoring)
+ */
+export const createAudioLevelMonitorFromNode = (
+  audioContext: AudioContext,
+  audioNode: AudioNode,
+  onLevelChange?: (immediateLevel: number, averageLevel: number, rmsLevel: number, dbLevel: number) => void
+) => {
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048; // Larger FFT for better frequency resolution
+  analyser.smoothingTimeConstant = 0.8; // More smoothing for VU meter behavior
+  
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const timeDataArray = new Float32Array(analyser.frequencyBinCount);
+  
+  // Connect the existing audio node to the analyser
+  audioNode.connect(analyser);
+  
+  let monitoringInterval: number | null = null;
+  let smoothedLevel = 0;
+  let peakLevel = 0;
+  let rmsLevel = 0;
+  
+  // Boxcar filter for smoothing (moving average)
+  const smoothingBuffer: number[] = [];
+  const smoothingBufferSize = 20; // Increased for more smoothing
+  
+  // Convert linear amplitude to decibels
+  const linearToDb = (linear: number): number => {
+    if (linear <= 0) return -60; // Minimum dB level
+    return 20 * Math.log10(linear);
+  };
+  
+  // Convert decibels to linear amplitude (0-1 scale)
+  const dbToLinear = (db: number): number => {
+    return Math.pow(10, db / 20);
+  };
+  
+  // Calculate RMS (Root Mean Square) for more accurate level measurement
+  const calculateRMS = (data: Float32Array): number => {
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      sum += data[i] * data[i];
+    }
+    return Math.sqrt(sum / data.length);
+  };
+  
+  const startMonitoring = () => {
+    if (monitoringInterval) return;
+    
+    monitoringInterval = window.setInterval(() => {
+      // Get time domain data for accurate level measurement (like the original)
+      analyser.getFloatTimeDomainData(timeDataArray);
+      const rms = calculateRMS(timeDataArray);
+      
+      // Convert RMS to a more appropriate scale for level metering
+      // RMS values are typically very small (0.001-0.1), so we need to scale them up
+      const scaledLevel = Math.min(1.0, rms * 18); // Scale up RMS by 18x for better sensitivity
+      
+      // Also get frequency data as backup (but use it differently)
+      analyser.getByteFrequencyData(dataArray);
+      const frequencyAverage = dataArray.reduce((a, b) => a + b) / dataArray.length;
+      const frequencyLevel = frequencyAverage / 255;
+      
+      // Use the higher of the two levels for more responsive metering
+      const combinedLevel = Math.max(scaledLevel, frequencyLevel * 0.5);
+      
+      // Apply boxcar filtering for smooth movement
+      smoothingBuffer.push(combinedLevel);
+      if (smoothingBuffer.length > smoothingBufferSize) {
+        smoothingBuffer.shift();
+      }
+      
+      const smoothedAverage = smoothingBuffer.reduce((a, b) => a + b) / smoothingBuffer.length;
+      
+      // Apply VU meter behavior (slower attack, faster release)
+      const attackTime = 0.05; // 50ms attack (faster response)
+      const releaseTime = 0.5; // 500ms release (slower decay)
+      
+      if (smoothedAverage > smoothedLevel) {
+        // Attack phase - move up quickly
+        smoothedLevel += (smoothedAverage - smoothedLevel) * attackTime;
+      } else {
+        // Release phase - move down more slowly
+        smoothedLevel += (smoothedAverage - smoothedLevel) * releaseTime;
+      }
+      
+      // Update peak level
+      if (smoothedLevel > peakLevel) {
+        peakLevel = smoothedLevel;
+      } else {
+        // Peak decay
+        peakLevel *= 0.95;
+      }
+      
+      // Convert to decibels
+      const dbLevel = linearToDb(smoothedLevel);
+      const rmsDbLevel = linearToDb(rms);
+      
+      if (onLevelChange) {
+        // Provide both immediate (raw) and average (smoothed) levels
+        const immediateLevel = combinedLevel; // Raw level without smoothing
+        onLevelChange(immediateLevel, smoothedLevel, rms, dbLevel);
+      }
+    }, 16); // 60fps for smooth animation (like the original)
+  };
+  
+  const stopMonitoring = () => {
+    if (monitoringInterval) {
+      clearInterval(monitoringInterval);
+      monitoringInterval = null;
+    }
+  };
+  
+  return {
+    analyser,
+    startMonitoring,
+    stopMonitoring,
+    getCurrentLevel: () => smoothedLevel,
+    source: audioNode as any, // Cast to match the expected type
+    getSmoothedLevel: () => smoothedLevel,
+    getPeakLevel: () => peakLevel,
+    getRMSLevel: () => rmsLevel
+  };
+};
+
+/**
  * Enhanced audio level monitoring system with professional metering
  * Provides RMS levels, decibel conversion, and smooth level changes
  */
@@ -536,6 +703,7 @@ export const createMinimalAudioProcessingChain = async (options?: {
   enableLevelMonitoring?: boolean;
   enableAdaptiveGain?: boolean;
   targetLevel?: number;
+  onLevelChange?: (immediateLevel: number, averageLevel: number, rmsLevel: number, dbLevel: number) => void;
 }) => {
   try {
     // Get clean audio stream
@@ -544,45 +712,59 @@ export const createMinimalAudioProcessingChain = async (options?: {
     // Create minimal audio context
     const audioContext = createMinimalAudioContext();
     
+    // Create hard compressor to counteract AGC issues
+    const compressor = createHardCompressor(audioContext);
+    console.log('🔗 Audio chain created with balanced aggressive compressor for AGC smoothing');
+    
     // Create conservative gain node
     const gainNode = createConservativeGainNode(audioContext);
     
     // Create source from stream
     const source = audioContext.createMediaStreamSource(stream);
     
-    // Connect the chain for level monitoring only (not to output)
-    source.connect(gainNode);
+    // Connect the chain: source -> compressor -> gainNode
+    source.connect(compressor.output);
+    compressor.output.connect(gainNode);
     // DO NOT connect to audioContext.destination to prevent microphone routing to output
     
     let levelMonitor: ReturnType<typeof createAudioLevelMonitor> | null = null;
     let adaptiveGain: ReturnType<typeof createAdaptiveGainControl> | null = null;
     
     if (options?.enableLevelMonitoring) {
-      levelMonitor = createAudioLevelMonitor(audioContext, stream, (level, rmsLevel, dbLevel) => {
+      // Create level monitor that monitors the limited + compressed signal
+      // This gives us the final signal level that will be recorded
+      levelMonitor = createAudioLevelMonitorFromNode(audioContext, compressor.output, (immediateLevel, averageLevel, rmsLevel, dbLevel) => {
         if (options?.enableAdaptiveGain && adaptiveGain) {
-          adaptiveGain.adjustGain(level);
+          adaptiveGain.adjustGain(immediateLevel);
+        }
+        // Call external callback if provided
+        if (options?.onLevelChange) {
+          options.onLevelChange(immediateLevel, averageLevel, rmsLevel, dbLevel);
         }
       });
       
-      // Insert level monitor into the chain
+      // Connect the chain: source -> compressor -> level monitor -> gainNode
       source.disconnect();
-      source.connect(levelMonitor.analyser);
-      levelMonitor.analyser.connect(gainNode);
-      
-      levelMonitor.startMonitoring();
+      source.connect(compressor.output);
+      if (levelMonitor) {
+        compressor.output.connect(levelMonitor.analyser);
+        levelMonitor.analyser.connect(gainNode);
+        levelMonitor.startMonitoring();
+      }
     }
     
     if (options?.enableAdaptiveGain) {
       adaptiveGain = createAdaptiveGainControl(audioContext, options.targetLevel || 100);
       
-      // Insert adaptive gain into the chain
+      // Insert adaptive gain into the chain after compressor
       if (levelMonitor) {
         levelMonitor.analyser.disconnect();
         levelMonitor.analyser.connect(adaptiveGain.gainNode);
         adaptiveGain.gainNode.connect(gainNode);
       } else {
         source.disconnect();
-        source.connect(adaptiveGain.gainNode);
+        source.connect(compressor.output);
+        compressor.output.connect(adaptiveGain.gainNode);
         adaptiveGain.gainNode.connect(gainNode);
       }
     }
@@ -591,6 +773,7 @@ export const createMinimalAudioProcessingChain = async (options?: {
       stream,
       audioContext,
       source,
+      compressor,
       gainNode,
       levelMonitor,
       adaptiveGain,

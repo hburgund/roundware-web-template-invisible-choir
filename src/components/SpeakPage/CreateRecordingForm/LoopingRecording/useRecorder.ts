@@ -20,6 +20,7 @@ export const useRecorder = ({
   const [isAudioDeviceMissing, setIsAudioDeviceMissing] = useState(false);
 
   const [recorderStream, setRecorderStream] = useState<MediaStream>();
+  const [audioChain, setAudioChain] = useState<Awaited<ReturnType<typeof createMinimalAudioProcessingChain>> | null>(null);
 
   const [startingRecordingInSeconds, setStartingRecordingInSeconds] =
     useState<number>(0);
@@ -127,6 +128,7 @@ export const useRecorder = ({
           });
           
           const stream = audioChain.stream;
+          setAudioChain(audioChain);
           console.debug("🎯 TIMING: Pre-initialization getUserMedia completed at", Date.now());
           
           // Use iOS-compatible MIME type
@@ -257,6 +259,7 @@ export const useRecorder = ({
               });
               
               const stream = audioChain.stream;
+              setAudioChain(audioChain);
               console.debug("🎯 TIMING: getUserMedia completed at", Date.now());
 
               setRecorderStream(stream);
@@ -591,5 +594,6 @@ export const useRecorder = ({
     startingRecordingInBeats,
     countdownEndTime,
     recorderStream,
+    audioChain,
   };
 };
