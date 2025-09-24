@@ -123,6 +123,8 @@ export type IConfig = {
         time: number;
         /** feedback amount (0-1) */
         feedback: number;
+        /** wet/dry ratio for delay (0-1) */
+        wetDryRatio: number;
       };
       /** reverb settings */
       reverb: {
@@ -130,6 +132,12 @@ export type IConfig = {
         gain: number;
         /** reverb decay time in seconds */
         decayTime: number;
+        /** reverb room size (0-1) */
+        roomSize: number;
+        /** reverb damping (0-1) */
+        damping: number;
+        /** wet/dry ratio for reverb (0-1) */
+        wetDryRatio: number;
       };
     };
     

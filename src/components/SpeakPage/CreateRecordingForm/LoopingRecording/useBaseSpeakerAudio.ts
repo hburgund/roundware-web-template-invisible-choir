@@ -541,23 +541,8 @@ export const useBaseSpeakerAudio = (
             }
           }
           
+          // The "without click" buffer should be just the speaker audio
           bufferWithoutClick = speakerBufferCopy1;
-          if (finalConfig.speak.clickTrack.enabled) {
-            try {
-              console.log('[useBaseSpeakerAudio] Loading click track for single speaker...');
-              const clickTrackBuffer = await getClickTrackBuffer(
-                speakerBuffer.duration,
-                loop.audioContext.current
-              );
-              if (clickTrackBuffer) {
-                // Use balanceRatio = 0.0 to effectively silence the click track
-                bufferWithoutClick = mix(speakerBufferCopy1, clickTrackBuffer, 0.0);
-                console.log('[useBaseSpeakerAudio] Click track mixed into buffer without click');
-              }
-            } catch (error) {
-              console.error(`Error creating version without click track:`, error);
-            }
-          }
           
           // Create version with click track (speaker audio + click track)
           // Create another copy of the speaker buffer

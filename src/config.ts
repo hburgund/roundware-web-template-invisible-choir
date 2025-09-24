@@ -99,12 +99,16 @@ let config: IConfig = {
         release: 0.25,     // Moderate release
       },
       delay: {
-        time: 0.1,         // Short delay for subtle effect
-        feedback: 0.2,     // Low feedback to avoid echo buildup
+        time: 0.0,         // No delay - turn off entirely
+        feedback: 0.0,     // No feedback
+        wetDryRatio: 0.0,  // No wet signal - delay completely off
       },
       reverb: {
         gain: 0.3,         // Moderate reverb for ambience
-        decayTime: 1.0,    // 1 second decay
+        decayTime: 0.2,    // 1 second decay
+        roomSize: 0.4,     // Smaller room size to minimize click track weirdness
+        damping: 1.0,      // Higher damping to reduce click track weirdness
+        wetDryRatio: 0.3,  // Low wet/dry ratio to minimize click track weirdness
       },
     },
 
