@@ -487,6 +487,9 @@ const SpeakerPolygons = (props: Props) => {
 			// Check if this speaker is recent (based on update time)
 			const isRecent = recentSpeakerIds.has(s.data.id);
 			
+			// Check if this speaker is in the alwaysOnWhenAvailable list
+			const isAlwaysOn = config.listen.speaker.alwaysOnWhenAvailable?.includes(s.data.id) || false;
+			
 			// Apply special styling for newly created speakers
 			const finalStrokeOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeOpacity ?? 1.0)
@@ -494,14 +497,26 @@ const SpeakerPolygons = (props: Props) => {
 			const finalStrokeWeight = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeWeight ?? Math.max(strokeWeight * 2, 4))
 				: strokeWeight;
-			// Use calculated z-index based on creation time, but give newly created speakers highest priority
+			// Use calculated z-index based on creation time, but give priority to: newly created > playing > others
 			// If speaker has no created timestamp, use undefined (default behavior)
+			// Always preserve original z-index for alwaysOnWhenAvailable speakers
 			const hasCreatedTimestamp = s.data.created && !isNaN(new Date(s.data.created).getTime());
-			const finalZIndex = isNewlyCreated ? 1000 : (hasCreatedTimestamp ? calculatedZIndex : undefined);
+			let finalZIndex;
+			if (isAlwaysOn) {
+				// Preserve original z-index for alwaysOnWhenAvailable speakers
+				finalZIndex = hasCreatedTimestamp ? calculatedZIndex : undefined;
+			} else if (isNewlyCreated) {
+				finalZIndex = 2500; // Highest priority for newly created speakers
+			} else if (isPlaying) {
+				finalZIndex = 2000; // High priority for playing speakers
+			} else {
+				finalZIndex = hasCreatedTimestamp ? calculatedZIndex : undefined;
+			}
 			
 			// Debug logging for speaker styling decisions
-			if (isRecent || isPlaying || isNewlyCreated || config.debugMode) {
-				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, created=${s.data.created}, zIndex=${finalZIndex}, sortIndex=${index}`);
+			if (isRecent || isPlaying || isNewlyCreated || isAlwaysOn || config.debugMode) {
+				const originalZIndex = hasCreatedTimestamp ? calculatedZIndex : 'undefined';
+				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, alwaysOn=${isAlwaysOn}, created=${s.data.created}, originalZIndex=${originalZIndex}, finalZIndex=${finalZIndex}, sortIndex=${index}`);
 			}
 			const finalFillOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
