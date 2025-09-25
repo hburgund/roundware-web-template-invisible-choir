@@ -388,27 +388,27 @@ const SpeakerPolygons = (props: Props) => {
 		const recentCount = config.map.recentSpeakerCount || 4;
 		console.log('📊 Starting recent speakers calculation with', speakers.length, 'total speakers');
 		
-		// Filter speakers with valid updated timestamps and sort by update time (newest first)
-		const speakersWithValidUpdated = speakers
-			.filter(speaker => speaker.updated && !isNaN(new Date(speaker.updated).getTime()))
-			.sort((a, b) => new Date(b.updated!).getTime() - new Date(a.updated!).getTime());
+		// Filter speakers with valid created timestamps and sort by creation time (newest first)
+		const speakersWithValidCreated = speakers
+			.filter(speaker => speaker.created && !isNaN(new Date(speaker.created).getTime()))
+			.sort((a, b) => new Date(b.created!).getTime() - new Date(a.created!).getTime());
 
 		// Take the most recent speakers
-		const recentSpeakers = speakersWithValidUpdated.slice(0, recentCount);
+		const recentSpeakers = speakersWithValidCreated.slice(0, recentCount);
 		const recentIds = new Set(recentSpeakers.map(speaker => speaker.id));
 
 		// Debug logging for recent speakers
 		console.log('=== RECENT SPEAKERS DEBUG ===');
 		console.log(`Total speakers: ${speakers.length}`);
-		console.log(`Speakers with valid updated timestamps: ${speakersWithValidUpdated.length}`);
+		console.log(`Speakers with valid created timestamps: ${speakersWithValidCreated.length}`);
 		console.log(`Recent count setting: ${recentCount}`);
 		console.log('All speakers with timestamps (sorted newest first):');
-		speakersWithValidUpdated.forEach((speaker, index) => {
-			console.log(`  ${index + 1}. ID: ${speaker.id}, Updated: ${speaker.updated}, Date: ${new Date(speaker.updated!).toISOString()}`);
+		speakersWithValidCreated.forEach((speaker, index) => {
+			console.log(`  ${index + 1}. ID: ${speaker.id}, Created: ${speaker.created}, Date: ${new Date(speaker.created!).toISOString()}`);
 		});
 		console.log('Selected recent speakers:');
 		recentSpeakers.forEach((speaker, index) => {
-			console.log(`  ${index + 1}. ID: ${speaker.id}, Updated: ${speaker.updated}`);
+			console.log(`  ${index + 1}. ID: ${speaker.id}, Created: ${speaker.created}`);
 		});
 		console.log('Recent speaker IDs set:', Array.from(recentIds));
 		console.log('=== END RECENT SPEAKERS DEBUG ===');
@@ -421,18 +421,18 @@ const SpeakerPolygons = (props: Props) => {
 			?.filter(({ data: speaker }: any) => !!speaker.shape)
 			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id))
 			?.sort((a: any, b: any) => {
-				// Sort by updated timestamp (most recent first), fallback to ID for speakers without timestamps
-				const aUpdated = a?.data?.updated ? new Date(a.data.updated).getTime() : 0;
-				const bUpdated = b?.data?.updated ? new Date(b.data.updated).getTime() : 0;
+				// Sort by created timestamp (most recent first), fallback to ID for speakers without timestamps
+				const aCreated = a?.data?.created ? new Date(a.data.created).getTime() : 0;
+				const bCreated = b?.data?.created ? new Date(b.data.created).getTime() : 0;
 				
 				// If both have valid timestamps, sort by timestamp (newest first)
-				if (aUpdated > 0 && bUpdated > 0) {
-					return bUpdated - aUpdated;
+				if (aCreated > 0 && bCreated > 0) {
+					return bCreated - aCreated;
 				}
 				
 				// If only one has a timestamp, prioritize it
-				if (aUpdated > 0 && bUpdated === 0) return -1;
-				if (bUpdated > 0 && aUpdated === 0) return 1;
+				if (aCreated > 0 && bCreated === 0) return -1;
+				if (bCreated > 0 && aCreated === 0) return 1;
 				
 				// If neither has a timestamp, fallback to ID sorting
 				return (a?.data.id > b?.data.id ? -1 : 1);
@@ -447,10 +447,10 @@ const SpeakerPolygons = (props: Props) => {
 		if (config.debugMode) {
 			console.log(`🗂️ Speaker sorting order (most recent first):`);
 			speakers.forEach((s: any, index: number) => {
-				const updated = s.data.updated ? new Date(s.data.updated).toISOString() : 'no timestamp';
-				const hasUpdatedTimestamp = s.data.updated && !isNaN(new Date(s.data.updated).getTime());
-				const zIndex = hasUpdatedTimestamp ? (10 + index) : 'undefined';
-				console.log(`  ${index + 1}. ID: ${s.data.id}, Updated: ${updated}, Z-Index: ${zIndex}`);
+				const created = s.data.created ? new Date(s.data.created).toISOString() : 'no timestamp';
+				const hasCreatedTimestamp = s.data.created && !isNaN(new Date(s.data.created).getTime());
+				const zIndex = hasCreatedTimestamp ? (10 + index) : 'undefined';
+				console.log(`  ${index + 1}. ID: ${s.data.id}, Created: ${created}, Z-Index: ${zIndex}`);
 			});
 		}
 
@@ -494,14 +494,14 @@ const SpeakerPolygons = (props: Props) => {
 			const finalStrokeWeight = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.strokeWeight ?? Math.max(strokeWeight * 2, 4))
 				: strokeWeight;
-			// Use calculated z-index based on update time, but give newly created speakers highest priority
-			// If speaker has no updated timestamp, use undefined (default behavior)
-			const hasUpdatedTimestamp = s.data.updated && !isNaN(new Date(s.data.updated).getTime());
-			const finalZIndex = isNewlyCreated ? 1000 : (hasUpdatedTimestamp ? calculatedZIndex : undefined);
+			// Use calculated z-index based on creation time, but give newly created speakers highest priority
+			// If speaker has no created timestamp, use undefined (default behavior)
+			const hasCreatedTimestamp = s.data.created && !isNaN(new Date(s.data.created).getTime());
+			const finalZIndex = isNewlyCreated ? 1000 : (hasCreatedTimestamp ? calculatedZIndex : undefined);
 			
 			// Debug logging for speaker styling decisions
 			if (isRecent || isPlaying || isNewlyCreated || config.debugMode) {
-				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, updated=${s.data.updated}, zIndex=${finalZIndex}, sortIndex=${index}`);
+				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, created=${s.data.created}, zIndex=${finalZIndex}, sortIndex=${index}`);
 			}
 			const finalFillOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
