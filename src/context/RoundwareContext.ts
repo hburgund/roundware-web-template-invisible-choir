@@ -62,6 +62,9 @@ export interface IRoundwareContext {
 	// track which speakers are currently playing (shared across components)
 	playingSpeakerIds: Set<number>;
 	setPlayingSpeakerIds: React.Dispatch<React.SetStateAction<Set<number>>>;
+	
+	// track currently playing variant URIs for each speaker
+	speakerVariantUris: Map<number, string>;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

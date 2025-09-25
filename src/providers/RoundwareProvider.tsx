@@ -43,6 +43,9 @@ const RoundwareProvider = (props: PropTypes) => {
 	const [lastSpeakerUpdateTime, setLastSpeakerUpdateTime] = useState<Date>(new Date());
 	const [sessionCreatedSpeakerIds, setSessionCreatedSpeakerIds] = useState<IRoundwareContext[`sessionCreatedSpeakerIds`]>([]);
 	const [playingSpeakerIds, setPlayingSpeakerIds] = useState<IRoundwareContext[`playingSpeakerIds`]>(new Set());
+	
+	// track currently playing variant URIs for each speaker
+	const [speakerVariantUris, setSpeakerVariantUris] = useState<Map<number, string>>(new Map());
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -703,6 +706,18 @@ const RoundwareProvider = (props: PropTypes) => {
 
 		// Set up event listeners
 		speakerEngine.on('playingTracksUpdated', handlePlayingTracksUpdated);
+		
+		// Listen for variant changes to track currently playing variant URIs
+		const handleVariantChanged = (speakerId: number, newUri: string) => {
+			console.log(`[RoundwareProvider] Speaker ${speakerId} variant changed to: ${newUri}`);
+			setSpeakerVariantUris(prev => {
+				const newMap = new Map(prev);
+				newMap.set(speakerId, newUri);
+				return newMap;
+			});
+		};
+		
+		speakerEngine.on('variantChanged', handleVariantChanged);
 
 		// Set up individual speaker event listeners and store references for cleanup
 		const speakerEventHandlers: Array<{
@@ -713,7 +728,42 @@ const RoundwareProvider = (props: PropTypes) => {
 		}> = [];
 
 		speakerEngine.speakers?.forEach((speaker: any) => {
-			const playingHandler = () => handleSpeakerPlaying(speaker.data.id);
+			const playingHandler = () => {
+				handleSpeakerPlaying(speaker.data.id);
+				
+				// Try to get the current variant URI when speaker starts playing
+				// Check if the speaker has a currentVariantUri property or similar
+				if (speaker.currentVariantUri) {
+					console.log(`[RoundwareProvider] Speaker ${speaker.data.id} started with variant: ${speaker.currentVariantUri}`);
+					setSpeakerVariantUris(prev => {
+						const newMap = new Map(prev);
+						newMap.set(speaker.data.id, speaker.currentVariantUri);
+						return newMap;
+					});
+				} else if (speaker.variantUri) {
+					console.log(`[RoundwareProvider] Speaker ${speaker.data.id} started with variant: ${speaker.variantUri}`);
+					setSpeakerVariantUris(prev => {
+						const newMap = new Map(prev);
+						newMap.set(speaker.data.id, speaker.variantUri);
+						return newMap;
+					});
+				} else {
+					console.log(`[RoundwareProvider] Speaker ${speaker.data.id} started playing, checking for variant URI...`);
+					// Try to access the audio element's src if available
+					if (speaker.player?.audio?.src) {
+						const currentSrc = speaker.player.audio.src;
+						console.log(`[RoundwareProvider] Speaker ${speaker.data.id} audio src: ${currentSrc}`);
+						// Only use if it's different from the base URI
+						if (currentSrc !== speaker.data.uri) {
+							setSpeakerVariantUris(prev => {
+								const newMap = new Map(prev);
+								newMap.set(speaker.data.id, currentSrc);
+								return newMap;
+							});
+						}
+					}
+				}
+			};
 			const finishedHandler = () => handleSpeakerFinished(speaker.data.id);
 			const abortedHandler = () => handleSpeakerFinished(speaker.data.id);
 
@@ -732,6 +782,7 @@ const RoundwareProvider = (props: PropTypes) => {
 		return () => {
 			// Clean up event listeners
 			speakerEngine.off('playingTracksUpdated', handlePlayingTracksUpdated);
+			speakerEngine.off('variantChanged', handleVariantChanged);
 			speakerEventHandlers.forEach(({ speaker, playingHandler, finishedHandler, abortedHandler }) => {
 				speaker.off('playing', playingHandler);
 				speaker.off('finished', finishedHandler);
@@ -783,6 +834,7 @@ const RoundwareProvider = (props: PropTypes) => {
 				clearSessionCreatedSpeakers,
 				playingSpeakerIds,
 				setPlayingSpeakerIds,
+				speakerVariantUris,
 			}}
 		>
 			{props.children}

@@ -231,7 +231,7 @@ export const useBaseSpeakerAudio = (
       baseLoop: null;
       isReady: false;
     } => {
-  const { roundware, playingSpeakerIds } = useRoundware();
+  const { roundware, playingSpeakerIds, speakerVariantUris } = useRoundware();
 
   const [baseSpeakers, setBaseSpeakers] = useState<ISpeakerData[]>([]);
   const [duration, setAudioDuration] = useState<number | null>(null);
@@ -323,25 +323,8 @@ export const useBaseSpeakerAudio = (
         
         console.debug(`Base loop selection: "all" - filtered to ${playingSpeakers.length} playing speakers at location`);
         
-        // If no playing speakers found via event state, try direct audio element check as fallback
-        if (playingSpeakers.length === 0 && roundware.mixer?.speakerEngine?.speakers) {
-          console.debug(`Base loop selection: "all" - no playing speakers via event state, trying direct audio element check...`);
-          
-          const directPlayingSpeakers = sts.filter(speaker => {
-            const speakerEngineSpeaker = roundware.mixer.speakerEngine.speakers.find((se: any) => se.data.id === speaker.data.id);
-            if (speakerEngineSpeaker?.player?.audio) {
-              const isPlaying = !speakerEngineSpeaker.player.audio.paused && !speakerEngineSpeaker.player.audio.ended;
-              console.debug(`Speaker ${speaker.data.id} direct check: paused=${speakerEngineSpeaker.player.audio.paused}, ended=${speakerEngineSpeaker.player.audio.ended}, isPlaying=${isPlaying}`);
-              return isPlaying;
-            }
-            return false;
-          });
-          
-          if (directPlayingSpeakers.length > 0) {
-            playingSpeakers = directPlayingSpeakers;
-            console.debug(`Base loop selection: "all" - found ${playingSpeakers.length} playing speakers via direct audio check`);
-          }
-        }
+        // Note: Direct audio element check removed as it was trying to access 
+        // properties that don't exist on the speaker engine speaker objects
         
         if (playingSpeakers.length > 0) {
           baseSpeakersTemp = playingSpeakers;
@@ -404,7 +387,18 @@ export const useBaseSpeakerAudio = (
           const speakerBuffers = await Promise.all(
             baseSpeakersTemp.map(async (st: any, index: number) => {
               try {
-                const uri = (st as { uri: string }).uri;
+                // Try to get the currently playing variant URI, fallback to base URI
+                let uri = (st as { uri: string }).uri; // Default to base URI
+                const speakerId = st.data.id;
+                
+                if (speakerVariantUris.has(speakerId)) {
+                  const variantUri = speakerVariantUris.get(speakerId)!;
+                  console.log(`[useBaseSpeakerAudio] Using variant URI for speaker ${speakerId}:`, variantUri);
+                  uri = variantUri;
+                } else {
+                  console.log(`[useBaseSpeakerAudio] No variant URI found for speaker ${speakerId}, using base URI:`, uri);
+                }
+                
                 console.log(`[useBaseSpeakerAudio] Loading speaker ${index + 1}/${baseSpeakersTemp.length}:`, uri);
                 
                 const buffer = await getSpeakerAudioBuffer(uri, loop.audioContext.current);
@@ -513,7 +507,18 @@ export const useBaseSpeakerAudio = (
           console.log('[useBaseSpeakerAudio] Loading single speaker buffer...');
           
           // Single speaker case - create both with and without click track
-          const speakerUri = (baseSpeakersTemp[0] as any as { uri: string }).uri;
+          // Try to get the currently playing variant URI, fallback to base URI
+          let speakerUri = (baseSpeakersTemp[0] as any as { uri: string }).uri; // Default to base URI
+          const speakerId = baseSpeakersTemp[0].data.id;
+          
+          if (speakerVariantUris.has(speakerId)) {
+            const variantUri = speakerVariantUris.get(speakerId)!;
+            console.log(`[useBaseSpeakerAudio] Using variant URI for single speaker ${speakerId}:`, variantUri);
+            speakerUri = variantUri;
+          } else {
+            console.log(`[useBaseSpeakerAudio] No variant URI found for single speaker ${speakerId}, using base URI:`, speakerUri);
+          }
+          
           console.log('[useBaseSpeakerAudio] Loading speaker URI:', speakerUri);
           
           const speakerBuffer = await getSpeakerAudioBuffer(speakerUri, loop.audioContext.current);
