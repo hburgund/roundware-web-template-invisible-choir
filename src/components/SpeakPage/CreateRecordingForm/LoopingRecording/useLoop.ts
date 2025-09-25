@@ -24,6 +24,7 @@ export const useLoop = () => {
     dryGain: GainNode | null;
     wetGain: GainNode | null;
     outputGain: GainNode | null;
+    effectsSend: GainNode | null;
   }>({
     compressor: null,
     delay: null,
@@ -34,6 +35,7 @@ export const useLoop = () => {
     dryGain: null,
     wetGain: null,
     outputGain: null,
+    effectsSend: null,
   });
 
   const startedAtTime = useRef<number | null>(null);
