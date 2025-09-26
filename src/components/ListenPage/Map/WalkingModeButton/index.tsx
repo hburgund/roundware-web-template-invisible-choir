@@ -91,8 +91,12 @@ const walkingModeButton = () => {
 		// zoom out
 		map.setZoom(Number(params.get('zoom') || config.map.zoom.low.toString()));
 
-		// enable map panning
-		map.setOptions({ gestureHandling: 'cooperative' });
+		// enable map panning and remove zoom restrictions
+		map.setOptions({ 
+			gestureHandling: 'cooperative',
+			minZoom: undefined,
+			maxZoom: undefined
+		});
 		// stop listening for location updates
 		setGeoListenMode(GeoListenMode.MANUAL);
 		// update text instructions?
@@ -108,7 +112,11 @@ const walkingModeButton = () => {
 		if (!map) return console.log('map not available yet!');
 		console.log('switching to walking mode');
 		// disable map panning
-		map.setOptions({ gestureHandling: 'none' });
+		map.setOptions({ 
+			gestureHandling: 'none',
+			minZoom: config.map.zoom.walkingMin,
+			maxZoom: config.map.zoom.walking
+		});
 		// zoom in
 		map.setZoom(config.map.zoom.walking);
 		// determine user location and listen for updates

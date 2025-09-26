@@ -147,6 +147,7 @@ let config: IConfig = {
       high: 22,
       low: 20,
       walking: 22,
+      walkingMin: 18, // Minimum zoom level in walking mode (allows zooming out a few levels)
     },
     speakerDisplay: "polygons",
     speakerPolygonColors: [

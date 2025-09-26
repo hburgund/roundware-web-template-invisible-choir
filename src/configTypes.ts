@@ -182,6 +182,8 @@ export type IConfig = {
       low: number;
       /** when walking mode */
       walking: number;
+      /** minimum zoom level in walking mode */
+      walkingMin: number;
     };
     /** how to display the speaker regions;
      * 'images' will overlay the speaker region with the image "speaker.png" file
