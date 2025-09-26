@@ -160,36 +160,40 @@ let config: IConfig = {
     },
     // Styling for newly created speakers in current session
     sessionCreatedSpeakerDefaults: {
-      strokeWeight: 6,
+      strokeWeight: 3,
       strokeOpacity: 1.0,
       fillOpacity: 0.4,
-      strokeColor: "#0000FF", // Blue color for new speakers
+      strokeColor: "#00FFB7", // Blue color for new speakers
+      fillColor: "#72A603", // Blue fill color for new speakers
       // Enhanced visual effects
       innerStrokeColor: "#FFFFFF", // White inner stroke
-      innerStrokeOpacity: 0.8,
+      innerStrokeOpacity: 0.0,
       outerGlowColor: "auto", // "auto" uses strokeColor, or specify hex color
       outerGlowOpacity: 0.3,
     },
     // Styling for speakers that are currently playing audio
     playingSpeakerDefaults: {
-      strokeWeight: 4,
-      strokeOpacity: 1.0,
+      strokeWeight: 1,
+      strokeOpacity: 0.7,
       fillOpacity: 0.4, // More opaque when playing
-      strokeColor: "#00FF00", // White border for playing speakers
+      strokeColor: "#065F46",
+      fillColor: "#ADD96A",
     },
     // Styling for speakers that are not currently playing
     nonPlayingSpeakerDefaults: {
       strokeWeight: 0, // No border for non-playing speakers
       strokeOpacity: 0,
       fillOpacity: 0.1, // More transparent when not playing
+      fillColor: null, // Keep original fill color (no change)
+      strokeColor: null, // Keep original stroke color (no change)
     },
     // Styling for recently created speakers (based on creation time)
     recentSpeakerDefaults: {
-      strokeWeight: 0, // No border for recent speakers
-      strokeOpacity: 0,
-      fillOpacity: 0.7, // Higher opacity for recent speakers
-      fillColor: "#808080", // Grey fill color for recent speakers
-      strokeColor: "#000000", // Black border (for future use)
+      strokeWeight: 1, // No border for recent speakers
+      strokeOpacity: 0.6,
+      fillOpacity: 0.5, // Higher opacity for recent speakers
+      fillColor: "#E68E00", // Grey fill color for recent speakers
+      strokeColor: "#E68E00", // Black border (for future use)
     },
     // Number of most recent speakers to highlight
     recentSpeakerCount: 5,

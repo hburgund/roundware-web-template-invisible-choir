@@ -201,6 +201,7 @@ export type IConfig = {
       strokeOpacity: number;
       fillOpacity: number;
       strokeColor: string;
+      fillColor: string | null;
       // Enhanced visual effects
       innerStrokeColor: string;
       innerStrokeOpacity: number;
@@ -213,12 +214,15 @@ export type IConfig = {
       strokeOpacity: number;
       fillOpacity: number;
       strokeColor: string;
+      fillColor: string | null;
     };
     /** Styling for speakers that are not currently playing */
     nonPlayingSpeakerDefaults: {
       strokeWeight: number;
       strokeOpacity: number;
       fillOpacity: number;
+      fillColor: string | null;
+      strokeColor: string | null;
     };
     /** Styling for recently created speakers (based on creation time) */
     recentSpeakerDefaults: {

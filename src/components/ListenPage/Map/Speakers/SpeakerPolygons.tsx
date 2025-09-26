@@ -463,10 +463,10 @@ const SpeakerPolygons = (props: Props) => {
 		// First pass: create polygons and center markers
 		const polygonsAndMarkers = speakers.flatMap((s: any, index: number) => {
 			// Calculate z-index based on sort order (most recent = highest z-index)
-			// Base z-index starts at 10 for oldest speaker, counting up for more recent speakers
-			// This ensures most recently updated speakers appear on top
+			// Newest speakers (index 0, 1, 2...) get highest z-index values
+			// Oldest speakers get lower z-index values
 			const baseZIndex = 10;
-			const calculatedZIndex = baseZIndex + index;
+			const calculatedZIndex = baseZIndex + (speakers.length - 1 - index);
 			// Get fill color (from server or config fallback)
 			const fillColor = getSpeakerFillColor(s.data, index);
 			const baseFillColor = getBaseColor(fillColor);
@@ -504,6 +504,7 @@ const SpeakerPolygons = (props: Props) => {
 			let finalZIndex;
 			if (isAlwaysOn) {
 				// Preserve original z-index for alwaysOnWhenAvailable speakers
+				// Always use the calculated z-index based on creation time, regardless of playing status
 				finalZIndex = hasCreatedTimestamp ? calculatedZIndex : undefined;
 			} else if (isNewlyCreated) {
 				finalZIndex = 2500; // Highest priority for newly created speakers
@@ -517,6 +518,11 @@ const SpeakerPolygons = (props: Props) => {
 			if (isRecent || isPlaying || isNewlyCreated || isAlwaysOn || config.debugMode) {
 				const originalZIndex = hasCreatedTimestamp ? calculatedZIndex : 'undefined';
 				console.log(`🎨 Speaker ${s.data.id} styling: newlyCreated=${isNewlyCreated}, playing=${isPlaying}, recent=${isRecent}, alwaysOn=${isAlwaysOn}, created=${s.data.created}, originalZIndex=${originalZIndex}, finalZIndex=${finalZIndex}, sortIndex=${index}`);
+			}
+			
+			// Special debug logging for alwaysOn speakers
+			if (isAlwaysOn) {
+				console.log(`🔧 AlwaysOn Speaker ${s.data.id}: isPlaying=${isPlaying}, isAlwaysOn=${isAlwaysOn}, finalZIndex=${finalZIndex}, calculatedZIndex=${calculatedZIndex}`);
 			}
 			const finalFillOpacity = isNewlyCreated 
 				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
@@ -532,26 +538,69 @@ const SpeakerPolygons = (props: Props) => {
 			let finalPlayingStrokeColor = finalStrokeColor;
 			let finalPlayingFillColor = baseFillColor || getColorForIndex(index);
 			
+			// Handle fillColor for newly created speakers with null handling
+			if (isNewlyCreated) {
+				// Only apply fillColor if it's not null in config
+				if (config.map.sessionCreatedSpeakerDefaults?.fillColor !== null) {
+					finalPlayingFillColor = config.map.sessionCreatedSpeakerDefaults?.fillColor ?? finalPlayingFillColor;
+				}
+			}
+			
 			if (!isNewlyCreated) {
 				if (isPlaying) {
 					// Apply playing speaker styles (highest priority after newly created)
-					finalPlayingStrokeOpacity = config.map.playingSpeakerDefaults?.strokeOpacity ?? 1.0;
-					finalPlayingStrokeWeight = config.map.playingSpeakerDefaults?.strokeWeight ?? 4;
-					finalPlayingFillOpacity = config.map.playingSpeakerDefaults?.fillOpacity ?? 0.4;
-					finalPlayingStrokeColor = config.map.playingSpeakerDefaults?.strokeColor ?? "#FFFFFF";
+					// Only apply values if they're not null in config
+					if (config.map.playingSpeakerDefaults?.strokeOpacity !== null) {
+						finalPlayingStrokeOpacity = config.map.playingSpeakerDefaults?.strokeOpacity ?? finalPlayingStrokeOpacity;
+					}
+					if (config.map.playingSpeakerDefaults?.strokeWeight !== null) {
+						finalPlayingStrokeWeight = config.map.playingSpeakerDefaults?.strokeWeight ?? finalPlayingStrokeWeight;
+					}
+					if (config.map.playingSpeakerDefaults?.fillOpacity !== null) {
+						finalPlayingFillOpacity = config.map.playingSpeakerDefaults?.fillOpacity ?? finalPlayingFillOpacity;
+					}
+					if (config.map.playingSpeakerDefaults?.strokeColor !== null) {
+						finalPlayingStrokeColor = config.map.playingSpeakerDefaults?.strokeColor ?? finalPlayingStrokeColor;
+					}
+					if (config.map.playingSpeakerDefaults?.fillColor !== null) {
+						finalPlayingFillColor = config.map.playingSpeakerDefaults?.fillColor ?? finalPlayingFillColor;
+					}
 				} else if (isRecent) {
 					// Apply recent speaker styles (second priority)
-					finalPlayingStrokeOpacity = config.map.recentSpeakerDefaults?.strokeOpacity ?? 0;
-					finalPlayingStrokeWeight = config.map.recentSpeakerDefaults?.strokeWeight ?? 0;
-					finalPlayingFillOpacity = config.map.recentSpeakerDefaults?.fillOpacity ?? 0.4;
-					finalPlayingFillColor = config.map.recentSpeakerDefaults?.fillColor ?? "#808080";
-					finalPlayingStrokeColor = config.map.recentSpeakerDefaults?.strokeColor ?? "#000000";
+					// Only apply values if they're not null in config
+					if (config.map.recentSpeakerDefaults?.strokeOpacity !== null) {
+						finalPlayingStrokeOpacity = config.map.recentSpeakerDefaults?.strokeOpacity ?? finalPlayingStrokeOpacity;
+					}
+					if (config.map.recentSpeakerDefaults?.strokeWeight !== null) {
+						finalPlayingStrokeWeight = config.map.recentSpeakerDefaults?.strokeWeight ?? finalPlayingStrokeWeight;
+					}
+					if (config.map.recentSpeakerDefaults?.fillOpacity !== null) {
+						finalPlayingFillOpacity = config.map.recentSpeakerDefaults?.fillOpacity ?? finalPlayingFillOpacity;
+					}
+					if (config.map.recentSpeakerDefaults?.fillColor !== null) {
+						finalPlayingFillColor = config.map.recentSpeakerDefaults?.fillColor ?? finalPlayingFillColor;
+					}
+					if (config.map.recentSpeakerDefaults?.strokeColor !== null) {
+						finalPlayingStrokeColor = config.map.recentSpeakerDefaults?.strokeColor ?? finalPlayingStrokeColor;
+					}
 				} else {
 					// Apply non-playing speaker styles (default)
-					finalPlayingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? 0;
-					finalPlayingStrokeWeight = config.map.nonPlayingSpeakerDefaults?.strokeWeight ?? 0;
-					finalPlayingFillOpacity = config.map.nonPlayingSpeakerDefaults?.fillOpacity ?? 0.1;
-					finalPlayingStrokeColor = finalStrokeColor; // Keep original color
+					// Only apply values if they're not null in config
+					if (config.map.nonPlayingSpeakerDefaults?.strokeOpacity !== null) {
+						finalPlayingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? finalPlayingStrokeOpacity;
+					}
+					if (config.map.nonPlayingSpeakerDefaults?.strokeWeight !== null) {
+						finalPlayingStrokeWeight = config.map.nonPlayingSpeakerDefaults?.strokeWeight ?? finalPlayingStrokeWeight;
+					}
+					if (config.map.nonPlayingSpeakerDefaults?.fillOpacity !== null) {
+						finalPlayingFillOpacity = config.map.nonPlayingSpeakerDefaults?.fillOpacity ?? finalPlayingFillOpacity;
+					}
+					if (config.map.nonPlayingSpeakerDefaults?.strokeColor !== null) {
+						finalPlayingStrokeColor = config.map.nonPlayingSpeakerDefaults?.strokeColor ?? finalPlayingStrokeColor;
+					}
+					if (config.map.nonPlayingSpeakerDefaults?.fillColor !== null) {
+						finalPlayingFillColor = config.map.nonPlayingSpeakerDefaults?.fillColor ?? finalPlayingFillColor;
+					}
 				}
 			}
 			
