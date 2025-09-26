@@ -150,11 +150,29 @@ const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 								animation="pulse"
 								sx={{
 									position: 'absolute',
-									width: 160,
-									height: 160,
+									width: 90,
+									height: 90,
 									top: '50%',
 									left: '50%',
 									transform: 'translate(-50%, -50%)',
+								}}
+							/>
+						)}
+						
+						{/* Dark green circle border at edge of halo */}
+						{isInChoirRange && (
+							<Box
+								sx={{
+									position: 'absolute',
+									width: 90,
+									height: 90,
+									top: '50%',
+									left: '50%',
+									transform: 'translate(-50%, -50%)',
+									border: '1px solid',
+									borderColor: 'secondary.main',
+									borderRadius: '50%',
+									pointerEvents: 'none',
 								}}
 							/>
 						)}
@@ -166,11 +184,14 @@ const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 							{...tooltipProps}
 						>
 							<Fab
-								size="large"
 								color={isInChoirRange ? "secondary" : "primary"}
 								onClick={handleClick}
 								disabled={!isInChoirRange || isZooming}
 								sx={{
+									width: '60px !important',
+									height: '60px !important',
+									minWidth: '60px !important',
+									minHeight: '60px !important',
 									pointerEvents: 'auto',
 									opacity: isInChoirRange ? 1 : 0.7, // Slightly transparent when disabled
 									'&.Mui-disabled': {
