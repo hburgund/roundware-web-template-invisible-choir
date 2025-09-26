@@ -118,8 +118,8 @@ const RoundwareMixerControl = () => {
 						src={soundIcon}
 						alt="Sound On"
 						style={{
-							height: 24,
-							width: 24,
+							height: 30,
+							width: 30,
 							objectFit: 'contain',
 							imageRendering: 'crisp-edges'
 						}}
@@ -129,8 +129,8 @@ const RoundwareMixerControl = () => {
 						src={noSoundIcon}
 						alt="Sound Off"
 						style={{
-							height: 24,
-							width: 24,
+							height: 30,
+							width: 30,
 							objectFit: 'contain',
 							imageRendering: 'crisp-edges'
 						}}

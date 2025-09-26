@@ -34,7 +34,7 @@ const MapControlIcons = () => {
         zIndex={1200}
       >
         <Fab color="secondary" size="medium" onClick={() => setShowHelp(true)}>
-          <HelpOutline sx={{ fontSize: 20, color: "white" }} />
+          <HelpOutline sx={{ fontSize: 30, color: "white" }} />
         </Fab>
         <Fab color="secondary" size="medium" onClick={() => setShowTabs(true)}>
           <Box
@@ -42,8 +42,8 @@ const MapControlIcons = () => {
             src={infoIcon}
             alt="Info"
             sx={{
-              height: 24,
-              width: 24
+              height: 30,
+              width: 30
             }}
           />
         </Fab>
