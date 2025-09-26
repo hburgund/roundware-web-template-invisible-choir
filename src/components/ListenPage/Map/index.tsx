@@ -172,7 +172,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 				lat: parseFloat(typeof urlLatitude == 'string' ? urlLatitude : roundware?.project?.location?.latitude!?.toString()),
 				lng: parseFloat(typeof urlLongitude == 'string' ? urlLongitude : roundware?.project?.location?.longitude!?.toString()),
 			},
-			zoom: parseInt(typeof urlZoom == 'string' ? urlZoom : '5'),
+			zoom: parseInt(typeof urlZoom == 'string' ? urlZoom : config.map.zoom.low.toString()),
 			disableDefaultUI: true, // Disable all default UI controls
 			zoomControl: true, // Re-enable only the zoom control
 			draggable: true,
