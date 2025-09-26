@@ -5,9 +5,9 @@
     "icon": "speaker",
     "description": [
       "<div class=\"content\">",
-      "  <h2>Listen to Community Recordings</h2>",
-      "  <p>Explore the map to discover and listen to recordings from the community. Navigate through different locations and experience the collective voice of the invisible choir.</p>",
-      "  <p>Use the filters to find specific types of recordings or browse by date and tags.</p>",
+      "  <h2>Listen to the Choir</h2>",
+      "  <p>Explore the BASE terrace to hear the voices of the Invisible Choir. Each leaf shape you see on the map represents a single voice in the choir. As leaves overlap, so do the voices, creating an evolving musical experience.</p>",
+      "  <p>You can join the Invisible Choir by tapping the \"+\" button in the center of the map and following the instructions to sing along and make a recording. Your recording will immediately be added to the musical mix and to the map with its own unique leaf shape centered on your location.</p>",
       "</div>"
     ]
   },
@@ -18,8 +18,9 @@
     "description": [
       "<div class=\"content\">",
       "  <h2>Add Your Voice to the Choir</h2>",
-      "  <p>Record and contribute your voice to the community choir. Choose a location on the map and start your recording journey.</p>",
-      "  <p>Your recording will become part of the collective soundscape that others can discover and listen to.</p>",
+      "  <p>Record and contribute your voice to the collective Invisible Choir. No musical experience necessary!</p>",
+      "  <p>Feel free to double what you hear, improvise, make sounds, hum, or whistle. Contribute however you would like. Just please don't use any words!</p>",
+      "  <p>After submission, your recording will immediately become part of the collective soundscape that others can discover and listen to.</p>",
       "</div>"
     ]
   },
@@ -30,8 +31,9 @@
     "description": [
       "<div class=\"content\">",
       "  <h2>Practice Before Recording</h2>",
-      "  <p>Listen to the base track and get familiar with the rhythm and melody before recording your contribution.</p>",
+      "  <p>Tap PLAY and listen to the base track and get familiar with the rhythm and melody before recording your contribution.</p>",
       "  <p>Take your time to practice and feel comfortable with the musical loop. This is your chance to prepare before adding your voice to the choir.</p>",
+      "  <p>Tap RECORD when you are ready!</p>",
       "</div>"
     ]
   },
@@ -42,8 +44,9 @@
     "description": [
       "<div class=\"content\">",
       "  <h2>Record Your Voice</h2>",
-      "  <p>Sing along with the base track to create your contribution to the choir. The loop will play while you record your voice.</p>",
-      "  <p>Make sure you're in a quiet environment and speak clearly. Your recording will be mixed with the base track for the final result.</p>",
+      "  <p>Sing along with the base track to create your contribution to the choir.</p>",
+      "  <p>The recording will start after a 4 beat countdown and will automatically end when the base loop is completed, shown by the green loop circle filling in.</p>",
+      "  <p>Your recording will be mixed with the base track for the final result.</p>",
       "</div>"
     ]
   },
@@ -54,8 +57,9 @@
     "description": [
       "<div class=\"content\">",
       "  <h2>Listen to Your Recording</h2>",
-      "  <p>Review your recording mixed with the base loop. Listen carefully to ensure you're satisfied with your contribution.</p>",
-      "  <p>If you're not happy with the result, you can re-record. Once you're satisfied, your voice will be added to the community choir.</p>",
+      "  <p>Review your recording mixed with the base loop.</p>",
+      "  <p>If you're not happy with the result, you can re-record. Once you're satisfied, tap Submit and your voice will be added to the Invisible Choir.</p>",
+      "  <p>All voices are welcome and we encourage all different types of contributions. All we ask is healthy respect for the other singers and the project itself.</p>",
       "</div>"
     ]
   },

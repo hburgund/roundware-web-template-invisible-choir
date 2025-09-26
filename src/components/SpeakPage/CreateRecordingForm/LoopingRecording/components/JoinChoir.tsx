@@ -11,11 +11,13 @@ import {
 import { Fade, Slide, useMediaQuery } from "@mui/material";
 import { useState } from "react";
 import { isAndroid, isIOS } from 'react-device-detect';
+import { Help } from "@mui/icons-material";
 import JoinChoirBackground from "./JoinChoirBackground";
 import JoinChoirSteps from "./JoinChoirSteps";
 import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
+import HelpPopup from "@/components/HelpPopup";
 import { getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils";
 import { useRoundware } from "@/hooks";
 
@@ -42,6 +44,7 @@ const JoinChoir = ({
   const [showMicrophonePermissionDialog, setShowMicrophonePermissionDialog] = useState(false);
   const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   
   const legalAgreementText = roundware?.project?.legalAgreement || 
@@ -236,6 +239,29 @@ const JoinChoir = ({
                 px: 4,
               }}
             >
+              {/* Help Button */}
+              <Button
+                variant="outlined"
+                color="secondary"
+                size="large"
+                sx={{
+                  position: "absolute",
+                  top: 30,
+                  right: 30,
+                  minWidth: 45,
+                  minHeight: 45,
+                  p: 0,
+                  borderRadius: "50%",
+                  color: "white",
+                  borderColor: "rgba(255, 255, 255, 0.5)",
+                  borderWidth: 1,
+                  width: 45,
+                  height: 45,
+                }}
+                onClick={() => setShowHelp(true)}
+              >
+                <Help sx={{ fontSize: 30 }} />
+              </Button>
               {/* Main content (Fab and Skeleton) on the left */}
               <Box
                 sx={{
@@ -329,6 +355,32 @@ const JoinChoir = ({
       }}
     >
       <JoinChoirBackground />
+      
+      {/* Help Button for Portrait */}
+      <Button
+        variant="outlined"
+        color="secondary"
+        size="large"
+        sx={{
+          position: "absolute",
+          top: 30,
+          right: 30,
+          minWidth: 45,
+          minHeight: 45,
+          p: 0,
+          borderRadius: "50%",
+          color: "white",
+          borderColor: "rgba(255, 255, 255, 0.5)",
+          borderWidth: 1,
+          width: 45,
+          height: 45,
+          zIndex: 1000,
+        }}
+        onClick={() => setShowHelp(true)}
+      >
+        <Help sx={{ fontSize: 30 }} />
+      </Button>
+      
       <Slide 
         direction="up" 
         in={true} 
@@ -423,6 +475,12 @@ const JoinChoir = ({
         <MicrophoneInstructionsDialog
           open={showMicrophoneHelp}
           onClose={() => setShowMicrophoneHelp(false)}
+        />
+
+        <HelpPopup
+          open={showHelp}
+          onClose={() => setShowHelp(false)}
+          currentScreen="add choir"
         />
       </Box>
   );

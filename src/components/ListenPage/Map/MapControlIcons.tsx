@@ -2,7 +2,7 @@ import { Box, Fab, Stack, useMediaQuery } from '@mui/material';
 import { useRoundware, useCurrentScreen } from '@/hooks';
 import RoundwareMixerControl from '../RoundwareMixerControl';
 import infoIcon from '@/assets/icons/info_i_icon.svg';
-import HelpOutline from '@mui/icons-material/HelpOutline';
+import Help from '@mui/icons-material/Help';
 import { useState } from 'react';
 import InfoPopup from '@/components/InfoPopup';
 import HelpPopup from '@/components/HelpPopup';
@@ -34,7 +34,7 @@ const MapControlIcons = () => {
         zIndex={1200}
       >
         <Fab color="secondary" size="medium" onClick={() => setShowHelp(true)}>
-          <HelpOutline sx={{ fontSize: 30, color: "white" }} />
+          <Help sx={{ fontSize: 30, color: "white" }} />
         </Fab>
         <Fab color="secondary" size="medium" onClick={() => setShowTabs(true)}>
           <Box

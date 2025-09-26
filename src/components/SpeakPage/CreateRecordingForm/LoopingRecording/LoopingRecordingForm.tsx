@@ -1,7 +1,7 @@
 import ConfirmationDialog from "@/components/elements/ConfirmationDialog";
 import { Close, Logout } from "@mui/icons-material";
 import ReplayIcon from "@mui/icons-material/Replay";
-import { LightbulbOutlined } from "@mui/icons-material";
+import { Help } from "@mui/icons-material";
 import { Box, Button, Fab } from "@mui/material";
 import { useState, useEffect } from "react";
 import { Prompt, useHistory } from "react-router";
@@ -284,8 +284,8 @@ const LoopingRecordingForm = () => {
 
           {/* Help Button */}
           <Button
-            variant="contained"
-            color="info"
+            variant="outlined"
+            color="secondary"
             size="large"
             sx={{
               position: "absolute",
@@ -297,12 +297,13 @@ const LoopingRecordingForm = () => {
               borderRadius: "50%",
               color: "white",
               borderColor: "rgba(255, 255, 255, 0.5)",
+              borderWidth: 1,
               width: 45,
               height: 45,
             }}
             onClick={() => setShowHelp(true)}
           >
-            <LightbulbOutlined sx={{ fontSize: 20 }} />
+            <Help sx={{ fontSize: 30 }} />
           </Button>
         </>
       )}
