@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beech Leaf Shape Generator for Roundware Speakers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .output {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .map-container {
+            height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .info {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .coordinates-display {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🍃 Beech Leaf Shape Generator for Roundware Speakers</h1>
+        
+        <div class="info">
+            <strong>Instructions:</strong> Use this tool to generate random beech leaf shapes for creating speakers via the Roundware admin API. 
+            The generated GeoJSON can be copied and used in Postman or other API tools when creating speakers.
+        </div>
+
+        <div class="form-group">
+            <label for="centerLat">Center Latitude:</label>
+            <input type="number" id="centerLat" value="45.45205357748545" step="0.000001" placeholder="e.g., 40.7683">
+        </div>
+
+        <div class="form-group">
+            <label for="centerLng">Center Longitude:</label>
+            <input type="number" id="centerLng" value="9.162881818934316" step="0.000001" placeholder="e.g., -73.981">
+        </div>
+
+        <div class="form-group">
+            <label for="minSize">Minimum Size (meters):</label>
+            <input type="number" id="minSize" value="10" step="1" min="1" max="100">
+        </div>
+
+        <div class="form-group">
+            <label for="maxSize">Maximum Size (meters):</label>
+            <input type="number" id="maxSize" value="10" step="1" min="1" max="100">
+        </div>
+
+        <div class="form-group">
+            <label for="numShapes">Number of shapes to generate:</label>
+            <input type="number" id="numShapes" value="1" step="1" min="1" max="10">
+        </div>
+
+        <button onclick="generateShapes()">Generate Beech Leaf Shape(s)</button>
+        <button onclick="copyToClipboard()">Copy GeoJSON to Clipboard</button>
+        <button onclick="copyGeometryOnly()">Copy Geometry for API</button>
+        <button onclick="clearOutput()">Clear Output</button>
+
+        <div class="output" id="output"></div>
+        
+        <div class="map-container" id="map"></div>
+    </div>
+
+    <script>
+        // Helper functions (copied from the Roundware codebase)
+        const metersToLatDegrees = (meters) => meters / 111320;
+        const metersToLngDegrees = (meters, lat) => meters / (111320 * Math.cos((lat * Math.PI) / 180));
+        const getRandomInRange = (min, max) => Math.random() * (max - min) + min;
+
+        // Beech leaf shape generator (copied from Roundware codebase)
+        function generateBeechLeafShape(centerLocation, options = {}) {
+            const { minSize = 10, maxSize = 10 } = options;
+            const centerLat = centerLocation.lat;
+            const centerLng = centerLocation.lng;
+
+            // Random scale factor based on size range
+            const originalScale = getRandomInRange(minSize, maxSize);
+            // Note: Base shape spans from -1 to +1 (2 units), so we need to halve the scale
+            // to get the desired size, or adjust the base points
+            const scale = originalScale / 2;
+
+            // Random rotation angle in radians
+            const rotation = getRandomInRange(0, Math.PI * 2);
+
+            // Debug: Log the scale value
+            console.log(`Original scale: ${originalScale.toFixed(2)}m, Adjusted scale: ${scale.toFixed(2)}m`);
+
+            // Base points for a beech leaf shape (normalized)
+            const basePoints = [
+                { x: 0, y: -1 }, // Tip of leaf
+                { x: 0.1, y: -0.95 }, // First serration on right
+                { x: 0.2, y: -0.85 },
+                { x: 0.3, y: -0.7 },
+                { x: 0.4, y: -0.5 },
+                { x: 0.5, y: -0.25 },
+                { x: 0.55, y: 0 },
+                { x: 0.5, y: 0.25 },
+                { x: 0.4, y: 0.5 },
+                { x: 0.25, y: 0.75 },
+                { x: 0, y: 1 }, // Base of leaf
+                { x: -0.25, y: 0.75 },
+                { x: -0.4, y: 0.5 },
+                { x: -0.5, y: 0.25 },
+                { x: -0.55, y: 0 },
+                { x: -0.5, y: -0.25 },
+                { x: -0.4, y: -0.5 },
+                { x: -0.3, y: -0.7 },
+                { x: -0.2, y: -0.85 },
+                { x: -0.1, y: -0.95 },
+            ];
+
+            // Transform points to actual coordinates
+            const coordinates = basePoints.map((point) => {
+                // Add slight randomness to each point (up to 10% variation)
+                const randomX = point.x + getRandomInRange(-0.05, 0.05);
+                const randomY = point.y + getRandomInRange(-0.05, 0.05);
+
+                // Apply rotation
+                const rotatedX = randomX * Math.cos(rotation) - randomY * Math.sin(rotation);
+                const rotatedY = randomX * Math.sin(rotation) + randomY * Math.cos(rotation);
+
+                // Scale and convert to lat/lng
+                const latOffset = metersToLatDegrees(rotatedY * scale);
+                const lngOffset = metersToLngDegrees(rotatedX * scale, centerLat);
+
+                return [centerLng + lngOffset, centerLat + latOffset];
+            });
+
+            // Close the polygon by adding the first point at the end
+            coordinates.push(coordinates[0]);
+
+            // Calculate actual dimensions
+            const dimensions = calculateShapeDimensions(coordinates);
+            console.log(`Actual dimensions: ${dimensions.width.toFixed(2)}m x ${dimensions.height.toFixed(2)}m`);
+
+            // Create a MultiPolygon feature
+            return {
+                type: "Feature",
+                geometry: {
+                    type: "MultiPolygon",
+                    coordinates: [[coordinates]]
+                },
+                properties: {
+                    generated_at: new Date().toISOString(),
+                    center: centerLocation,
+                    scale: scale,
+                    rotation: rotation,
+                    actual_dimensions: dimensions
+                }
+            };
+        }
+
+        // Calculate actual dimensions of the shape
+        function calculateShapeDimensions(coordinates) {
+            let minLat = Infinity, maxLat = -Infinity;
+            let minLng = Infinity, maxLng = -Infinity;
+            
+            coordinates.forEach(coord => {
+                const [lng, lat] = coord;
+                minLat = Math.min(minLat, lat);
+                maxLat = Math.max(maxLat, lat);
+                minLng = Math.min(minLng, lng);
+                maxLng = Math.max(maxLng, lng);
+            });
+            
+            // Calculate distance in meters
+            const latDistance = (maxLat - minLat) * 111320; // meters per degree latitude
+            const lngDistance = (maxLng - minLng) * 111320 * Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
+            
+            return {
+                width: Math.abs(lngDistance),
+                height: Math.abs(latDistance),
+                diagonal: Math.sqrt(latDistance * latDistance + lngDistance * lngDistance)
+            };
+        }
+
+        let map;
+        let currentLayers = [];
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([45.45205357748545, 9.162881818934316], 17);
+            
+            // Add satellite imagery layer
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: '&copy; Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community'
+            }).addTo(map);
+            
+            // Optional: Add a hybrid layer (satellite + labels) as an alternative
+            const hybridLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: '&copy; Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community'
+            });
+            
+            // Add layer control
+            const baseMaps = {
+                "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: '&copy; Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community'
+                }),
+                "Satellite + Labels": L.layerGroup([
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        maxZoom: 19,
+                        attribution: '&copy; Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community'
+                    }),
+                    hybridLayer
+                ]),
+                "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }),
+                "CartoDB Positron": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors, &copy; CARTO'
+                }),
+                "CartoDB Dark Matter": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors, &copy; CARTO'
+                })
+            };
+            
+            L.control.layers(baseMaps).addTo(map);
+        }
+
+        // Generate shapes
+        function generateShapes() {
+            const centerLat = parseFloat(document.getElementById('centerLat').value);
+            const centerLng = parseFloat(document.getElementById('centerLng').value);
+            const minSize = parseFloat(document.getElementById('minSize').value);
+            const maxSize = parseFloat(document.getElementById('maxSize').value);
+            const numShapes = parseInt(document.getElementById('numShapes').value);
+
+            if (isNaN(centerLat) || isNaN(centerLng)) {
+                alert('Please enter valid latitude and longitude values');
+                return;
+            }
+
+            const centerLocation = { lat: centerLat, lng: centerLng };
+            const shapes = [];
+
+            // Clear previous layers
+            currentLayers.forEach(layer => map.removeLayer(layer));
+            currentLayers = [];
+
+            // Generate shapes
+            for (let i = 0; i < numShapes; i++) {
+                const shape = generateBeechLeafShape(centerLocation, { minSize, maxSize });
+                shapes.push(shape);
+
+                // Add to map
+                const layer = L.geoJSON(shape, {
+                    style: {
+                        color: '#ff6b6b',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#ff6b6b',
+                        fillOpacity: 0.3
+                    }
+                }).addTo(map);
+                currentLayers.push(layer);
+            }
+
+            // Update map view to fit all shapes
+            if (shapes.length > 0) {
+                const group = new L.featureGroup(currentLayers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+
+            // Display results
+            const output = document.getElementById('output');
+            let outputText = '';
+            
+            // Add dimension info
+            if (shapes.length === 1) {
+                const shape = shapes[0];
+                outputText += `=== SHAPE DIMENSIONS ===\n`;
+                outputText += `Scale parameter: ${shape.properties.scale.toFixed(2)}m\n`;
+                outputText += `Actual width: ${shape.properties.actual_dimensions.width.toFixed(2)}m\n`;
+                outputText += `Actual height: ${shape.properties.actual_dimensions.height.toFixed(2)}m\n`;
+                outputText += `Diagonal: ${shape.properties.actual_dimensions.diagonal.toFixed(2)}m\n\n`;
+                outputText += `=== GEOJSON ===\n`;
+                outputText += JSON.stringify(shape, null, 2);
+            } else {
+                outputText += `=== GENERATED ${shapes.length} SHAPES ===\n`;
+                shapes.forEach((shape, index) => {
+                    outputText += `Shape ${index + 1}: ${shape.properties.actual_dimensions.width.toFixed(2)}m x ${shape.properties.actual_dimensions.height.toFixed(2)}m\n`;
+                });
+                outputText += `\n=== GEOJSON ===\n`;
+                const featureCollection = {
+                    type: "FeatureCollection",
+                    features: shapes
+                };
+                outputText += JSON.stringify(featureCollection, null, 2);
+            }
+            
+            output.textContent = outputText;
+
+            // Store for clipboard
+            window.currentGeoJSON = shapes.length === 1 ? shapes[0] : {
+                type: "FeatureCollection",
+                features: shapes
+            };
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            if (!window.currentGeoJSON) {
+                alert('Please generate shapes first');
+                return;
+            }
+
+            // Create a clean copy without dimension info for Postman
+            let cleanGeoJSON;
+            if (window.currentGeoJSON.type === "FeatureCollection") {
+                // For multiple shapes, clean each feature
+                cleanGeoJSON = {
+                    type: "FeatureCollection",
+                    features: window.currentGeoJSON.features.map(feature => ({
+                        type: "Feature",
+                        geometry: feature.geometry,
+                        properties: {
+                            // Keep only essential properties, remove dimension info
+                            generated_at: feature.properties.generated_at,
+                            center: feature.properties.center
+                        }
+                    }))
+                };
+            } else {
+                // For single shape, clean the properties
+                cleanGeoJSON = {
+                    type: "Feature",
+                    geometry: window.currentGeoJSON.geometry,
+                    properties: {
+                        generated_at: window.currentGeoJSON.properties.generated_at,
+                        center: window.currentGeoJSON.properties.center
+                    }
+                };
+            }
+
+            const jsonString = JSON.stringify(cleanGeoJSON, null, 2);
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert('Clean GeoJSON copied to clipboard! Ready for Postman.');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy to clipboard. Please copy manually from the output above.');
+            });
+        }
+
+        // Copy geometry only in API format
+        function copyGeometryOnly() {
+            if (!window.currentGeoJSON) {
+                alert('Please generate shapes first');
+                return;
+            }
+
+            let geometry;
+            if (window.currentGeoJSON.type === "FeatureCollection") {
+                // For multiple shapes, take the first one (API expects single geometry)
+                if (window.currentGeoJSON.features.length === 0) {
+                    alert('No shapes to copy');
+                    return;
+                }
+                geometry = window.currentGeoJSON.features[0].geometry;
+            } else {
+                // For single shape, use its geometry
+                geometry = window.currentGeoJSON.geometry;
+            }
+
+            // Copy just the geometry in the exact API format
+            const apiFormat = {
+                type: geometry.type,
+                coordinates: geometry.coordinates
+            };
+
+            const jsonString = JSON.stringify(apiFormat);
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert('Geometry copied in API format! Ready to paste into speaker.shape field.');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy to clipboard. Please copy manually from the output above.');
+            });
+        }
+
+        // Clear output
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+            currentLayers.forEach(layer => map.removeLayer(layer));
+            currentLayers = [];
+            window.currentGeoJSON = null;
+        }
+
+        // Initialize when page loads
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
