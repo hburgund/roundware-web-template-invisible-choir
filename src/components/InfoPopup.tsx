@@ -71,36 +71,60 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 						About
 					</Typography>
 					<Typography variant="h6" color="primary" gutterBottom>
-						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna.
+						We live in divisive times; the simple act of listening and interacting
+						with each other has become fraught with a constant barrage of political
+						and social baggage.
 					</Typography>
-					<Typography variant="body1" color="text.secondary" sx={{ mb: 8 }}>
-						Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+						With Invisible Choir, we seek to circumvent some of these challenges
+						by allowing strangers to create an evolving collective musical work by
+						singing with each other, without words.
+					</Typography>
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+						Invisible Choir combines urban sound design, sound ecology, and technology
+						to create a novel type of interactive social soundscape: an invisible
+						landscape of music created by an ever-evolving open-sourced choir.
+						Beginning with musical "seeds" composed for the specific location, a
+						choral composition is nurtured through the active, asynchronous participation
+						of visitors who become members of the invisible choir through their vocal
+						contributions recorded and “planted” live on the spot. This is accomplished
+						through a specially designed web-based application that both facilitates
+						singing together as well as listening to "choirs".
+					</Typography>
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+						By harnessing the power of new technologies - including automated compositional
+						algorithms and advanced audio AR - we propose an innovative and urgent
+						form for public spaces that facilitates collective engagement centered
+						around communal singing, music creation and the establishment of new
+						networks of citizen-singers. Ultimately, Invisible Choir reimagines what
+						a public artwork can be and how it may allow us to connect with each
+						other and our (sonic) environment in these polarized times.
 					</Typography>
 				</>
 			)
 		},
 		{
-			label: "Exhibitions",
+			label: "Exhibition",
 			content: (
 				<>
 					<Typography variant="h4" color="primary" gutterBottom className="info-text-heading">
-						Exhibitions
+						Exhibition
 					</Typography>
 					<Stack spacing={2}>
 						<Box>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								Lorem ipsum dolor
+								<a href="https://base.milano.it/">BASE Milano</a>, Milan, Italy
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
-								26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+								09-OCT-2025 - 26-OCT-2025
 							</Typography>
 						</Box>
 						<Box>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								Lorem ipsum dolor
+								Full Exhibition Information
 							</Typography>
-							<Typography variant="body2" color="text.secondary">
-								26 Mar 2025 - sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+							<Typography variant="subtitle1" color="primary" gutterBottom>
+								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/">Re-Silence Program</a>
 							</Typography>
 						</Box>
 					</Stack>
@@ -117,18 +141,51 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					<Stack spacing={3}>
 						<Box>
 							<Typography variant="subtitle1" color="primary">
-								Name Surname
+								Ari Benjamin Meyers
 							</Typography>
-							<Typography variant="body2" color="text.secondary">
-								Technical Director
+							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+								<a href="http://aribenjaminmeyers.com/">Ari Benjamin Meyers</a> is
+								an artist and composer who explores structures
+								and processes that redefine the performative, social, and ephemeral
+								nature of music. He received his training at The Julliard School,
+								Yale University, and Peabody Institute; his work has since been
+								presented and exhibited at major institutions, festivals, and biennials
+								worldwide. Several of his works, including "Rehearsing Philadelphia" (2022),
+								"Werksorchester" (2022), and "Hymnus" (2024), are centered around
+								the public and civic spheres and have incorporated large-scale communal
+								rituals.
+							</Typography>
+							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+								Recently, Meyers has also created works directly related to
+								the environment and climate change issues; these include "Forecast (LX23)"
+								and "Unless" (both 2023). He has collaborated with artists such as
+								Tino Sehgal, Anri Sala, and Dominique Gonzalez-Foerster, as well as
+								with bands like The Residents, Chicks on Speed, and Einstürzende Neubauten.
+								"Marshal Allen, 99, Astronaut," his first film premiered in Venice
+								as part of the group exhibition Nebula during the 2024 Biennale Arte.
+								He lives in Berlin and currently is Professor for Sculpture at
+								Kunstakademie Düsseldorf.
 							</Typography>
 						</Box>
 						<Box>
 							<Typography variant="subtitle1" color="primary">
-								Name Surname
+								Halsey Burgund
 							</Typography>
-							<Typography variant="body2" color="text.secondary">
-								Technical Artist
+							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+								<a href="https://halseyburgund.com">Halsey Burgund</a> is a new media artist and Emmy-winning interactive
+								director whose work focuses on the combination of modern technologies -
+								from mobile phones to artificial intelligence - with fundamentally
+								human “technologies”, primarily language, music and the spoken voice.
+							</Typography>
+							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+								He is the creator of Roundware, the open source contributory audio AR platform,
+								which has been used to create art and educational installations for
+								cultural organizations internationally. Halsey’s recent work has
+								focussed on the societal challenges posed by artificial intelligence,
+								in particular synthetic media and generative AI. Halsey was a
+								Smithsonian Artist Research Fellow, a Research Affiliate at the
+								MIT Media Lab and an affiliate in Harvard's metaLAB and is currently
+								Creative Technologist in Residence at the MIT Open Documentary Lab.
 							</Typography>
 						</Box>
 					</Stack>
@@ -158,12 +215,12 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 				'data-fullscreen-overlay': 'true'
 			}}
 		>
-			<Box sx={{ 
-				display: 'flex', 
-				justifyContent: 'space-between', 
+			<Box sx={{
+				display: 'flex',
+				justifyContent: 'space-between',
 				alignItems: 'center',
-				mt: 3, 
-				px: 3 
+				mt: 3,
+				px: 3
 			}}>
 				<Box
 					component="img"
@@ -181,8 +238,8 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					size="medium"
 					edge="end"
 					onClick={onClose}
-					sx={{ 
-						border: 1, 
+					sx={{
+						border: 1,
 						borderColor: 'rgba(255, 255, 255, 0.5)',
 						width: 40,
 						height: 40,
@@ -195,10 +252,10 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 				</IconButton>
 			</Box>
 			<Box sx={{ width: '100%', mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
-				<Box sx={{ 
-					position: 'sticky', 
-					top: 0, 
-					zIndex: 1, 
+				<Box sx={{
+					position: 'sticky',
+					top: 0,
+					zIndex: 1,
 					backdropFilter: 'blur(10px)',
 				}}>
 					<Tabs
@@ -219,11 +276,11 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					</TabPanel>
 				))}
 			</Box>
-			<Box sx={{ 
-				position: shouldUseLandscapeLayout ? 'relative' : 'fixed', 
-				bottom: shouldUseLandscapeLayout ? 'auto' : 20, 
-				left: 0, 
-				right: 0, 
+			<Box sx={{
+				position: shouldUseLandscapeLayout ? 'relative' : 'fixed',
+				bottom: shouldUseLandscapeLayout ? 'auto' : 20,
+				left: 0,
+				right: 0,
 				px: 3,
 				mt: shouldUseLandscapeLayout ? 3 : 0,
 				pb: shouldUseLandscapeLayout ? 3 : 0
