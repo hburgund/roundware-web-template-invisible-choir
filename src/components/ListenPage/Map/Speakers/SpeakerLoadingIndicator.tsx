@@ -31,7 +31,7 @@ const SpeakerLoadingIndicator = (props: Props) => {
 	return (
 		<Backdrop open sx={(theme) => ({ zIndex: theme.zIndex.appBar + 1 })}>
 			<Stack spacing={1} p={2}>
-				<Typography variant='h5'>Downloading awesome music... Please wait</Typography>
+				<Typography variant='h5'>Downloading choir audio... Please wait</Typography>
 				{loadingSpeakers
 					.sort((a, b) => (a.id > b.id ? -1 : 1))
 					.map((s) => (

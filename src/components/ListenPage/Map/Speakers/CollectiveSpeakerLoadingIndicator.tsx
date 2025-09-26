@@ -75,7 +75,7 @@ const CollectiveSpeakerLoadingIndicator = (props: Props) => {
 		})}>
 			<Stack spacing={3} alignItems="center" p={4}>
 				<Typography variant="h5" textAlign="center">
-					Downloading awesome music... Please wait
+					Downloading choir audio... Please wait
 				</Typography>
 				
 				<Box position="relative" display="flex" alignItems="center" justifyContent="center">
