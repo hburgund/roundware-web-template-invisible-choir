@@ -153,7 +153,7 @@ const HelpPopup = ({ open, onClose, currentScreen = 'listen' }: HelpPopupProps) 
 				mt: shouldUseLandscapeLayout ? 3 : 0,
 				pb: shouldUseLandscapeLayout ? 3 : 0
 			}}>
-				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+				{/*<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
 					<Stack direction="column" spacing={2}>
 						<Box
 							component="img"
@@ -177,7 +177,7 @@ const HelpPopup = ({ open, onClose, currentScreen = 'listen' }: HelpPopupProps) 
 					<Typography variant="body2" color="text.secondary">
 						PRIVACY POLICY
 					</Typography>
-				</Stack>
+				</Stack>*/}
 			</Box>
 		</Dialog>
 	);

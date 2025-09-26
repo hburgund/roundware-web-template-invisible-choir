@@ -199,120 +199,130 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 	};
 
 	return (
-		<Dialog
-			open={open}
-			onClose={onClose}
-			TransitionComponent={Transition}
-			fullScreen
-			PaperProps={{
-				sx: {
-					backgroundImage: `url(${greenBackground})`,
-					backgroundSize: 'cover',
-					backgroundPosition: 'center',
-					overflow: 'auto',
-					position: 'relative'
-				},
-				'data-fullscreen-overlay': 'true'
-			}}
-		>
-			<Box sx={{
-				display: 'flex',
-				justifyContent: 'space-between',
-				alignItems: 'center',
-				mt: 3,
-				px: 3
-			}}>
-				<Box
-					component="img"
-					src={mainLogo}
-					alt="Main Logo"
-					sx={{
-						height: 50,
-						width: 'auto',
-						display: 'flex',
-						alignItems: 'center'
-					}}
-				/>
-				<IconButton
-					color="inherit"
-					size="medium"
-					edge="end"
-					onClick={onClose}
-					sx={{
-						border: 1,
-						borderColor: 'rgba(255, 255, 255, 0.5)',
-						width: 40,
-						height: 40,
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center'
-					}}
-				>
-					<CloseIcon />
-				</IconButton>
-			</Box>
-			<Box sx={{ width: '100%', mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
-				<Box sx={{
-					position: 'sticky',
-					top: 0,
-					zIndex: 1,
-					backdropFilter: 'blur(10px)',
-				}}>
-					<Tabs
-						value={value}
-						onChange={handleChange}
-						variant="scrollable"
-						scrollButtons={false}
-						aria-label="scrollable prevent tabs example"
-					>
-						{tabs.map((tab, index) => (
-							<Tab key={index} label={tab.label}/>
-						))}
-					</Tabs>
-				</Box>
-				{tabs.map((tab, index) => (
-					<TabPanel key={index} value={value} index={index}>
-						{tab.content}
-					</TabPanel>
-				))}
-			</Box>
-			<Box sx={{
-				position: shouldUseLandscapeLayout ? 'relative' : 'fixed',
-				bottom: shouldUseLandscapeLayout ? 'auto' : 20,
-				left: 0,
-				right: 0,
-				px: 3,
-				mt: shouldUseLandscapeLayout ? 3 : 0,
-				pb: shouldUseLandscapeLayout ? 3 : 0
-			}}>
-				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
-					<Stack direction="column" spacing={2}>
-						<Box
-							component="img"
-							src={startsLogo}
-							alt="Starts Logo"
-							sx={{
-								height: 20,
-								width: 'auto'
-							}}
-						/>
-						<Box
-							component="img"
-							src={europeanCommissionLogo}
-							alt="European Commission Logo"
-							sx={{
-								height: 40,
-								width: 'auto'
-							}}
-						/>
-					</Stack>
-					<Typography variant="body2" color="text.secondary">
-						PRIVACY POLICY
-					</Typography>
-				</Stack>
-			</Box>
-		</Dialog>
-	);
+    <Dialog
+      open={open}
+      onClose={onClose}
+      TransitionComponent={Transition}
+      fullScreen
+      PaperProps={{
+        sx: {
+          backgroundImage: `url(${greenBackground})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          overflow: "auto",
+          position: "relative",
+        },
+        "data-fullscreen-overlay": "true",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mt: 3,
+          px: 3,
+        }}
+      >
+        <Box
+          component="img"
+          src={mainLogo}
+          alt="Main Logo"
+          sx={{
+            height: 50,
+            width: "auto",
+            display: "flex",
+            alignItems: "center",
+          }}
+        />
+        <IconButton
+          color="inherit"
+          size="medium"
+          edge="end"
+          onClick={onClose}
+          sx={{
+            border: 1,
+            borderColor: "rgba(255, 255, 255, 0.5)",
+            width: 40,
+            height: 40,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Box sx={{ width: "100%", mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
+        <Box
+          sx={{
+            position: "sticky",
+            top: 0,
+            zIndex: 1,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <Tabs
+            value={value}
+            onChange={handleChange}
+            variant="scrollable"
+            scrollButtons={false}
+            aria-label="scrollable prevent tabs example"
+          >
+            {tabs.map((tab, index) => (
+              <Tab key={index} label={tab.label} />
+            ))}
+          </Tabs>
+        </Box>
+        {tabs.map((tab, index) => (
+          <TabPanel key={index} value={value} index={index}>
+            {tab.content}
+          </TabPanel>
+        ))}
+      </Box>
+      <Box
+        sx={{
+          position: shouldUseLandscapeLayout ? "relative" : "fixed",
+          bottom: shouldUseLandscapeLayout ? "auto" : 20,
+          left: 0,
+          right: 0,
+          px: 3,
+          mt: shouldUseLandscapeLayout ? 3 : 0,
+          pb: shouldUseLandscapeLayout ? 3 : 0,
+        }}
+      >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="flex-end"
+        >
+          <Stack direction="column" spacing={2}>
+            <Box
+              component="img"
+              src={startsLogo}
+              alt="Starts Logo"
+              sx={{
+                height: 20,
+                width: "auto",
+              }}
+            />
+            <Box
+              component="img"
+              src={europeanCommissionLogo}
+              alt="European Commission Logo"
+              sx={{
+                height: 40,
+                width: "auto",
+              }}
+            />
+          </Stack>
+          {/* <Typography variant="body2" color="text.secondary">
+				PRIVACY POLICY
+			</Typography> */}
+        </Stack>
+      </Box>
+    </Dialog>
+  );
 };
 
 export default InfoPopup;

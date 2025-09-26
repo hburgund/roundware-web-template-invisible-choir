@@ -92,13 +92,14 @@ const Introduction: React.FC = () => {
           }}
         >
           <Typography variant="h5" color="primary" align="center">
-            Welcome ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.
+            Welcome to Invisible Choir.
           </Typography>
           <Typography variant="body1" color="text.secondary" align="center">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam.
+            <p>A geo-located co-created musical work.</p>
+            <p>By Ari Benjamin Meyers and Halsey Burgund.</p>
           </Typography>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             color="primary"
             onClick={handleTakePart}
             disabled={!isProjectReady}
