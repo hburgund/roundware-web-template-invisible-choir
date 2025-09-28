@@ -13,14 +13,11 @@ import { IconButton } from '@mui/material';
 import { GeoListenMode } from 'roundware-web-framework/dist/index';
 import soundIcon from '@/assets/icons/sound_icon.svg';
 import noSoundIcon from '@/assets/icons/no_sound_icon.svg';
-import { isAndroid, isIOS } from 'react-device-detect';
 
 const RoundwareMixerControl = () => {
 	const { roundware, forceUpdate } = useRoundware();
 	const [snackbarOpen, setSnackbarOpen] = useState(false);
 	const isPlaying = roundware.mixer && roundware.mixer.playing;
-	
-	const isMobile = isAndroid || isIOS;
 
 	const handleSnackbarClose: SnackbarProps[`onClose`] = (event, reason) => {
 		if (reason === 'clickaway') {
@@ -31,9 +28,7 @@ const RoundwareMixerControl = () => {
 
 	useEffect(() => {
 		if (roundware?.mixer) {
-			// Use device-appropriate mode instead of always MANUAL
-			const defaultMode = isMobile ? GeoListenMode.AUTOMATIC : GeoListenMode.MANUAL;
-			roundware.activateMixer({ geoListenMode: defaultMode }).then(() => {
+			roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
 				if (roundware && roundware.uiConfig && roundware.uiConfig.listen && roundware.uiConfig.listen[0]) {
 					const listen_tags = roundware.uiConfig.listen[0].display_items.map((i) => i.tag_id);
 					roundware.mixer.updateParams({
@@ -52,7 +47,7 @@ const RoundwareMixerControl = () => {
 		return () => {
 			roundware?.mixer?.toggle(false);
 		};
-	}, [roundware, isMobile]);
+	}, [roundware]);
 
 	function seek(offset: number): void {
 		(roundware.mixer.speakerEngine as any)?.speakers?.forEach((s: any) => {
@@ -90,9 +85,7 @@ const RoundwareMixerControl = () => {
 				onClick={(e) => {
 					e.stopPropagation();
 					if (!roundware.mixer || !roundware.mixer?.playlist) {
-						// Use device-appropriate mode instead of always MANUAL
-						const defaultMode = isMobile ? GeoListenMode.AUTOMATIC : GeoListenMode.MANUAL;
-						roundware.activateMixer({ geoListenMode: defaultMode }).then(() => {
+						roundware.activateMixer({ geoListenMode: GeoListenMode.MANUAL }).then(() => {
 							if (roundware && roundware.uiConfig && roundware.uiConfig.listen && roundware.uiConfig.listen[0]) {
 								const listen_tags = roundware.uiConfig.listen[0].display_items.map((i) => i.tag_id);
 								roundware.mixer.updateParams({
