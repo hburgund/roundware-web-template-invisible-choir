@@ -161,6 +161,7 @@ const walkingModeButton = () => {
 					console.log('Location permission not determined, showing permission dialog');
 					sessionStorage.setItem('locationPermissionRequested', 'true');
 					setWalkingModeStatus('locating');
+					await requestLocationPermission();
 				}
 			} catch (error) {
 				// Fallback for browsers that don't support permissions API
@@ -169,6 +170,7 @@ const walkingModeButton = () => {
 					sessionStorage.setItem('locationPermissionRequested', 'true');
 				}
 				setWalkingModeStatus('locating');
+				await requestLocationPermission();
 			}
 		}
 	};
