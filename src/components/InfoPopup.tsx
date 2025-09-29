@@ -3,7 +3,9 @@ import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton, useMediaQ
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
+import { useHistory } from 'react-router-dom';
 import { isAndroid, isIOS } from 'react-device-detect';
+import SwipeableViews from 'react-swipeable-views';
 import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
@@ -44,10 +46,11 @@ function TabPanel(props: TabPanelProps) {
 			hidden={value !== index}
 			id={`scrollable-tabpanel-${index}`}
 			aria-labelledby={`scrollable-tab-${index}`}
+			style={{ height: '100%', minHeight: '400px' }}
 			{...other}
 		>
 			{value === index && (
-				<Box sx={{ p: 3 }}>
+				<Box sx={{ p: 3, height: '100%', minHeight: '400px' }}>
 					{children}
 				</Box>
 			)}
@@ -210,7 +213,9 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					backgroundSize: 'cover',
 					backgroundPosition: 'center',
 					overflow: 'auto',
-					position: 'relative'
+					position: 'relative',
+					display: 'flex',
+					flexDirection: 'column',
 				},
 				'data-fullscreen-overlay': 'true'
 			}}
@@ -251,11 +256,11 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					<CloseIcon />
 				</IconButton>
 			</Box>
-			<Box sx={{ width: '100%', mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
-				<Box sx={{
-					position: 'sticky',
-					top: 0,
-					zIndex: 1,
+			<Box sx={{ width: '100%', mt: 3, pb: 3, flex: 1 }}>
+				<Box sx={{ 
+					position: 'sticky', 
+					top: 0, 
+					zIndex: 1, 
 					backdropFilter: 'blur(10px)',
 				}}>
 					<Tabs
@@ -270,20 +275,25 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 						))}
 					</Tabs>
 				</Box>
-				{tabs.map((tab, index) => (
-					<TabPanel key={index} value={value} index={index}>
-						{tab.content}
-					</TabPanel>
-				))}
+				<SwipeableViews
+					index={value}
+					onChangeIndex={setValue}
+					enableMouseEvents
+					disabled={!isMobileDevice}
+					style={{ height: '100%', minHeight: '400px' }}
+					containerStyle={{ height: '100%', minHeight: '400px' }}
+				>
+					{tabs.map((tab, index) => (
+						<TabPanel key={index} value={value} index={index}>
+							{tab.content}
+						</TabPanel>
+					))}
+				</SwipeableViews>
 			</Box>
-			<Box sx={{
-				position: shouldUseLandscapeLayout ? 'relative' : 'fixed',
-				bottom: shouldUseLandscapeLayout ? 'auto' : 20,
-				left: 0,
-				right: 0,
+			<Box sx={{ 
 				px: 3,
-				mt: shouldUseLandscapeLayout ? 3 : 0,
-				pb: shouldUseLandscapeLayout ? 3 : 0
+				mt: 3,
+				pb: 3
 			}}>
 				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
 					<Stack direction="column" spacing={2}>
