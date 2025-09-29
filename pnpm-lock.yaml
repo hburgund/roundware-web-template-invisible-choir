@@ -146,6 +146,9 @@ importers:
       react-share:
         specifier: ^4.4.0
         version: 4.4.1(react@17.0.2)
+      react-swipeable-views:
+        specifier: ^0.14.1
+        version: 0.14.1(react@17.0.2)
       regenerator-runtime:
         specifier: ^0.13.9
         version: 0.13.11
@@ -201,6 +204,9 @@ importers:
       '@types/react-router-dom':
         specifier: ^5.1.8
         version: 5.3.3
+      '@types/react-swipeable-views':
+        specifier: ^0.13.6
+        version: 0.13.6
       '@types/wavesurfer.js':
         specifier: ^5.2.2
         version: 5.2.2
@@ -763,6 +769,9 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
+
+  '@babel/runtime@7.0.0':
+    resolution: {integrity: sha512-7hGhzlcmg01CvH1EHdSPVXYX1aJ8KCEyz6I9xYIi/asDtzBPMyMhVibhM/K6g/5qnKBwjZtp10bNZIEFTRW1MA==}
 
   '@babel/runtime@7.27.6':
     resolution: {integrity: sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q==}
@@ -1869,6 +1878,9 @@ packages:
   '@types/react-router@5.1.20':
     resolution: {integrity: sha512-jGjmu/ZqS7FjSH6owMcD5qpq19+1RS9DeVRqfl1FeBMxTDQAGwlMWOcs52NDoXaNKyG3d1cYQFMs9rCrb88o9Q==}
 
+  '@types/react-swipeable-views@0.13.6':
+    resolution: {integrity: sha512-Pe9TxRRo098Lxi59YQ8KWVuyBOvt9nJK5AtAqGiRsnl+6PXLknuiLhg0+mGuM9Bn+nun+Ed65Kb1Yl171vCdyA==}
+
   '@types/react-transition-group@4.4.12':
     resolution: {integrity: sha512-8TV6R3h2j7a91c+1DXdJi3Syo69zzIZbz7Lg5tORM5LEJG7X/E6a1V3drRyBRZq7/utz7A+c4OgYLiLcYGHG6w==}
     peerDependencies:
@@ -2220,6 +2232,9 @@ packages:
   kdbush@4.0.2:
     resolution: {integrity: sha512-WbCVYJ27Sz8zi9Q7Q0xHC+05iwkm3Znipc2XTlrnJbsHMYktW4hPhXUE8Ys1engBrvffoSCqbil1JQAa7clRpA==}
 
+  keycode@2.2.1:
+    resolution: {integrity: sha512-Rdgz9Hl9Iv4QKi8b0OlCRQEzp4AgVxyCtz5S/+VIHezDmrDhkp2N2TqBWOLz0/gbeREXOOiI9/4b8BY9uw2vFg==}
+
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
@@ -2439,6 +2454,11 @@ packages:
     peerDependencies:
       react: 17.0.2
 
+  react-event-listener@0.6.7:
+    resolution: {integrity: sha512-DLxxUSjZT5Qg8u+51V0KPKW7FI4zCkbP7fjKNGpaRItjaYgO4WycwoqJDumw+UGGQ0DmmPbQ3RUH8LsqQgHWpQ==}
+    peerDependencies:
+      react: ^16.3.0
+
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
@@ -2478,6 +2498,24 @@ packages:
     peerDependencies:
       react: ^16.3.0 || ^17.0.0 || ^18.0.0
 
+  react-swipeable-views-core@0.14.1:
+    resolution: {integrity: sha512-0mmRN3OjAn5hPxM/tjL6hJBcnsGBADwMY67NM2PTyANSqKGoHcX0qzsL704jxwUrGcbPedr9/d1VYdQHBb4IAQ==}
+    engines: {node: '>=6.0.0'}
+    peerDependencies:
+      react: ^15.3.0 || ^16.0.0 || ^17.0.0
+
+  react-swipeable-views-utils@0.14.1:
+    resolution: {integrity: sha512-eX0Lo5uZ4G9TBTSpROLNYFGGhd1Ja5K19LL8ZHQmm7oBpJBJXIDH2D364aFMrBR9BdlSbZOVxw9eNHElwMFRyg==}
+    engines: {node: '>=6.0.0'}
+    peerDependencies:
+      react: ^15.3.0 || ^16.0.0 || ^17.0.0
+
+  react-swipeable-views@0.14.1:
+    resolution: {integrity: sha512-dbCicNAez5yWKve7zu7PVGWWIY28JGgMIJBKwSUkpmZaC14zmEL/HaVoZzKyZ7Vm/pSVU2IGVo8zfCYsWJb3pQ==}
+    engines: {node: '>=6.0.0'}
+    peerDependencies:
+      react: ^15.3.0 || ^16.0.0 || ^17.0.0
+
   react-transition-group@4.4.5:
     resolution: {integrity: sha512-pZcd1MCJoiKiBR2NRxeCRg13uCXbydPnmB4EOeRrY7480qNWO8IIgQG6zlDkm6uRMsURXPuKq0GWtiM59a5Q6g==}
     peerDependencies:
@@ -2494,6 +2532,9 @@ packages:
 
   regenerate@1.4.2:
     resolution: {integrity: sha512-zrceR/XhGYU/d/opr2EKO7aRHUeiBI8qjtfHqADTwZd6Szfy16la6kqD0MIUs5z5hx6AaKa+PixpPrR289+I0A==}
+
+  regenerator-runtime@0.12.1:
+    resolution: {integrity: sha512-odxIc1/vDlo4iZcfXqRYFj0vpXFNoGdKMAUieAlFYO6m/nl5e9KR/beGf41z4a1FI+aQgtjhuaSlDxQ0hmkrHg==}
 
   regenerator-runtime@0.13.11:
     resolution: {integrity: sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==}
@@ -2546,6 +2587,9 @@ packages:
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
+
+  shallow-equal@1.2.1:
+    resolution: {integrity: sha512-S4vJDjHHMBaiZuT9NPb616CSmLf618jawtv3sufLl6ivK8WocjAo58cXwbRV1cgqxH0Qbv+iUt6m05eqEa2IRA==}
 
   skmeans@0.9.7:
     resolution: {integrity: sha512-hNj1/oZ7ygsfmPZ7ZfN5MUBRoGg1gtpnImuJBgLO0ljQ67DtJuiQaiYdS4lUA6s0KCwnPhGivtC/WRwIZLkHyg==}
@@ -2701,6 +2745,9 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  warning@4.0.3:
+    resolution: {integrity: sha512-rpJyN222KWIvHJ/F53XSZv0Zl/accqHR8et1kpaMTD/fLCRxtV8iX8czMzY7sVZupTI3zcUTg8eycS2kNF9l6w==}
 
   wavesurfer-react@https://raw.githubusercontent.com/shreyas-jadhav/wavesurfer-react/tarball/wavesurfer-react-2.0.13.tgz:
     resolution: {tarball: https://raw.githubusercontent.com/shreyas-jadhav/wavesurfer-react/tarball/wavesurfer-react-2.0.13.tgz}
@@ -3421,6 +3468,10 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.28.0(@babel/core@7.28.0)
     transitivePeerDependencies:
       - supports-color
+
+  '@babel/runtime@7.0.0':
+    dependencies:
+      regenerator-runtime: 0.12.1
 
   '@babel/runtime@7.27.6': {}
 
@@ -5242,6 +5293,10 @@ snapshots:
       '@types/history': 4.7.11
       '@types/react': 17.0.87
 
+  '@types/react-swipeable-views@0.13.6':
+    dependencies:
+      '@types/react': 17.0.87
+
   '@types/react-transition-group@4.4.12(@types/react@17.0.87)':
     dependencies:
       '@types/react': 17.0.87
@@ -5618,6 +5673,8 @@ snapshots:
 
   kdbush@4.0.2: {}
 
+  keycode@2.2.1: {}
+
   lines-and-columns@1.2.4: {}
 
   lodash.debounce@4.0.8: {}
@@ -5757,6 +5814,13 @@ snapshots:
       react: 17.0.2
       scheduler: 0.20.2
 
+  react-event-listener@0.6.7(react@17.0.2):
+    dependencies:
+      '@babel/runtime': 7.27.6
+      prop-types: 15.8.1
+      react: 17.0.2
+      warning: 4.0.3
+
   react-fast-compare@3.2.2: {}
 
   react-helmet@6.1.0(react@17.0.2):
@@ -5809,6 +5873,31 @@ snapshots:
     dependencies:
       react: 17.0.2
 
+  react-swipeable-views-core@0.14.1(react@17.0.2):
+    dependencies:
+      '@babel/runtime': 7.0.0
+      react: 17.0.2
+      warning: 4.0.3
+
+  react-swipeable-views-utils@0.14.1(react@17.0.2):
+    dependencies:
+      '@babel/runtime': 7.0.0
+      keycode: 2.2.1
+      prop-types: 15.8.1
+      react: 17.0.2
+      react-event-listener: 0.6.7(react@17.0.2)
+      react-swipeable-views-core: 0.14.1(react@17.0.2)
+      shallow-equal: 1.2.1
+
+  react-swipeable-views@0.14.1(react@17.0.2):
+    dependencies:
+      '@babel/runtime': 7.0.0
+      prop-types: 15.8.1
+      react: 17.0.2
+      react-swipeable-views-core: 0.14.1(react@17.0.2)
+      react-swipeable-views-utils: 0.14.1(react@17.0.2)
+      warning: 4.0.3
+
   react-transition-group@4.4.5(react-dom@17.0.2(react@17.0.2))(react@17.0.2):
     dependencies:
       '@babel/runtime': 7.27.6
@@ -5828,6 +5917,8 @@ snapshots:
       regenerate: 1.4.2
 
   regenerate@1.4.2: {}
+
+  regenerator-runtime@0.12.1: {}
 
   regenerator-runtime@0.13.11: {}
 
@@ -5898,6 +5989,8 @@ snapshots:
       object-assign: 4.1.1
 
   semver@6.3.1: {}
+
+  shallow-equal@1.2.1: {}
 
   skmeans@0.9.7: {}
 
@@ -6005,6 +6098,10 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.16.3
       fsevents: 2.3.3
+
+  warning@4.0.3:
+    dependencies:
+      loose-envify: 1.4.0
 
   wavesurfer-react@https://raw.githubusercontent.com/shreyas-jadhav/wavesurfer-react/tarball/wavesurfer-react-2.0.13.tgz(wavesurfer.js@5.2.0):
     dependencies:
