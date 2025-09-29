@@ -3,7 +3,9 @@ import { Tabs, Tab, Box, Dialog, Paper, Typography, Stack, IconButton, useMediaQ
 import CloseIcon from '@mui/icons-material/Close';
 import Slide from '@mui/material/Slide';
 import { TransitionProps } from '@mui/material/transitions';
+import { useHistory } from 'react-router-dom';
 import { isAndroid, isIOS } from 'react-device-detect';
+import SwipeableViews from 'react-swipeable-views';
 import startsLogo from '../assets/starts_logo.png';
 import europeanCommissionLogo from '../assets/european_commission_logo.png';
 import mainLogo from '../assets/main_logo.png';
@@ -44,10 +46,11 @@ function TabPanel(props: TabPanelProps) {
 			hidden={value !== index}
 			id={`scrollable-tabpanel-${index}`}
 			aria-labelledby={`scrollable-tab-${index}`}
+			style={{ height: '100%', minHeight: '400px' }}
 			{...other}
 		>
 			{value === index && (
-				<Box sx={{ p: 3 }}>
+				<Box sx={{ p: 3, height: '100%', minHeight: '400px' }}>
 					{children}
 				</Box>
 			)}
@@ -113,7 +116,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					<Stack spacing={2}>
 						<Box>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								<a href="https://base.milano.it/">BASE Milano</a>, Milan, Italy
+								<a href="https://base.milano.it/" target="_blank" rel="noopener noreferrer" className="hyperlink">BASE Milano</a>, Milan, Italy
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
 								09-OCT-2025 - 26-OCT-2025
@@ -124,7 +127,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Full Exhibition Information
 							</Typography>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/">Re-Silence Program</a>
+								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/" target="_blank" rel="noopener noreferrer" className="hyperlink">Re-Silence Program</a>
 							</Typography>
 						</Box>
 					</Stack>
@@ -144,7 +147,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Ari Benjamin Meyers
 							</Typography>
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-								<a href="http://aribenjaminmeyers.com/">Ari Benjamin Meyers</a> is
+								<a href="http://aribenjaminmeyers.com/" target="_blank" rel="noopener noreferrer" className="hyperlink">Ari Benjamin Meyers</a> is
 								an artist and composer who explores structures
 								and processes that redefine the performative, social, and ephemeral
 								nature of music. He received his training at The Julliard School,
@@ -172,7 +175,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Halsey Burgund
 							</Typography>
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-								<a href="https://halseyburgund.com">Halsey Burgund</a> is a new media artist and Emmy-winning interactive
+								<a href="https://halseyburgund.com" target="_blank" rel="noopener noreferrer" className="hyperlink">Halsey Burgund</a> is a new media artist and Emmy-winning interactive
 								director whose work focuses on the combination of modern technologies -
 								from mobile phones to artificial intelligence - with fundamentally
 								human “technologies”, primarily language, music and the spoken voice.
@@ -199,130 +202,127 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 	};
 
 	return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      TransitionComponent={Transition}
-      fullScreen
-      PaperProps={{
-        sx: {
-          backgroundImage: `url(${greenBackground})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          overflow: "auto",
-          position: "relative",
-        },
-        "data-fullscreen-overlay": "true",
-      }}
-    >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mt: 3,
-          px: 3,
-        }}
-      >
-        <Box
-          component="img"
-          src={mainLogo}
-          alt="Main Logo"
-          sx={{
-            height: 50,
-            width: "auto",
-            display: "flex",
-            alignItems: "center",
-          }}
-        />
-        <IconButton
-          color="inherit"
-          size="medium"
-          edge="end"
-          onClick={onClose}
-          sx={{
-            border: 1,
-            borderColor: "rgba(255, 255, 255, 0.5)",
-            width: 40,
-            height: 40,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
-      </Box>
-      <Box sx={{ width: "100%", mt: 3, pb: shouldUseLandscapeLayout ? 3 : 10 }}>
-        <Box
-          sx={{
-            position: "sticky",
-            top: 0,
-            zIndex: 1,
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <Tabs
-            value={value}
-            onChange={handleChange}
-            variant="scrollable"
-            scrollButtons={false}
-            aria-label="scrollable prevent tabs example"
-          >
-            {tabs.map((tab, index) => (
-              <Tab key={index} label={tab.label} />
-            ))}
-          </Tabs>
-        </Box>
-        {tabs.map((tab, index) => (
-          <TabPanel key={index} value={value} index={index}>
-            {tab.content}
-          </TabPanel>
-        ))}
-      </Box>
-      <Box
-        sx={{
-          position: shouldUseLandscapeLayout ? "relative" : "fixed",
-          bottom: shouldUseLandscapeLayout ? "auto" : 20,
-          left: 0,
-          right: 0,
-          px: 3,
-          mt: shouldUseLandscapeLayout ? 3 : 0,
-          pb: shouldUseLandscapeLayout ? 3 : 0,
-        }}
-      >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="flex-end"
-        >
-          <Stack direction="column" spacing={2}>
-            <Box
-              component="img"
-              src={startsLogo}
-              alt="Starts Logo"
-              sx={{
-                height: 20,
-                width: "auto",
-              }}
-            />
-            <Box
-              component="img"
-              src={europeanCommissionLogo}
-              alt="European Commission Logo"
-              sx={{
-                height: 40,
-                width: "auto",
-              }}
-            />
-          </Stack>
-          {/* <Typography variant="body2" color="text.secondary">
-				PRIVACY POLICY
-			</Typography> */}
-        </Stack>
-      </Box>
-    </Dialog>
-  );
+		<Dialog
+			open={open}
+			onClose={onClose}
+			TransitionComponent={Transition}
+			fullScreen
+			PaperProps={{
+				sx: {
+					backgroundImage: `url(${greenBackground})`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					overflow: 'auto',
+					position: 'relative',
+					display: 'flex',
+					flexDirection: 'column',
+				},
+				'data-fullscreen-overlay': 'true'
+			}}
+		>
+			<Box sx={{
+				display: 'flex',
+				justifyContent: 'space-between',
+				alignItems: 'center',
+				mt: 3,
+				px: 3
+			}}>
+				<Box
+					component="img"
+					src={mainLogo}
+					alt="Main Logo"
+					sx={{
+						height: 50,
+						width: 'auto',
+						display: 'flex',
+						alignItems: 'center'
+					}}
+				/>
+				<IconButton
+					color="inherit"
+					size="medium"
+					edge="end"
+					onClick={onClose}
+					sx={{
+						border: 1,
+						borderColor: 'rgba(255, 255, 255, 0.5)',
+						width: 40,
+						height: 40,
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center'
+					}}
+				>
+					<CloseIcon />
+				</IconButton>
+			</Box>
+			<Box sx={{ width: '100%', mt: 3, pb: 3, flex: 1 }}>
+				<Box sx={{
+					position: 'sticky',
+					top: 0,
+					zIndex: 1,
+					backdropFilter: 'blur(10px)',
+				}}>
+					<Tabs
+						value={value}
+						onChange={handleChange}
+						variant="scrollable"
+						scrollButtons={false}
+						aria-label="scrollable prevent tabs example"
+					>
+						{tabs.map((tab, index) => (
+							<Tab key={index} label={tab.label}/>
+						))}
+					</Tabs>
+				</Box>
+				<SwipeableViews
+					index={value}
+					onChangeIndex={setValue}
+					enableMouseEvents
+					disabled={!isMobileDevice}
+					style={{ height: '100%', minHeight: '400px' }}
+					containerStyle={{ height: '100%', minHeight: '400px' }}
+				>
+					{tabs.map((tab, index) => (
+						<TabPanel key={index} value={value} index={index}>
+							{tab.content}
+						</TabPanel>
+					))}
+				</SwipeableViews>
+			</Box>
+			<Box sx={{
+				px: 3,
+				mt: 3,
+				pb: 3
+			}}>
+				<Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+					<Stack direction="column" spacing={2}>
+						<Box
+							component="img"
+							src={startsLogo}
+							alt="Starts Logo"
+							sx={{
+								height: 20,
+								width: 'auto'
+							}}
+						/>
+						<Box
+							component="img"
+							src={europeanCommissionLogo}
+							alt="European Commission Logo"
+							sx={{
+								height: 40,
+								width: 'auto'
+							}}
+						/>
+					</Stack>
+					{/* <Typography variant="body2" color="text.secondary">
+						PRIVACY POLICY
+					</Typography> */}
+				</Stack>
+			</Box>
+		</Dialog>
+	);
 };
 
 export default InfoPopup;

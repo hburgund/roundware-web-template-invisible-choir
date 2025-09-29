@@ -128,6 +128,14 @@ const baseTheme = {
 						fontSize: '15px !important',
 						textAlign: 'center',
 						whiteSpace: 'pre-line',
+					},
+					'& a.hyperlink': {
+						color: '#A3E635',
+						textDecoration: 'underline',
+						textDecorationStyle: 'dotted',
+						'&:hover': {
+							textDecorationStyle: 'solid'
+						}
 					}
 				}
 			}

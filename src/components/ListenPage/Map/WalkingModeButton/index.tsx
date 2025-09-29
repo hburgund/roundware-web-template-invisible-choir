@@ -146,7 +146,7 @@ const walkingModeButton = () => {
 				if (permissionStatus.state === 'granted') {
 					// Permission already granted - proceed directly without showing dialog
 					console.log('Location permission already granted, proceeding to walking mode');
-					await requestLocationPermission();
+					enableWalkingMode();
 				} else if (permissionStatus.state === 'denied') {
 					// Permission denied - show error
 					setWalkingModeStatus('error');
@@ -155,13 +155,12 @@ const walkingModeButton = () => {
 				} else if (hasRequestedPermission) {
 					// We've already requested permission in this session, try to proceed
 					console.log('Permission already requested in this session, attempting to proceed');
-					await requestLocationPermission();
+					setWalkingModeStatus('locating');
 				} else {
 					// Permission not determined yet - show permission dialog
 					console.log('Location permission not determined, showing permission dialog');
 					sessionStorage.setItem('locationPermissionRequested', 'true');
 					setWalkingModeStatus('locating');
-					await requestLocationPermission();
 				}
 			} catch (error) {
 				// Fallback for browsers that don't support permissions API
@@ -170,7 +169,6 @@ const walkingModeButton = () => {
 					sessionStorage.setItem('locationPermissionRequested', 'true');
 				}
 				setWalkingModeStatus('locating');
-				await requestLocationPermission();
 			}
 		}
 	};
