@@ -113,7 +113,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					<Stack spacing={2}>
 						<Box>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								<a href="https://base.milano.it/">BASE Milano</a>, Milan, Italy
+								<a href="https://base.milano.it/" target="_blank" rel="noopener noreferrer" className="hyperlink">BASE Milano</a>, Milan, Italy
 							</Typography>
 							<Typography variant="body2" color="text.secondary">
 								09-OCT-2025 - 26-OCT-2025
@@ -124,7 +124,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Full Exhibition Information
 							</Typography>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/">Re-Silence Program</a>
+								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/" target="_blank" rel="noopener noreferrer" className="hyperlink">Re-Silence Program</a>
 							</Typography>
 						</Box>
 					</Stack>
@@ -144,7 +144,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Ari Benjamin Meyers
 							</Typography>
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-								<a href="http://aribenjaminmeyers.com/">Ari Benjamin Meyers</a> is
+								<a href="http://aribenjaminmeyers.com/" target="_blank" rel="noopener noreferrer" className="hyperlink">Ari Benjamin Meyers</a> is
 								an artist and composer who explores structures
 								and processes that redefine the performative, social, and ephemeral
 								nature of music. He received his training at The Julliard School,
@@ -172,7 +172,7 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 								Halsey Burgund
 							</Typography>
 							<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-								<a href="https://halseyburgund.com">Halsey Burgund</a> is a new media artist and Emmy-winning interactive
+								<a href="https://halseyburgund.com" target="_blank" rel="noopener noreferrer" className="hyperlink">Halsey Burgund</a> is a new media artist and Emmy-winning interactive
 								director whose work focuses on the combination of modern technologies -
 								from mobile phones to artificial intelligence - with fundamentally
 								human “technologies”, primarily language, music and the spoken voice.
