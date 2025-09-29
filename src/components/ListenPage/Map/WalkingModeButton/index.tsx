@@ -1,8 +1,7 @@
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import MapIcon from '@mui/icons-material/Map';
-import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, useMediaQuery, Fab } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fab } from '@mui/material';
 import Button from '@mui/material/Button';
-import { useTheme } from '@mui/styles';
 import { useGoogleMap } from '@react-google-maps/api';
 import clsx from 'clsx';
 import PermissionDeniedDialog from '@/components/elements/PermissionDeniedDialog';
@@ -10,6 +9,7 @@ import config from '@/config';
 import { useURLSync } from '@/context/URLContext';
 import { isEqual } from 'lodash';
 import { useEffect, useState } from 'react';
+import { isAndroid, isIOS } from 'react-device-detect';
 import { GeoListenMode } from 'roundware-web-framework/dist/index';
 import { useRoundware } from '../../../../hooks';
 import messages from '../../../../locales/en_US.json';
@@ -29,10 +29,7 @@ const walkingModeButton = () => {
 	const center = { lat: lat!, lng: lng! };
 	const ready = typeof lat === 'number' && typeof lng === 'number';
 
-	const theme = useTheme();
-	const isMobile = useMediaQuery(theme.breakpoints.down('sm'), {
-		noSsr: true,
-	});
+	const isMobile = isAndroid || isIOS;
 	// when the listenerLocation is updated, center the map
 	useEffect(() => {
 		if (ready) {
@@ -50,12 +47,9 @@ const walkingModeButton = () => {
 
 	const displayListenModeButton = availableListenModesArray == 'device' || availableListenModesArray.length == 2 ? true : false;
 
-	const [init, setInit] = useState(false);
 	// set default GeoListenMode
 	useEffect(() => {
-		if (init) return;
 		if (!map) return;
-		setInit(true);
 		
 		// Check if we're already in the correct mode to avoid unnecessary switching
 		const shouldBeInWalkingMode = availableListenModesArray == 'device' ? isMobile : availableListenModesArray[0] !== 'map';
@@ -83,7 +77,7 @@ const walkingModeButton = () => {
 			console.log('default to walking mode');
 			enterWalkingMode();
 		}
-	}, [isMobile, map, geoListenMode]);
+	}, [isMobile, map, geoListenMode, availableListenModesArray]);
 
 	const enterMapMode = () => {
 		if (!map) return;
