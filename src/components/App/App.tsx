@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import Helmet from 'react-helmet';
 import { BrowserRouter, Link, NavLink, Route, Switch } from 'react-router-dom';
 import { getMessageOnLoad } from '@/utils/platformMessages';
-import favicon from '../../assets/favicon.png';
+import favicon from '../../assets/ic-favicon.png';
 import logoSmall from '../../assets/rw-full-logo-wb.png';
 import logoMinimal from '../../assets/rw-logo-minimal.png';
 import { useRoundware } from '../../hooks';
