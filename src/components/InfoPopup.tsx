@@ -103,6 +103,32 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 						a public artwork can be and how it may allow us to connect with each
 						other and our (sonic) environment in these polarized times.
 					</Typography>
+					<Typography variant="h6" color="primary" gutterBottom>
+						Credits
+					</Typography>
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+						<ul>
+							<li>Ari Benjamin Meyers & Halsey Burgund - Artists and Creators</li>
+							<li>Juliet Alliban - UI & UX design</li>
+							<li>Shreyas Jadhav - Technical Development</li>
+							<li>Shubham Nagpure - Technical Development </li>
+							<li>HardKoro - Milan-based participating choir</li>
+						</ul>
+					</Typography>
+					<Typography variant="h6" color="primary" gutterBottom>
+						Special Thanks
+					</Typography>
+					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+						<ul>
+							<li>Manuel Cirauqui</li>
+							<li>Berta Gutierrez</li>
+							<li>Eleftheria Lagiokapa</li>
+							<li>Georgios Loupas</li>
+							<li>CERTH/ReSilence</li>
+							<li>BASE Milano & Staff</li>
+							<li>ReSilence Artist Residency Program</li>
+						</ul>
+					</Typography>
 				</>
 			)
 		},
@@ -124,7 +150,13 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 						</Box>
 						<Box>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
-								Full Exhibition Information
+								<a
+									href="https://base.milano.it/en/event/farout-2025-cosmic-prelude-opening/"
+									target="_blank"
+									rel="noopener noreferrer"
+									className="hyperlink">
+										Exhibition Opening Information
+								</a>
 							</Typography>
 							<Typography variant="subtitle1" color="primary" gutterBottom>
 								<a href="https://resilence.eu/artists-in-residence-2nd-open-call/" target="_blank" rel="noopener noreferrer" className="hyperlink">Re-Silence Program</a>
