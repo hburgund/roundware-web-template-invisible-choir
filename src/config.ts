@@ -281,6 +281,7 @@ let config: IConfig = {
   },
 
   features: {
+    useAudioWelcome: true,
     autoConcludeDuration: 992,
     concludeDuration: 2,
     surveyLink: "https://forms.gle/nMfJNPozSW1KFddu7",

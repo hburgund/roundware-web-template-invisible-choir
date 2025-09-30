@@ -360,6 +360,8 @@ export type IConfig = {
   };
   /** config for features usually project specific */
   features: {
+    /** toggle welcome audio overlay on listen page when coming from intro */
+    useAudioWelcome?: boolean;
     /** duration after which the app will automatically conclude the session */
     autoConcludeDuration: number;
     /** duration for which the app will conclude the session  */
