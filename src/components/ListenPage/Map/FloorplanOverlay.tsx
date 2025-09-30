@@ -157,7 +157,7 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
       loadSvg(): void {
         if (!this.svgContainer) return;
 
-        fetch('/floorplans/base-plan2.svg')
+        fetch('/floorplans/base-plan4.svg')
           .then(response => {
             if (!response.ok) {
               throw new Error(`Failed to load SVG: ${response.statusText}`);
@@ -206,4 +206,4 @@ const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
   return null;
 };
 
-export default FloorplanOverlay; 
+export default FloorplanOverlay;
