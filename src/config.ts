@@ -59,6 +59,8 @@ let config: IConfig = {
       variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
       newSpeakerFadeInDurationMs: 2000,
       alwaysOnWhenAvailable: [393],
+      prioritizeNewlySubmitted: true, // Enable/disable the feature (default: true)
+      newlySubmittedPriorityDurationMs: 30000, // How long to prioritize (default: 30000ms = 30 seconds)
     },
 
     skipDuration: 5,

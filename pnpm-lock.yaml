@@ -150,8 +150,8 @@ importers:
         specifier: ^0.13.9
         version: 0.13.11
       roundware-web-framework:
-        specifier: ^0.13.1-beta.0
-        version: 0.13.1-beta.0
+        specifier: 0.13.1-beta.3
+        version: 0.13.1-beta.3
       ts-overlapping-marker-spiderfier:
         specifier: ^1.0.3
         version: 1.0.3
@@ -2645,8 +2645,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  roundware-web-framework@0.13.1-beta.0:
-    resolution: {integrity: sha512-XXANx+enrkx/UbeTXrTOUib7aI8WRXUBNLyaa7u2QScCU4+zUIk//1HR7uKolzKHIvyISqj0kTanlkqSQMjSVQ==}
+  roundware-web-framework@0.13.1-beta.3:
+    resolution: {integrity: sha512-2aLk3fFVW0AvlCI26/roGEAPRQPBChyPmU8ERLAaiH2tKBARPTKKGbjww6D2GyAIzweF9jE49mgYTLyDrWswoA==}
 
   scheduler@0.20.2:
     resolution: {integrity: sha512-2eWfGgAqqWFGqtdMmcL5zCMK1U8KlXv8SQFGglL3CEtd0aDVDWgeF/YoCmvln55m5zSk3J/20hTaSBeSObsQDQ==}
@@ -6163,7 +6163,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.52.3
       fsevents: 2.3.3
 
-  roundware-web-framework@0.13.1-beta.0:
+  roundware-web-framework@0.13.1-beta.3:
     dependencies:
       '@turf/bbox': 6.5.0
       '@turf/boolean-point-in-polygon': 6.5.0
