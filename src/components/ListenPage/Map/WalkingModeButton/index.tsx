@@ -15,7 +15,11 @@ import { useRoundware } from '../../../../hooks';
 import messages from '../../../../locales/en_US.json';
 import ListenerLocationMarker from './ListenerLocationMarker';
 
-const walkingModeButton = () => {
+interface WalkingModeButtonProps {
+	welcomeAudioCompleted?: boolean;
+}
+
+const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonProps) => {
 	const { roundware, forceUpdate, geoListenMode, setGeoListenMode } = useRoundware();
 
 	if (!roundware?.project) return null;
@@ -51,6 +55,12 @@ const walkingModeButton = () => {
 	useEffect(() => {
 		if (!map) return;
 		
+		// Defer location permission request until welcome audio completes
+		if (!welcomeAudioCompleted) {
+			console.log('Welcome audio not completed yet, deferring location permission request');
+			return;
+		}
+		
 		// Check if we're already in the correct mode to avoid unnecessary switching
 		const shouldBeInWalkingMode = availableListenModesArray == 'device' ? isMobile : availableListenModesArray[0] !== 'map';
 		const isCurrentlyInWalkingMode = geoListenMode === GeoListenMode.AUTOMATIC;
@@ -77,7 +87,7 @@ const walkingModeButton = () => {
 			console.log('default to walking mode');
 			enterWalkingMode();
 		}
-	}, [isMobile, map, geoListenMode, availableListenModesArray]);
+	}, [isMobile, map, geoListenMode, availableListenModesArray, welcomeAudioCompleted]);
 
 	const enterMapMode = () => {
 		if (!map) return;

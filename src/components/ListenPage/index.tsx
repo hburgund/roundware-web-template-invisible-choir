@@ -21,6 +21,7 @@ const ListenPage = () => {
 	const classes = useStyles();
 	const location = useLocation<ListenPageLocationState>();
 	const [showWelcomeAudio, setShowWelcomeAudio] = useState(false);
+	const [welcomeAudioCompleted, setWelcomeAudioCompleted] = useState(false);
 	
 	// Determine button text based on where user came from
 	// If they came from intro, show "LAUNCH", otherwise show "PLAY"
@@ -30,11 +31,15 @@ const ListenPage = () => {
 	useEffect(() => {
     if (location.state?.source === 'intro' && config.features?.useAudioWelcome !== false) {
 			setShowWelcomeAudio(true);
+		} else {
+			// No welcome audio, mark as completed immediately
+			setWelcomeAudioCompleted(true);
 		}
 	}, [location.state?.source]);
 
 	const handleCloseWelcomeAudio = () => {
 		setShowWelcomeAudio(false);
+		setWelcomeAudioCompleted(true);
 	};
 
 	if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
@@ -47,6 +52,7 @@ const ListenPage = () => {
 				className={classes.map} 
 				googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
 				buttonText={buttonText}
+				welcomeAudioCompleted={welcomeAudioCompleted}
 			/>
 			<WelcomeAudioOverlay 
 				open={showWelcomeAudio}

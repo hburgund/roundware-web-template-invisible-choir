@@ -39,6 +39,7 @@ interface RoundwareMapProps {
 	googleMapsApiKey: string;
 	className: string;
 	buttonText?: string;
+	welcomeAudioCompleted?: boolean;
 }
 const RoundwareMap = (props: RoundwareMapProps) => {
 	const classes = useStyles();
@@ -242,7 +243,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 						)}
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
-						{map && <WalkingModeButton />}
+						{map && <WalkingModeButton welcomeAudioCompleted={props.welcomeAudioCompleted} />}
 						{config.features.speakerToggleIds?.length > 0 && <SpeakerToggle />}
 						{config.map.speakerDisplay == 'polygons' && <SpeakerPolygons />}
 						{config.map.speakerDisplay == 'images' && <SpeakerImages />}
