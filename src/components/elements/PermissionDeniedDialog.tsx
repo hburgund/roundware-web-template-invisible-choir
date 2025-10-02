@@ -21,16 +21,16 @@ const PermissionDeniedDialog = (props: Props) => {
 				open={props.open && !showVideo}
 				onClose={props.onClose}
 				icon={<LanguageIcon sx={{ fontSize: 40 }} />}
-				title="SORRY!"
-				description="To participate fully in the artwork experience we need access to your location. Please enable location access in your browser, or if you prefer, you can watch a video of the experience to better understand how it works and what to expect."
+				title="NO LOCATION ACCESS!"
+				description="To participate fully in the artwork experience we need access to your location. Please enable location access in your browser."
 				primaryButton={{
 					text: "LOCATION ENABLE HELP",
 					onClick: () => setShowLocationHelp(true)
 				}}
-				secondaryButton={{
-					text: "WATCH VIDEOS",
-					onClick: () => setShowVideo(true)
-				}}
+				// secondaryButton={{
+				// 	text: "WATCH VIDEOS",
+				// 	onClick: () => setShowVideo(true)
+				// }}
 				useLeafBackground={true}
 				showCloseButton={false}
 			/>
