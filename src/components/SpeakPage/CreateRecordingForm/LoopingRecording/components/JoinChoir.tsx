@@ -363,8 +363,8 @@ const JoinChoir = ({
         size="large"
         sx={{
           position: "absolute",
-          top: 30,
-          right: 30,
+          top: 10,
+          right: 10,
           minWidth: 45,
           minHeight: 45,
           p: 0,
@@ -374,7 +374,7 @@ const JoinChoir = ({
           borderWidth: 1,
           width: 45,
           height: 45,
-          zIndex: 1000,
+          zIndex: 10001,
         }}
         onClick={() => setShowHelp(true)}
       >
