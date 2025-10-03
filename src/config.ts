@@ -60,7 +60,7 @@ let config: IConfig = {
       newSpeakerFadeInDurationMs: 2000,
       alwaysOnWhenAvailable: [393],
       prioritizeNewlySubmitted: true, // Enable/disable the feature (default: true)
-      newlySubmittedPriorityDurationMs: 30000, // How long to prioritize (default: 30000ms = 30 seconds)
+      newlySubmittedPriorityDurationMs: 60000, // How long to prioritize (default: 30000ms = 30 seconds)
     },
 
     skipDuration: 5,
