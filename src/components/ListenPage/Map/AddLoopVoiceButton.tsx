@@ -169,7 +169,7 @@ const AddLoopVoiceButton = ({ showLaunch }: { showLaunch: boolean }) => {
 									top: '50%',
 									left: '50%',
 									transform: 'translate(-50%, -50%)',
-									border: '1px solid',
+									border: '0px solid',
 									borderColor: 'secondary.main',
 									borderRadius: '50%',
 									pointerEvents: 'none',
