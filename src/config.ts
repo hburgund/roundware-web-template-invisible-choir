@@ -30,9 +30,9 @@ let config: IConfig = {
       acceptableDelayMs: 50,
       syncCheckInterval: 2500,
       replaceWithNoneProbability: 0.0,
-      loopPointUpdateProbability: 0.7,
-      slotConsiderationProbability: 0.5,
-      speakerRotationProbability: 0.8,
+      loopPointUpdateProbability: 0.9,
+      slotConsiderationProbability: 0.8,
+      speakerRotationProbability: 0.9,
       prefetchDistanceMeters: 5,
       // loopFractions: [1/8, 1/4, 1/2, 5/8, 3/4, 1/1, 1/1, 1/1, 1/1, 1/2, 1/2],
       loopFractions: [
@@ -63,11 +63,11 @@ let config: IConfig = {
       newlySubmittedPriorityDurationMs: 60000, // How long to prioritize (default: 30000ms = 30 seconds)
       // GPS smoothing params
       geoSmoothingEnabled: true,
-      geoSmoothingAlpha: 0.15,
-      geoSmoothingMinAccuracyMeters: 20,
-      geoSmoothingMinEmitDeltaMeters: 2.5,   // 0 disables deadband (e.g., try 2.5 for walking)
-      geoSmoothingResetJumpMeters: 50,
-      geoUpdateThrottleMs: 500
+      geoSmoothingAlpha: 0.12,
+      geoSmoothingMinAccuracyMeters: 15,
+      geoSmoothingMinEmitDeltaMeters: 3.0,   // 0 disables deadband (e.g., try 2.5 for walking)
+      geoSmoothingResetJumpMeters: 40,
+      geoUpdateThrottleMs: 1000
     },
 
     skipDuration: 5,
