@@ -213,10 +213,10 @@ const LoopingRecordingForm = () => {
           console.log("🚪 User confirmed leaving - setting flag to bypass router prompt");
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
-        title="Leave Choir"
-        description="Are you sure you want to leave this choir?
+        title="Exit Recording"
+        description="Are you sure you want to stop?
         You will lose your recording."
-        confirmText="Yes, Leave"
+        confirmText="Yes, Exit"
         cancelText="Cancel"
       />
 
@@ -253,7 +253,7 @@ const LoopingRecordingForm = () => {
         }}
         icon={<Logout sx={{ fontSize: 40 }} />}
         title="Thank You!"
-        description="Your voice has been added to the choir and can now be heard with the other voices in this location."
+        description="Your voice is being added to the choir. It may take a few loops, but you will soon be able to hear yourself with the other voices in this location."
         confirmText="Listen"
         cancelText=""
         showCloseButton={false}
