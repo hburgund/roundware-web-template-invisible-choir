@@ -61,6 +61,13 @@ let config: IConfig = {
       alwaysOnWhenAvailable: [416],
       prioritizeNewlySubmitted: true, // Enable/disable the feature (default: true)
       newlySubmittedPriorityDurationMs: 60000, // How long to prioritize (default: 30000ms = 30 seconds)
+      // GPS smoothing params
+      geoSmoothingEnabled: true,
+      geoSmoothingAlpha: 0.15,
+      geoSmoothingMinAccuracyMeters: 20,
+      geoSmoothingMinEmitDeltaMeters: 2.5,   // 0 disables deadband (e.g., try 2.5 for walking)
+      geoSmoothingResetJumpMeters: 50,
+      geoUpdateThrottleMs: 500
     },
 
     skipDuration: 5,
