@@ -158,7 +158,7 @@ let config: IConfig = {
     ],
     speakerDisplayDefaults: {
       strokeWeight: 2,
-      strokeOpacity: 0.5,
+      strokeOpacity: 1.0,
       fillOpacity: 0.25,
     },
     // Styling for newly created speakers in current session
@@ -176,27 +176,27 @@ let config: IConfig = {
     },
     // Styling for speakers that are currently playing audio
     playingSpeakerDefaults: {
-      strokeWeight: 1,
+      strokeWeight: 2,
       strokeOpacity: 0.7,
-      fillOpacity: 0.4, // More opaque when playing
-      strokeColor: "#065F46",
-      fillColor: "#ADD96A",
+      fillOpacity: 0.2, // Keep original fill opacity (only change border)
+      strokeColor: "#000000",
+      fillColor: null, // Keep original fill color (only change border)
     },
     // Styling for speakers that are not currently playing
     nonPlayingSpeakerDefaults: {
-      strokeWeight: 0, // No border for non-playing speakers
-      strokeOpacity: 0,
-      fillOpacity: 0.1, // More transparent when not playing
+      strokeWeight: 1, // Show border for non-playing speakers (thicker for visibility)
+      strokeOpacity: 0.0, // Default to semi-transparent unless database specifies opacity
+      fillOpacity: 0.15, // More transparent when not playing
       fillColor: null, // Keep original fill color (no change)
       strokeColor: null, // Keep original stroke color (no change)
     },
     // Styling for recently created speakers (based on creation time)
     recentSpeakerDefaults: {
       strokeWeight: 1, // No border for recent speakers
-      strokeOpacity: 0.6,
-      fillOpacity: 0.5, // Higher opacity for recent speakers
-      fillColor: "#E68E00", // Grey fill color for recent speakers
-      strokeColor: "#E68E00", // Black border (for future use)
+      strokeOpacity: 0.3,
+      fillOpacity: null, // Higher opacity for recent speakers
+      fillColor: null,
+      strokeColor: "#FF2525",
     },
     // Number of most recent speakers to highlight
     recentSpeakerCount: 5,
