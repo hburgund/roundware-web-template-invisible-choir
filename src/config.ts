@@ -153,8 +153,8 @@ let config: IConfig = {
     },
     speakerDisplay: "polygons",
     speakerPolygonColors: [
-      ["#7F1D1D", "#B45309"],
-      ["#059669", "#065F46"],
+      ["#7F1D1D40", "#B45309C0"],
+      ["#05966940", "#065F46C0"],
     ],
     speakerDisplayDefaults: {
       strokeWeight: 2,
