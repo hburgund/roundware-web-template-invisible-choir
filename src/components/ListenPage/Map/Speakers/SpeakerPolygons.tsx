@@ -385,7 +385,7 @@ const SpeakerPolygons = (props: Props) => {
 		}
 
 		const speakers = roundware.speakers();
-		const recentCount = config.map.recentSpeakerCount || 4;
+		const recentCount = config.map.recentSpeakerCount || 0;
 		console.log('📊 Starting recent speakers calculation with', speakers.length, 'total speakers');
 		
 		// Filter speakers with valid created timestamps and sort by creation time (newest first)
@@ -476,7 +476,8 @@ const SpeakerPolygons = (props: Props) => {
 			const borderColor = s.data.border_color;
 			const baseBorderColor = getBaseColor(borderColor);
 			const strokeOpacity = getStrokeOpacity(borderColor, config.map.speakerDisplayDefaults?.strokeOpacity || 1);
-			const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (speakerPolygonOptions?.strokeWeight || 0);
+			const strokeWeight = isValidColor(borderColor) ? (config.map.speakerDisplayDefaults?.strokeWeight || 2) : (config.map.speakerDisplayDefaults?.strokeWeight || 2);
+			
 
 			// Check if this is a newly created speaker in the current session
 			const isNewlyCreated = sessionCreatedSpeakerIds.includes(s.data.id) || s.data.id === debugTestSpeakerId;
@@ -525,7 +526,7 @@ const SpeakerPolygons = (props: Props) => {
 				console.log(`🔧 AlwaysOn Speaker ${s.data.id}: isPlaying=${isPlaying}, isAlwaysOn=${isAlwaysOn}, finalZIndex=${finalZIndex}, calculatedZIndex=${calculatedZIndex}`);
 			}
 			const finalFillOpacity = isNewlyCreated 
-				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? Math.min(fillOpacity * 1.5, 0.8))
+				? (config.map.sessionCreatedSpeakerDefaults?.fillOpacity ?? fillOpacity)
 				: fillOpacity;
 			const finalStrokeColor = isNewlyCreated 
 				? (debugColors.strokeColor) // Use debug colors for real-time testing
@@ -585,8 +586,9 @@ const SpeakerPolygons = (props: Props) => {
 					}
 				} else {
 					// Apply non-playing speaker styles (default)
-					// Only apply values if they're not null in config
-					if (config.map.nonPlayingSpeakerDefaults?.strokeOpacity !== null) {
+					// Only apply values if they're not null in config AND database doesn't specify alpha
+					const hasDatabaseAlpha = borderColor && borderColor.length === 9; // RGBA format
+					if (config.map.nonPlayingSpeakerDefaults?.strokeOpacity !== null && !hasDatabaseAlpha) {
 						finalPlayingStrokeOpacity = config.map.nonPlayingSpeakerDefaults?.strokeOpacity ?? finalPlayingStrokeOpacity;
 					}
 					if (config.map.nonPlayingSpeakerDefaults?.strokeWeight !== null) {
@@ -617,6 +619,7 @@ const SpeakerPolygons = (props: Props) => {
 			const path = polygonToGoogleMapPaths(s.data.shape);
 			const center = speakerCenters[s.data.id];
 
+			
 			// Create main polygon
 			const polygon = (
 				<Polygon
@@ -634,8 +637,8 @@ const SpeakerPolygons = (props: Props) => {
 						...(!s.buffer
 							? {
 									fillOpacity: 0,
-									strokeOpacity: finalPlayingStrokeOpacity > 0 ? finalPlayingStrokeOpacity : 1,
-									strokeWeight: finalPlayingStrokeWeight > 0 ? finalPlayingStrokeWeight : 1,
+									strokeOpacity: finalPlayingStrokeOpacity,
+									strokeWeight: finalPlayingStrokeWeight,
 									strokeColor: finalPlayingStrokeColor,
 							  }
 							: {}),
