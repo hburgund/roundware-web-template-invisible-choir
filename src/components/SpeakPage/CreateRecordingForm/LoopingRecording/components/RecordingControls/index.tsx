@@ -63,6 +63,12 @@ const RecordingControls = ({ userConfirmedLeaving = false }: RecordingControlsPr
         <Typography variant="h5" sx={{ color: "white", textAlign: "center" }}>
           Generating sing-along loop...
         </Typography>
+        <Typography variant="h6" sx={{ color: "white", textAlign: "center", maxWidth: "80%", lineHeight: 1.4 }}>
+          Get ready to record anything you want: double what you hear, improvise, make sounds, hum, whistle, etc. Please no words.
+        </Typography>
+        <Typography variant="h6" sx={{ color: "white", textAlign: "center", maxWidth: "80%", lineHeight: 1.4 }}>
+          Have fun!
+        </Typography>
         <CircularProgress sx={{ color: "white" }} />
       </Box>
     );
