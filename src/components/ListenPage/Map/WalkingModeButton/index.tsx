@@ -301,7 +301,7 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 			</Dialog>
 			<Fab 
 				title={geoListenMode == GeoListenMode.AUTOMATIC ? `Enter Map Mode` : `Enter Walking Mode`} 
-				className={clsx("map-button", displayListenModeButton ? null : "hidden")} 
+				className={clsx("map-button", "hidden")} 
 				color="secondary"
 				disabled={busy} 
 				onClick={toggleWalkingMode}

@@ -243,7 +243,7 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 						)}
 						<AssetLayer updateLocation={updateListenerLocation} />
 						<RangeCircleOverlay updateLocation={updateListenerLocation} />
-						{/* {map && <WalkingModeButton welcomeAudioCompleted={props.welcomeAudioCompleted} />} */}
+						{map && <WalkingModeButton welcomeAudioCompleted={props.welcomeAudioCompleted} />}
 						{config.features.speakerToggleIds?.length > 0 && <SpeakerToggle />}
 						{config.map.speakerDisplay == 'polygons' && <SpeakerPolygons />}
 						{config.map.speakerDisplay == 'images' && <SpeakerImages />}
