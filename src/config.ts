@@ -38,7 +38,7 @@ let config: IConfig = {
       loopFractions: [
         // 1/8,
         // 1/4,1/4,1/4,1/4,
-        // 1/2,1/2,1/2,1/2,
+        1/2,1/2,
         1/1,1/1,1/1,1/1,1/1,1/1,1/1,1/1,
         // -1/1,
         // -1/2,
@@ -47,18 +47,18 @@ let config: IConfig = {
       ],
       effects: {
         delayTimeInMs: 250,
-        feedback: 0.2,
-        wetDryRatio: 0.3,
-        reverbRoomSize: 0.6,
+        feedback: 0.1,
+        wetDryRatio: 0.2,
+        reverbRoomSize: 0.4,
         reverbDamping: 0.3,
         pan: [-0.8, -0.4, 0.4, 0.8],
       },
       // Variant URI configuration for speaker audio variants
-      minVariantLoops: 2, // Minimum loops per variant (default: 2)
+      minVariantLoops: 1, // Minimum loops per variant (default: 2)
       maxVariantLoops: 3, // Maximum loops per variant (default: 4)
       variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
       newSpeakerFadeInDurationMs: 2000,
-      alwaysOnWhenAvailable: [393],
+      alwaysOnWhenAvailable: [416],
       prioritizeNewlySubmitted: true, // Enable/disable the feature (default: true)
       newlySubmittedPriorityDurationMs: 60000, // How long to prioritize (default: 30000ms = 30 seconds)
     },
