@@ -42,12 +42,12 @@ interface FloorplanOverlayProps {
   useProjectLocation?: boolean; // Use project location instead of map center (default: false)
 }
 
-const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({ 
-  map, 
+const FloorplanOverlay: React.FC<FloorplanOverlayProps> = ({
+  map,
   position,
-  size = 0.0007,
-  opacity = 0.8,
-  rotation = 287,
+  size = 0.0005,
+  opacity = 0.5,
+  rotation = 157,
   enabled = true,
   useProjectLocation = false
 }) => {
