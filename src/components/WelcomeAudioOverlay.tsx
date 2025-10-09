@@ -66,6 +66,11 @@ const WelcomeAudioOverlay: React.FC<WelcomeAudioOverlayProps> = ({
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
 
+    // Check if audio is already playing when listeners are attached
+    if (!audio.paused) {
+      setIsPlaying(true);
+    }
+
     return () => {
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
@@ -84,6 +89,12 @@ const WelcomeAudioOverlay: React.FC<WelcomeAudioOverlayProps> = ({
       const triggerAudioPlay = () => {
         const audio = audioRef.current;
         if (!audio) return;
+        
+        // Check if audio is already playing (from autoplay)
+        if (!audio.paused) {
+          setIsPlaying(true);
+          return;
+        }
         
         // Try to play immediately
         audio.play().then(() => {
