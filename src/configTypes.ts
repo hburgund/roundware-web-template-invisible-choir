@@ -230,8 +230,8 @@ export type IConfig = {
     recentSpeakerDefaults: {
       strokeWeight: number;
       strokeOpacity: number;
-      fillOpacity: number;
-      fillColor: string;
+      fillOpacity: number | null;
+      fillColor: string | null;
       strokeColor: string;
     };
     /** Number of most recent speakers to highlight */
