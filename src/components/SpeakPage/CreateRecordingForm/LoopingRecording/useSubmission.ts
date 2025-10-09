@@ -255,8 +255,8 @@ export const useSubmission = ({
           ]);
         } else if (finalConfig.speak.speakerShape === "beechLeaf") {
           speakerShape = generateBeechLeafShape(location, {
-            minSize: 10,
-            maxSize: 10,
+            minSize: 5,
+            maxSize: 5,
           });
         }
 
@@ -293,7 +293,7 @@ export const useSubmission = ({
             attemptFormData.append("border_color", colorPair.border_color);
           }
           attemptFormData.append("file", recordedAudioBlob);
-          attemptFormData.append("attenuation_distance", "3");
+          attemptFormData.append("attenuation_distance", "0");
           attemptFormData.append("project_id", finalConfig.project.id.toString());
           if (baseSpeakers.length > 0) {
             baseSpeakers.forEach((speaker) => {
