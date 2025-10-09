@@ -54,7 +54,7 @@ let config: IConfig = {
         pan: [-0.8, -0.4, 0.4, 0.8],
       },
       // Variant URI configuration for speaker audio variants
-      minVariantLoops: 1, // Minimum loops per variant (default: 2)
+      minVariantLoops: 2, // Minimum loops per variant (default: 2)
       maxVariantLoops: 3, // Maximum loops per variant (default: 4)
       variantCrossfadeDurationMs: 1000, // Crossfade duration in milliseconds (default: 1000)
       newSpeakerFadeInDurationMs: 2000,
