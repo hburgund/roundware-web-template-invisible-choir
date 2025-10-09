@@ -111,8 +111,8 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 							<li>Ari Benjamin Meyers & Halsey Burgund - Artists and Creators</li>
 							<li>Juliet Alliban - UI & UX design</li>
 							<li>Shreyas Jadhav - Technical Development</li>
-							<li>Shubham Nagpure - Technical Development </li>
-							<li>HardKoro - Milan-based participating choir</li>
+							<li>Shubham Nagpure - Technical Development</li>
+							<li>HardKoro (Musical director: Michele Acocella) - seed choir voices</li>
 						</ul>
 					</Typography>
 					<Typography variant="h6" color="primary" gutterBottom>
@@ -120,8 +120,8 @@ const InfoPopup = ({ open, onClose }: InfoPopupProps) => {
 					</Typography>
 					<Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
 						<ul>
-							<li>Manuel Cirauqui</li>
 							<li>Berta Gutierrez</li>
+							<li>Manuel Cirauqui</li>
 							<li>Eleftheria Lagiokapa</li>
 							<li>Georgios Loupas</li>
 							<li>CERTH/ReSilence</li>
