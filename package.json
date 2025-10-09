@@ -8,8 +8,10 @@
 		"start": "vite",
 		"preview": "vite preview",
 		"build": "tsc --pretty && vite build",
-		"deploy": "npm run build && cp ./build/index.html ./build/200.html && surge --domain invisible-choir.surge.sh build",
-		"framework": "cd ../roundware-web-framework && pnpm run build:main && cd ../roundware-web-template-invisible-choir && pnpm install ../roundware-web-framework && pnpm run dev"
+		"deploy": "pnpm run build && cp ./build/index.html ./build/200.html && surge --domain invisible-choir.surge.sh build",
+		"framework": "cd ../roundware-web-framework && pnpm run build:main && cd ../roundware-web-template-invisible-choir && pnpm install ../roundware-web-framework && pnpm run dev",
+		"use-local-framework": "pnpm add file:../roundware-web-framework",
+		"use-published-framework": "pnpm add roundware-web-framework@^0.13.1-beta.2"
 	},
 	"type": "module",
 	"author": "Evan Babb",
@@ -61,7 +63,7 @@
 		"react-share": "^4.4.0",
 		"react-swipeable-views": "^0.14.1",
 		"regenerator-runtime": "^0.13.9",
-		"roundware-web-framework": "0.13.1-beta.3",
+		"roundware-web-framework": "^0.13.1-beta.4",
 		"ts-overlapping-marker-spiderfier": "^1.0.3",
 		"wavesurfer-react": "https://github.com/shreyas-jadhav/wavesurfer-react/raw/tarball/wavesurfer-react-2.0.13.tgz",
 		"wavesurfer.js": "^5.2.0",
