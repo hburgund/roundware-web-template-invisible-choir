@@ -293,7 +293,7 @@ export const useSubmission = ({
             attemptFormData.append("border_color", colorPair.border_color);
           }
           attemptFormData.append("file", recordedAudioBlob);
-          attemptFormData.append("attenuation_distance", "0");
+          attemptFormData.append("attenuation_distance", "2");
           attemptFormData.append("project_id", finalConfig.project.id.toString());
           if (baseSpeakers.length > 0) {
             baseSpeakers.forEach((speaker) => {
