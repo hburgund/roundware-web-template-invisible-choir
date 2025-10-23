@@ -343,7 +343,7 @@ const calculateArcCurve = (
 };
 
 const SpeakerPolygons = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers, playingSpeakerIds } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers, playingSpeakerIds, timeMachineFilterDate } = useRoundware();
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
 	const [googleMapElements, setGoogleMapElements] = useState<React.ReactElement[]>([]);
 	const [debugTestSpeakerId, setDebugTestSpeakerId] = useState<number | null>(null);
@@ -420,6 +420,18 @@ const SpeakerPolygons = (props: Props) => {
 		const speakers = roundware.mixer.speakerEngine?.speakers
 			?.filter(({ data: speaker }: any) => !!speaker.shape)
 			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id))
+			?.filter((s: any) => {
+				// Time machine filter: only show speakers created before the selected date
+				if (!timeMachineFilterDate) return true;
+				
+				const speakerCreated = s.data.created;
+				if (!speakerCreated) return true; // Show speakers without timestamps
+				
+				const speakerDate = new Date(speakerCreated);
+				if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+				
+				return speakerDate <= timeMachineFilterDate;
+			})
 			?.sort((a: any, b: any) => {
 				// Sort by created timestamp (most recent first), fallback to ID for speakers without timestamps
 				const aCreated = a?.data?.created ? new Date(a.data.created).getTime() : 0;
@@ -756,7 +768,7 @@ const SpeakerPolygons = (props: Props) => {
 
 		// Combine all elements and set state
 		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
-	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds, recentSpeakerIds]);
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds, recentSpeakerIds, timeMachineFilterDate]);
 
 	/**
 	 * Debug function to randomly select a nearby speaker for testing

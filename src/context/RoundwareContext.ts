@@ -65,6 +65,10 @@ export interface IRoundwareContext {
 	
 	// track currently playing variant URIs for each speaker
 	speakerVariantUris: Map<number, string>;
+	
+	// time machine slider state
+	timeMachineFilterDate: Date | null;
+	setTimeMachineFilterDate: React.Dispatch<React.SetStateAction<Date | null>>;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

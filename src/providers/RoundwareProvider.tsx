@@ -46,6 +46,9 @@ const RoundwareProvider = (props: PropTypes) => {
 	
 	// track currently playing variant URIs for each speaker
 	const [speakerVariantUris, setSpeakerVariantUris] = useState<Map<number, string>>(new Map());
+	
+	// time machine slider state
+	const [timeMachineFilterDate, setTimeMachineFilterDate] = useState<Date | null>(null);
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -835,6 +838,8 @@ const RoundwareProvider = (props: PropTypes) => {
 				playingSpeakerIds,
 				setPlayingSpeakerIds,
 				speakerVariantUris,
+				timeMachineFilterDate,
+				setTimeMachineFilterDate,
 			}}
 		>
 			{props.children}

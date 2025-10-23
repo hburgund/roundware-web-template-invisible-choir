@@ -255,6 +255,8 @@ let config: IConfig = {
 
     assetDisplay: "circle",
     rangeCircleOverlayVisible: false,
+    displayTimeMachineSlider: true,
+    timeMachineSliderMin: "2025-10-04T00:00:00.000Z",
   },
 
   ui: {

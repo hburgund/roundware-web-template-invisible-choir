@@ -26,6 +26,7 @@ import { GeoListenMode } from 'roundware-web-framework';
 import MapControlIcons from './MapControlIcons';
 import { isAndroid, isIOS } from 'react-device-detect';
 import FloorplanOverlay from './FloorplanOverlay';
+import TimeMachineSlider from './TimeMachineSlider';
 
 const useStyles = makeStyles((theme) => {
 	return {
@@ -44,6 +45,7 @@ interface RoundwareMapProps {
 const RoundwareMap = (props: RoundwareMapProps) => {
 	const classes = useStyles();
 	const { roundware, forceUpdate } = useRoundware();
+	const [hidePlayButton, setHidePlayButton] = useState<boolean>(false);
 	const [map, setMap] = useState<google.maps.Map | undefined>();
 	const [showLaunch, setShowLaunch] = useState(true);
 
@@ -272,9 +274,9 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 
 						<OutOfRangeMessage />
 							
-						<AddLoopVoiceButton showLaunch={showLaunch} />
+						{!hidePlayButton && <AddLoopVoiceButton showLaunch={showLaunch} />}
 
-						<Fade in={showLaunch} timeout={1000}>
+						{!hidePlayButton && <Fade in={showLaunch} timeout={1000}>
 							<Box
 								display="flex"
 								alignItems="center"
@@ -320,8 +322,9 @@ const RoundwareMap = (props: RoundwareMapProps) => {
 									</Tooltip>
 								</Box>
 							</Box>
-						</Fade>
+						</Fade>}
 					</GoogleMap>
+					{config.map.displayTimeMachineSlider && <TimeMachineSlider onHidePlayButtonChange={setHidePlayButton} />}
 				</>
 			) : null}
 		</>

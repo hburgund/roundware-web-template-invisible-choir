@@ -323,6 +323,11 @@ export type IConfig = {
     
     /** whether to show the range circle overlay in map mode */
     rangeCircleOverlayVisible: boolean;
+    
+    /** whether to display the time machine slider for filtering speakers by creation time */
+    displayTimeMachineSlider: boolean;
+    /** minimum date for the time machine slider (ISO string or Date) */
+    timeMachineSliderMin: string | Date;
   };
   /** config for ui */
   ui: {
