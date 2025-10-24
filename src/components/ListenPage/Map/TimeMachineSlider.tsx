@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Slider, Box, Typography, Paper, Button, FormControlLabel, Checkbox } from '@mui/material';
+import { Slider, Box, Typography, Paper, Button, FormControlLabel, Checkbox, TextField } from '@mui/material';
 import { useRoundware } from '@/hooks';
 import config from '@/config';
 
@@ -10,9 +10,10 @@ interface TimeMachineSliderProps {
 
 const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHidePlayButtonChange }) => {
   const { roundware, timeMachineFilterDate, setTimeMachineFilterDate } = useRoundware();
-  const [sliderValue, setSliderValue] = useState<number>(100); // Default to max (all speakers)
+  const [sliderValue, setSliderValue] = useState<number>(1000); // Default to max (all speakers)
   const [isAutomating, setIsAutomating] = useState<boolean>(false);
   const [hidePlayButton, setHidePlayButton] = useState<boolean>(false);
+  const [speedMs, setSpeedMs] = useState<number>(100); // Speed in milliseconds per increment
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
@@ -56,20 +57,20 @@ const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHide
     }
   }, [timeRange.max, timeMachineFilterDate, setTimeMachineFilterDate]);
 
-  // Convert slider value (0-100) to actual date
+  // Convert slider value (0-1000) to actual date
   const getDateFromSliderValue = (value: number): Date => {
     const timeDiff = timeRange.max.getTime() - timeRange.min.getTime();
-    const sliderTime = timeRange.min.getTime() + (timeDiff * value / 100);
+    const sliderTime = timeRange.min.getTime() + (timeDiff * value / 1000);
     return new Date(sliderTime);
   };
 
-  // Convert date to slider value (0-100)
+  // Convert date to slider value (0-1000)
   const getSliderValueFromDate = (date: Date): number => {
     const timeDiff = timeRange.max.getTime() - timeRange.min.getTime();
-    if (timeDiff === 0) return 100;
+    if (timeDiff === 0) return 1000;
     const dateTime = date.getTime();
     const relativeTime = dateTime - timeRange.min.getTime();
-    return Math.max(0, Math.min(100, (relativeTime / timeDiff) * 100));
+    return Math.max(0, Math.min(1000, (relativeTime / timeDiff) * 1000));
   };
 
   // Update slider value when timeMachineFilterDate changes externally
@@ -88,28 +89,26 @@ const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHide
     setTimeMachineFilterDate(selectedDate);
   };
 
-  // Animation function for smooth automation
+  // Animation function with consistent 1 increment per 100ms
   const animateSlider = (timestamp: number) => {
     if (!startTimeRef.current) {
       startTimeRef.current = timestamp;
     }
 
     const elapsed = timestamp - startTimeRef.current;
-    const duration = 15000; // 15 seconds
-    const progress = Math.min(elapsed / duration, 1);
-
-    // Gentler easing function (less acceleration)
-    const easedProgress = progress < 0.5 
-      ? 1.5 * progress * progress 
-      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-    const newValue = easedProgress * 100;
+    const incrementInterval = speedMs; // Use the speed setting
+    const totalIncrements = 1000;
+    const totalDuration = totalIncrements * incrementInterval;
+    
+    const currentIncrement = Math.floor(elapsed / incrementInterval);
+    const newValue = Math.min(currentIncrement, 1000);
+    
     setSliderValue(newValue);
     
     const selectedDate = getDateFromSliderValue(newValue);
     setTimeMachineFilterDate(selectedDate);
 
-    if (progress < 1) {
+    if (newValue < 1000) {
       animationRef.current = requestAnimationFrame(animateSlider);
     } else {
       setIsAutomating(false);
@@ -249,11 +248,11 @@ const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHide
             value={sliderValue}
             onChange={handleSliderChange}
             min={0}
-            max={100}
+            max={1000}
             step={1}
             marks={[
               { value: 0, label: formatDateOnly(timeRange.min) },
-              { value: 100, label: formatDateOnly(timeRange.max) }
+              { value: 1000, label: formatDateOnly(timeRange.max) }
             ]}
             valueLabelDisplay="on"
             valueLabelFormat={(value) => `${speakerCounts.current} speakers`}
@@ -279,7 +278,7 @@ const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHide
           />
         </Box>
         
-        {/* Current timestamp display and automate button */}
+        {/* Current timestamp display and controls */}
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'space-between', 
@@ -287,25 +286,68 @@ const TimeMachineSlider: React.FC<TimeMachineSliderProps> = ({ className, onHide
           mt: 1,
           alignItems: 'center'
         }}>
-          <Button
-            variant={isAutomating ? "contained" : "outlined"}
-            size="small"
-            onClick={handleAutomate}
-            sx={{
-              minWidth: 80,
-              height: 24,
-              fontSize: '0.75rem',
-              backgroundColor: isAutomating ? '#f44336' : 'transparent',
-              color: isAutomating ? 'white' : '#1976d2',
-              borderColor: '#1976d2',
-              '&:hover': {
-                backgroundColor: isAutomating ? '#d32f2f' : '#1976d2',
-                color: 'white',
-              }
-            }}
-          >
-            {isAutomating ? 'Stop' : 'Automate'}
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Button
+              variant={isAutomating ? "contained" : "outlined"}
+              size="small"
+              onClick={handleAutomate}
+              sx={{
+                minWidth: 80,
+                height: 24,
+                fontSize: '0.75rem',
+                backgroundColor: isAutomating ? '#f44336' : 'transparent',
+                color: isAutomating ? 'white' : '#1976d2',
+                borderColor: '#1976d2',
+                '&:hover': {
+                  backgroundColor: isAutomating ? '#d32f2f' : '#1976d2',
+                  color: 'white',
+                }
+              }}
+            >
+              {isAutomating ? 'Stop' : 'Automate'}
+            </Button>
+            
+            <TextField
+              size="small"
+              type="number"
+              value={speedMs}
+              onChange={(e) => setSpeedMs(Math.max(10, parseInt(e.target.value) || 100))}
+              inputProps={{
+                min: 10,
+                max: 2000,
+                step: 10,
+                style: { 
+                  fontSize: '0.75rem',
+                  width: '60px',
+                  textAlign: 'center',
+                  color: '#333'
+                }
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  height: 24,
+                  fontSize: '0.75rem',
+                  color: '#333',
+                  '& fieldset': {
+                    borderColor: '#1976d2',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#1976d2',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#1976d2',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '0.7rem',
+                  color: '#333',
+                }
+              }}
+            />
+            <Typography variant="caption" sx={{ color: '#333', fontSize: '0.7rem' }}>
+              ms
+            </Typography>
+          </Box>
           
           <Typography variant="caption" sx={{ color: '#333', fontWeight: 'bold' }}>
             {formatDate(currentDate)}

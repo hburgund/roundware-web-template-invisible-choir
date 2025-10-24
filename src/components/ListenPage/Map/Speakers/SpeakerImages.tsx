@@ -17,6 +17,44 @@ const getColorForIndex = (index: number): string => {
 };
 const SpeakerImages = (props: Props) => {
 	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate } = useRoundware();
+	const [recentSpeakerIds, setRecentSpeakerIds] = useState<Set<number>>(new Set());
+
+	// Calculate recent speakers from currently visible speakers
+	const updateRecentSpeakers = useMemo(() => {
+		if (!roundware.speakers || !Array.isArray(roundware.speakers())) {
+			return new Set<number>();
+		}
+
+		const speakers = roundware.speakers();
+		const recentCount = config.map.recentSpeakerCount || 5;
+		
+		// Apply time machine filter to get currently visible speakers
+		const visibleSpeakers = speakers.filter(speaker => {
+			if (!timeMachineFilterDate) return true;
+			
+			const speakerCreated = speaker.created;
+			if (!speakerCreated) return true;
+			
+			const speakerDate = new Date(speakerCreated);
+			if (isNaN(speakerDate.getTime())) return true;
+			
+			return speakerDate <= timeMachineFilterDate;
+		});
+		
+		// Filter visible speakers with valid created timestamps and sort by creation time (newest first)
+		const speakersWithValidCreated = visibleSpeakers
+			.filter(speaker => speaker.created && !isNaN(new Date(speaker.created).getTime()))
+			.sort((a, b) => new Date(b.created!).getTime() - new Date(a.created!).getTime());
+
+		// Take the most recent speakers from visible ones
+		const recentSpeakers = speakersWithValidCreated.slice(0, recentCount);
+		return new Set(recentSpeakers.map(speaker => speaker.id));
+	}, [roundware.speakers, timeMachineFilterDate]);
+
+	// Update recent speaker IDs when calculation changes
+	useEffect(() => {
+		setRecentSpeakerIds(updateRecentSpeakers);
+	}, [updateRecentSpeakers]);
 
 	const overlayProps: (GroundOverlayProps & {
 		key: string;
@@ -103,7 +141,7 @@ const SpeakerImages = (props: Props) => {
 			});
 
 		return p;
-	}, [hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate]);
+	}, [hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate, recentSpeakerIds]);
 
 	return (
 		<>

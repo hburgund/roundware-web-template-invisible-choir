@@ -385,24 +385,39 @@ const SpeakerPolygons = (props: Props) => {
 		}
 
 		const speakers = roundware.speakers();
-		const recentCount = config.map.recentSpeakerCount || 0;
+		const recentCount = config.map.recentSpeakerCount || 5; // Default to 5 most recent
 		console.log('📊 Starting recent speakers calculation with', speakers.length, 'total speakers');
 		
-		// Filter speakers with valid created timestamps and sort by creation time (newest first)
-		const speakersWithValidCreated = speakers
+		// Apply time machine filter to get currently visible speakers
+		const visibleSpeakers = speakers.filter(speaker => {
+			// Time machine filter: only show speakers created before the selected date
+			if (!timeMachineFilterDate) return true;
+			
+			const speakerCreated = speaker.created;
+			if (!speakerCreated) return true; // Show speakers without timestamps
+			
+			const speakerDate = new Date(speakerCreated);
+			if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+			
+			return speakerDate <= timeMachineFilterDate;
+		});
+		
+		// Filter visible speakers with valid created timestamps and sort by creation time (newest first)
+		const speakersWithValidCreated = visibleSpeakers
 			.filter(speaker => speaker.created && !isNaN(new Date(speaker.created).getTime()))
 			.sort((a, b) => new Date(b.created!).getTime() - new Date(a.created!).getTime());
 
-		// Take the most recent speakers
+		// Take the most recent speakers from visible ones
 		const recentSpeakers = speakersWithValidCreated.slice(0, recentCount);
 		const recentIds = new Set(recentSpeakers.map(speaker => speaker.id));
 
 		// Debug logging for recent speakers
 		console.log('=== RECENT SPEAKERS DEBUG ===');
 		console.log(`Total speakers: ${speakers.length}`);
+		console.log(`Visible speakers (after time filter): ${visibleSpeakers.length}`);
 		console.log(`Speakers with valid created timestamps: ${speakersWithValidCreated.length}`);
 		console.log(`Recent count setting: ${recentCount}`);
-		console.log('All speakers with timestamps (sorted newest first):');
+		console.log('Visible speakers with timestamps (sorted newest first):');
 		speakersWithValidCreated.forEach((speaker, index) => {
 			console.log(`  ${index + 1}. ID: ${speaker.id}, Created: ${speaker.created}, Date: ${new Date(speaker.created!).toISOString()}`);
 		});
@@ -414,7 +429,12 @@ const SpeakerPolygons = (props: Props) => {
 		console.log('=== END RECENT SPEAKERS DEBUG ===');
 
 		setRecentSpeakerIds(recentIds);
-	}, [roundware.speakers]);
+	}, [roundware.speakers, timeMachineFilterDate]);
+
+	// Update recent speakers whenever time machine filter changes
+	useEffect(() => {
+		updateRecentSpeakers();
+	}, [updateRecentSpeakers]);
 
 	const updatePolygons = useCallback(() => {
 		const speakers = roundware.mixer.speakerEngine?.speakers
