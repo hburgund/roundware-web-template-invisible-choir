@@ -140,38 +140,36 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 			setWalkingModeErrorMessage(messages.errors.walkingModeNotSupported);
 			enterMapMode();
 		} else {
-			// Check if we've already requested permission in this session
-			const hasRequestedPermission = sessionStorage.getItem('locationPermissionRequested');
-			
-			// Check location permission status using the proper API
+			// Check location permission status using the proper API when available
 			try {
-				const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-				
-				if (permissionStatus.state === 'granted') {
-					// Permission already granted - proceed directly without showing dialog
-					console.log('Location permission already granted, proceeding to walking mode');
-					enableWalkingMode();
-				} else if (permissionStatus.state === 'denied') {
-					// Permission denied - show error
-					setWalkingModeStatus('error');
-					setWalkingModeErrorMessage(messages.errors.permissionDenied);
-					enterMapMode();
-				} else if (hasRequestedPermission) {
-					// We've already requested permission in this session, try to proceed
-					console.log('Permission already requested in this session, attempting to proceed');
-					setWalkingModeStatus('locating');
-				} else {
-					// Permission not determined yet - show permission dialog
-					console.log('Location permission not determined, showing permission dialog');
-					sessionStorage.setItem('locationPermissionRequested', 'true');
-					setWalkingModeStatus('locating');
+				if (navigator.permissions && navigator.permissions.query) {
+					const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+					if (permissionStatus.state === 'granted') {
+						console.log('Location permission already granted, proceeding to walking mode');
+						enableWalkingMode();
+						return;
+					}
+					if (permissionStatus.state === 'denied') {
+						// Safari/iOS can report denied before prompting; allow manual request
+						const userAgent = navigator.userAgent || '';
+						const isSafariLike = /safari/i.test(userAgent) && !/chrome|crios|android/i.test(userAgent);
+						if (isIOS || isSafariLike) {
+							console.log('Permissions API reports denied on Safari/iOS; showing permission dialog for manual request');
+							setWalkingModeStatus('locating');
+							return;
+						}
+						setWalkingModeStatus('error');
+						setWalkingModeErrorMessage(messages.errors.permissionDenied);
+						enterMapMode();
+						return;
+					}
 				}
+				// Permission is prompt/unknown or Permissions API not conclusive: show allow dialog
+				console.log('Location permission not determined, showing permission dialog');
+				setWalkingModeStatus('locating');
 			} catch (error) {
 				// Fallback for browsers that don't support permissions API
-				console.log('Permissions API not supported, falling back to permission dialog');
-				if (!hasRequestedPermission) {
-					sessionStorage.setItem('locationPermissionRequested', 'true');
-				}
+				console.log('Permissions API not supported or failed, showing permission dialog');
 				setWalkingModeStatus('locating');
 			}
 		}
@@ -179,17 +177,17 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 
 	const requestLocationPermission = async () => {
 		try {
-			// Check if we already have permission before calling enable()
-			const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
-			
-			if (permissionStatus.state === 'granted') {
-				// Permission already granted - don't call enable() again
-				console.log('Location permission already granted, skipping enable() call');
-			} else {
-				// Permission not granted - request it
-				console.log('Requesting location permission');
-				roundware.geoPosition.enable();
+			// Feature-detect Permissions API but do not rely on it to gate the request
+			try {
+				if (navigator.permissions && navigator.permissions.query) {
+					await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+				}
+			} catch (_) {
+				// ignore permissions API errors; proceed to request
 			}
+			// Always enable geolocation on user gesture; safe if already granted
+			console.log('Requesting location permission');
+			roundware.geoPosition.enable();
 
 			// wait for user location
 			const location = await roundware.geoPosition.waitForInitialGeolocation();
