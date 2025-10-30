@@ -151,7 +151,7 @@ const LocationSelectForm = () => {
 		<Card className={classes.container}>
 			{error && ['denied', 'deny'].some((str) => error.message.toLowerCase().includes(str)) ? (
 				// permission denied
-				<PermissionDeniedDialog open={true} onClose={() => set_error(null)} functionality={'location'} />
+				<PermissionDeniedDialog open={true} onClose={() => set_error(null)} functionality={'location'} onTryAgain={getGeolocation} />
 			) : (
 				// normal error
 				<ErrorDialog error={error as Error} set_error={set_error} />

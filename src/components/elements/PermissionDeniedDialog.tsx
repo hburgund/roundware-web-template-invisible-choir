@@ -9,11 +9,22 @@ type Props = {
 	open: boolean;
 	onClose: () => void;
 	functionality: Funcionality;
+	onTryAgain?: () => void;
 };
 
 const PermissionDeniedDialog = (props: Props) => {
 	const [showVideo, setShowVideo] = useState(false);
 	const [showLocationHelp, setShowLocationHelp] = useState(false);
+
+	const handleOpenSettings = () => {
+		setShowLocationHelp(true);
+	};
+
+	const handleTryAgain = () => {
+		if (props.onTryAgain) {
+			props.onTryAgain();
+		}
+	};
 
 	return (
 		<>
@@ -24,13 +35,13 @@ const PermissionDeniedDialog = (props: Props) => {
 				title="NO LOCATION ACCESS!"
 				description="To participate fully in the artwork experience we need access to your location. Please enable location access in your browser."
 				primaryButton={{
-					text: "LOCATION ENABLE HELP",
-					onClick: () => setShowLocationHelp(true)
+					text: props.onTryAgain ? "TRY AGAIN" : "LOCATION ENABLE HELP",
+					onClick: props.onTryAgain ? handleTryAgain : handleOpenSettings
 				}}
-				// secondaryButton={{
-				// 	text: "WATCH VIDEOS",
-				// 	onClick: () => setShowVideo(true)
-				// }}
+				secondaryButton={props.onTryAgain ? {
+					text: "LOCATION ENABLE HELP",
+					onClick: handleOpenSettings
+				} : undefined}
 				useLeafBackground={true}
 				showCloseButton={false}
 			/>
