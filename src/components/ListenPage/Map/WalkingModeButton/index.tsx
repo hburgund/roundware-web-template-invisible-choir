@@ -175,6 +175,27 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 		}
 	};
 
+	// Simple helper to add timeout and retries around the framework's initial geolocation
+	const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+		return await new Promise<T>((resolve, reject) => {
+			const id = setTimeout(() => reject({ code: 3, message: 'timeout' }), ms);
+			promise.then((v) => { clearTimeout(id); resolve(v); })
+			       .catch((e) => { clearTimeout(id); reject(e); });
+		});
+	};
+
+	// Fallback: call browser geolocation directly with high accuracy and long timeout
+	const getCurrentPositionFallback = async (): Promise<{ latitude: number; longitude: number }> => {
+		return await new Promise((resolve, reject) => {
+			if (!navigator.geolocation) return reject({ code: 2, message: 'Geolocation unsupported' });
+			navigator.geolocation.getCurrentPosition(
+				(pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+				(err) => reject(err),
+				{ enableHighAccuracy: true, timeout: 60000, maximumAge: 0 }
+			);
+		});
+	};
+
 	const requestLocationPermission = async () => {
 		try {
 			// Feature-detect Permissions API but do not rely on it to gate the request
@@ -189,8 +210,19 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 			console.log('Requesting location permission');
 			roundware.geoPosition.enable();
 
-			// wait for user location
-			const location = await roundware.geoPosition.waitForInitialGeolocation();
+			// wait for user location with extended timeout and retries
+			let location;
+			try {
+				location = await withTimeout(roundware.geoPosition.waitForInitialGeolocation(), 30000);
+			} catch (err1) {
+				console.warn('Initial geolocation attempt timed out/failed, retrying...', err1);
+				try {
+					location = await withTimeout(roundware.geoPosition.waitForInitialGeolocation(), 30000);
+				} catch (err2) {
+					console.warn('Second geolocation attempt timed out/failed, final retry...', err2);
+					location = await withTimeout(roundware.geoPosition.waitForInitialGeolocation(), 30000);
+				}
+			}
 
 			// not need to check if user location is within bounds
 			if (config.map.bounds == 'none') {
@@ -228,6 +260,18 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 		} catch (e: any) {
 			// switch to map mode in case error
 			setWalkingModeStatus('error');
+			// Pre-check environment issues
+			if (typeof window !== 'undefined' && !window.isSecureContext) {
+				setWalkingModeErrorMessage((messages as any).errors?.insecureContext || messages.errors.failedToDetermineLocation);
+				enterMapMode();
+				return;
+			}
+			if (typeof navigator !== 'undefined' && 'onLine' in navigator && (navigator as any).onLine === false) {
+				setWalkingModeErrorMessage((messages as any).errors?.offline || messages.errors.failedToDetermineLocation);
+				enterMapMode();
+				return;
+			}
+
 			// @see https://developer.mozilla.org/en-US/docs/Web/API/GeolocationPositionError
 			switch (e?.code) {
 				case 1:
@@ -235,9 +279,25 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 					setWalkingModeErrorMessage(messages.errors.permissionDenied);
 					break;
 				case 2:
-				// position unavailable
+					// position unavailable
+					setWalkingModeErrorMessage((messages as any).errors?.positionUnavailable || messages.errors.failedToDetermineLocation);
+					break;
+				case 3:
+					// timeout: attempt high-accuracy fallback once more before failing
+					try {
+						setWalkingModeStatus('locating');
+						const pos = await getCurrentPositionFallback();
+						// seed roundware with initial location and proceed
+						roundware.updateLocation({ latitude: pos.latitude, longitude: pos.longitude });
+						setWalkingModeStatus('eligible');
+						enableWalkingMode();
+						return;
+					} catch (fallbackErr) {
+						setWalkingModeErrorMessage((messages as any).errors?.geolocationTimeout || messages.errors.failedToDetermineLocation);
+					}
+					break;
 				default:
-					console.error(e);
+					console.error('Geolocation error:', e?.code, e?.message || e);
 					setWalkingModeErrorMessage(messages.errors.failedToDetermineLocation);
 					break;
 			}
@@ -287,7 +347,7 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 			</Dialog>
 
 			{/* permission denied dialog */}
-			<PermissionDeniedDialog open={walkingModeStatus === 'error' && isEqual(walkingModeErrorMessage, messages.errors.permissionDenied)} onClose={() => setWalkingModeStatus('')} functionality={'location'} />
+			<PermissionDeniedDialog open={walkingModeStatus === 'error' && isEqual(walkingModeErrorMessage, messages.errors.permissionDenied)} onClose={() => setWalkingModeStatus('')} functionality={'location'} onTryAgain={requestLocationPermission} />
 			<Dialog open={(walkingModeStatus === 'error' && !isEqual(walkingModeErrorMessage, messages.errors.permissionDenied)) || walkingModeStatus === 'out-of-range'}>
 				<DialogTitle>{walkingModeErrorMessage?.title}</DialogTitle>
 				<DialogContent>
