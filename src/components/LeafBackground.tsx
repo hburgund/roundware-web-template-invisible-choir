@@ -36,7 +36,8 @@ const LeafBackground: React.FC<LeafBackgroundProps> = ({ children }) => {
           width: { xs: '100%', sm: '80%', md: '60%' },
           maxWidth: '600px',
           height: 'auto',
-          objectFit: 'cover'
+          objectFit: 'cover',
+          pointerEvents: 'none'
         }}
       />
       {children}

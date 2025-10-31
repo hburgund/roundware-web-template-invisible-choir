@@ -65,6 +65,8 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    
   };
 
   const dialogContent = (
@@ -101,14 +103,17 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
             height: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            WebkitOverflowScrolling: 'touch',
+            position: 'relative',
+            zIndex: 2,
           }}
         >
           <Container maxWidth="xs">
             <Stack
               spacing={isLandscape ? 2 : 3}
               alignItems="center"
-              sx={{ width: '100%', px: 2 }}
+              sx={{ width: '100%', px: 2, position: 'relative', zIndex: 2 }}
             >
               {icon && (
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -140,6 +145,13 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
                       size="large"
                       disabled={primaryButton.disabled}
                       className="MuiButton-dialog"
+                      sx={{
+                        position: 'relative',
+                        zIndex: 10,
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                        cursor: 'pointer',
+                      }}
                     >
                       {primaryButton.text}
                     </Button>
@@ -152,6 +164,13 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
                       fullWidth
                       size="large"
                       className="MuiButton-dialog"
+                      sx={{
+                        position: 'relative',
+                        zIndex: 10,
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                        cursor: 'pointer',
+                      }}
                     >
                       {secondaryButton.text}
                     </Button>
@@ -173,7 +192,9 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
       TransitionComponent={transition === 'slide' ? Transition : undefined}
       PaperProps={{
         sx: backgroundProps,
-        'data-fullscreen-overlay': 'true'
+        'data-fullscreen-overlay': 'true',
+        WebkitOverflowScrolling: 'touch',
+        position: 'relative',
       }}
     >
       {useLeafBackground ? (
