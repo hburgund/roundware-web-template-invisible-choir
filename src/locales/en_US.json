@@ -6,6 +6,11 @@
 		},
 		"permissionDenied": { "title": "Permission Denied!", "message": "Permission to access your location was denied! Please try again and allow to use walking mode." },
 		"failedToDetermineLocation": { "title": "Failed to determine location!", "message": "There was an error determining your location! Please try again." },
+		"geolocationTimeout": { "title": "Location request timed out!", "message": "It took too long to get your location. Go near a window/outdoors and tap Try Again." },
+		"insecureContext": { "title": "Insecure connection", "message": "Geolocation requires HTTPS. Please open the site over a secure (https://) connection." },
+		"offline": { "title": "No internet connection", "message": "You're offline. Connect to the internet and try again." },
+		"positionUnavailable": { "title": "Position unavailable", "message": "Location services may be off or unavailable. Enable Location Services and Precise/High accuracy, then try again." },
+		"locationServicesOff": { "title": "Location services are off!", "message": "Please enable Location Services in your device settings and try again. On iOS: Settings → Privacy & Security → Location Services. On Android: Settings → Location. Also ensure your browser has Precise/High accuracy enabled." },
 		"walkingModeNotSupported": {
 			"title": "Walking Mode not supported!",
 			"message": "Your browser doesn't support Walking Mode."
