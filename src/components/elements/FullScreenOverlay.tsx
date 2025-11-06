@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import { TransitionProps } from '@mui/material/transitions';
 import CloseIcon from '@mui/icons-material/Close';
+import { isIOS } from 'react-device-detect';
 import greenBackground from '../../assets/green_background.svg';
 import LeafBackground from '../LeafBackground';
 
@@ -189,12 +190,15 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
       open={open}
       onClose={onClose}
       fullScreen
-      TransitionComponent={transition === 'slide' ? Transition : undefined}
+      TransitionComponent={!isIOS && transition === 'slide' ? Transition : undefined}
       PaperProps={{
-        sx: backgroundProps,
+        sx: {
+          ...backgroundProps,
+          backgroundAttachment: undefined, // prevent iOS bug
+          WebkitOverflowScrolling: 'touch',
+          position: 'relative',
+        },
         'data-fullscreen-overlay': 'true',
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative',
       }}
     >
       {useLeafBackground ? (

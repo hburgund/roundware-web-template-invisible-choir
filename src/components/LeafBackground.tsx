@@ -22,6 +22,7 @@ const LeafBackground: React.FC<LeafBackgroundProps> = ({ children }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        pointerEvents: 'auto',
       }}
     >
       <Box
