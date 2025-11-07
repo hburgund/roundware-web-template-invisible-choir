@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LanguageIcon from '@mui/icons-material/Language';
 import FullScreenOverlay from './FullScreenOverlay';
 import { type Funcionality } from 'web-permission-messages';
@@ -15,16 +15,70 @@ type Props = {
 const PermissionDeniedDialog = (props: Props) => {
 	const [showVideo, setShowVideo] = useState(false);
 	const [showLocationHelp, setShowLocationHelp] = useState(false);
+	const [isLocationPermanentlyDenied, setIsLocationPermanentlyDenied] = useState(false);
 
 	const handleOpenSettings = () => {
 		setShowLocationHelp(true);
 	};
 
-	const handleTryAgain = () => {
+	userDeniedPermissionOnMount();
+
+	const handleTryAgain = async () => {
+		userDeniedPermission();
+
 		if (props.onTryAgain) {
 			props.onTryAgain();
 		}
 	};
+
+	async function userDeniedPermissionOnMount() {
+		// Check permission status on mount
+		useEffect(() => {
+			const checkPermission = async () => {
+				try {
+					if (navigator.permissions && navigator.permissions.query) {
+						const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+						if (permissionStatus.state === 'denied') {
+							setIsLocationPermanentlyDenied(true);
+						}
+					}
+				} catch (error) {
+					// Permissions API might not be available
+				}
+			};
+			
+			if (props.open) {
+				checkPermission();
+			}
+		}, [props.open]);
+	}
+
+	async function userDeniedPermission() {
+		// Check if location permission is blocked
+		let permissionDenied = false;
+		
+		if (!permissionDenied && navigator.geolocation) {
+			try {
+				navigator.geolocation.getCurrentPosition(
+					() => {
+					},
+					(error) => {
+						if (error.code === 1 || error.code === error.PERMISSION_DENIED) {
+							permissionDenied = true;
+							setIsLocationPermanentlyDenied(true);
+							console.warn('⚠️ WARNING: Location permission is completely blocked by the user fallback');
+						}
+					},
+					{ timeout: 1000, maximumAge: 0 }
+				);
+			} catch (e) {
+				console.error('Geolocation API exception:', e);
+			}
+		} else if (!navigator.geolocation) {
+			console.error('Geolocation API not available');
+		}
+
+	}
 
 	return (
 		<>
@@ -35,10 +89,10 @@ const PermissionDeniedDialog = (props: Props) => {
 				title="NO LOCATION ACCESS!"
 				description="To participate fully in the artwork experience we need access to your location. Please enable location access in your browser."
 				primaryButton={{
-					text: props.onTryAgain ? "TRY AGAIN" : "LOCATION ENABLE HELP",
-					onClick: props.onTryAgain ? handleTryAgain : handleOpenSettings
+					text: (props.onTryAgain && !isLocationPermanentlyDenied) ? "TRY AGAIN" : "LOCATION ENABLE HELP",
+					onClick: (props.onTryAgain && !isLocationPermanentlyDenied) ? handleTryAgain : handleOpenSettings
 				}}
-				secondaryButton={props.onTryAgain ? {
+				secondaryButton={(props.onTryAgain && !isLocationPermanentlyDenied) ? {
 					text: "LOCATION ENABLE HELP",
 					onClick: handleOpenSettings
 				} : undefined}
