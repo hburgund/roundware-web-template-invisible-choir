@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import LanguageIcon from '@mui/icons-material/Language';
 import FullScreenOverlay from './FullScreenOverlay';
 import { type Funcionality } from 'web-permission-messages';
@@ -16,69 +16,102 @@ const PermissionDeniedDialog = (props: Props) => {
 	const [showVideo, setShowVideo] = useState(false);
 	const [showLocationHelp, setShowLocationHelp] = useState(false);
 	const [isLocationPermanentlyDenied, setIsLocationPermanentlyDenied] = useState(false);
+	const permissionStatusRef = useRef<PermissionStatus | null>(null);
 
 	const handleOpenSettings = () => {
 		setShowLocationHelp(true);
 	};
 
-	userDeniedPermissionOnMount();
-
-	const handleTryAgain = async () => {
-		userDeniedPermission();
-
-		if (props.onTryAgain) {
-			props.onTryAgain();
+	// Check permission status and listen for changes
+	useEffect(() => {
+		if (!props.open) {
+			return;
 		}
-	};
 
-	async function userDeniedPermissionOnMount() {
-		// Check permission status on mount
-		useEffect(() => {
-			const checkPermission = async () => {
-				try {
-					if (navigator.permissions && navigator.permissions.query) {
-						const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+		const checkPermission = async () => {
+			try {
+				if (navigator.permissions && navigator.permissions.query) {
+					const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+					permissionStatusRef.current = permissionStatus;
+					
+					// Check initial state
+					if (permissionStatus.state === 'denied') {
+						setIsLocationPermanentlyDenied(true);
+					}
+
+					// Listen for permission state changes (e.g., when user clicks "Never Allow" in browser prompt)
+					permissionStatus.onchange = () => {
 						if (permissionStatus.state === 'denied') {
 							setIsLocationPermanentlyDenied(true);
 						}
-					}
-				} catch (error) {
-					// Permissions API might not be available
+					};
 				}
-			};
-			
-			if (props.open) {
-				checkPermission();
+			} catch (error) {
+				// Permissions API might not be available
 			}
-		}, [props.open]);
-	}
+		};
 
-	async function userDeniedPermission() {
-		// Check if location permission is blocked
-		let permissionDenied = false;
-		
-		if (!permissionDenied && navigator.geolocation) {
-			try {
-				navigator.geolocation.getCurrentPosition(
-					() => {
-					},
-					(error) => {
-						if (error.code === 1 || error.code === error.PERMISSION_DENIED) {
-							permissionDenied = true;
-							setIsLocationPermanentlyDenied(true);
-							console.warn('⚠️ WARNING: Location permission is completely blocked by the user fallback');
-						}
-					},
-					{ timeout: 1000, maximumAge: 0 }
-				);
-			} catch (e) {
-				console.error('Geolocation API exception:', e);
+		checkPermission();
+
+		// Cleanup when component unmounts
+		return () => {
+			if (permissionStatusRef.current) {
+				permissionStatusRef.current.onchange = null;
+				permissionStatusRef.current = null;
 			}
-		} else if (!navigator.geolocation) {
-			console.error('Geolocation API not available');
+		};
+	}, [props.open]);
+
+	const checkPermissionStatus = async (): Promise<boolean> => {
+		// First try the Permissions API
+		try {
+			if (navigator.permissions && navigator.permissions.query) {
+				const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+				if (permissionStatus.state === 'denied') {
+					return true;
+				}
+			}
+		} catch (error) {
+			// Permissions API might not be available, fall through to geolocation check
 		}
 
-	}
+		// Fallback: Check using geolocation API
+		return new Promise((resolve) => {
+			if (!navigator.geolocation) {
+				resolve(false);
+				return;
+			}
+
+			navigator.geolocation.getCurrentPosition(
+				() => {
+					resolve(false);
+				},
+				(error) => {
+					if (error.code === 1 || error.code === error.PERMISSION_DENIED) {
+						resolve(true);
+					} else {
+						resolve(false);
+					}
+				},
+				{ timeout: 1000, maximumAge: 0 }
+			);
+		});
+	};
+
+	const handleTryAgain = async () => {
+		if (props.onTryAgain) {
+			props.onTryAgain();
+		}
+
+		// Wait a bit for the browser permission prompt to appear and user to respond
+		// Then check if permission is permanently denied
+		setTimeout(async () => {
+			const isDenied = await checkPermissionStatus();
+			if (isDenied) {
+				setIsLocationPermanentlyDenied(true);
+			}
+		}, 500);
+	};
 
 	return (
 		<>
