@@ -66,19 +66,22 @@ const LocationInstructionsDialog = (props: Props) => {
 						) : isMobile && isIOS ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									1. Tap the "AA" button in the address bar (top left)
+									1. Open the Settings app on your iPhone/iPad
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									2. Select "Website Settings" or "Site Settings"
+									2. Scroll down and tap "Safari"
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Tap on "Location"
+									3. Scroll to the bottom and find the "Settings for Websites" section
 								</Typography>
 								<Typography variant="body1" sx={{ mb: 2 }}>
-									4. Change it from "Deny" to "Allow"
+									4. Tap on "Location"
 								</Typography>
-								<Typography variant="body1" sx={{ mb: 3 }}>
-									5. Go back and refresh the page
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									5. Change it from "Deny" to "Allow"
+								</Typography>
+								<Typography variant="body1" sx={{ mb: 2 }}>
+									6. Return to your browser and refresh the page
 								</Typography>
 							</>
 						) : isChrome ? (
