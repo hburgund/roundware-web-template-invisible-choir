@@ -25,6 +25,8 @@ const PermissionDeniedDialog = (props: Props) => {
 	// Check permission status and listen for changes
 	useEffect(() => {
 		if (!props.open) {
+			// Reset state when dialog closes
+			setIsLocationPermanentlyDenied(false);
 			return;
 		}
 
@@ -99,15 +101,20 @@ const PermissionDeniedDialog = (props: Props) => {
 	};
 
 	const handleTryAgain = async () => {
+
+		const isDenied = await checkPermissionStatus();
+		if (isDenied) {
+			setIsLocationPermanentlyDenied(true);
+			return; 
+		}
+
 		if (props.onTryAgain) {
 			props.onTryAgain();
 		}
 
-		// Wait a bit for the browser permission prompt to appear and user to respond
-		// Then check if permission is permanently denied
 		setTimeout(async () => {
-			const isDenied = await checkPermissionStatus();
-			if (isDenied) {
+			const isDeniedAfter = await checkPermissionStatus();
+			if (isDeniedAfter) {
 				setIsLocationPermanentlyDenied(true);
 			}
 		}, 500);
