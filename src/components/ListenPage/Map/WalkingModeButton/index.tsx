@@ -51,9 +51,11 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 
 	const displayListenModeButton = availableListenModesArray == 'device' || availableListenModesArray.length == 2 ? true : false;
 
+	const [defaultModeSet, setDefaultModeSet] = useState(false);
+
 	// set default GeoListenMode
 	useEffect(() => {
-		if (!map) return;
+		if (!map || defaultModeSet) return;
 		
 		// Defer location permission request until welcome audio completes
 		if (!welcomeAudioCompleted) {
@@ -69,11 +71,13 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 		// If we're already in the correct mode, don't switch
 		if (shouldBeInWalkingMode && isCurrentlyInWalkingMode) {
 			console.log('Already in walking mode, skipping initialization');
+			setDefaultModeSet(true);
 			return;
 		}
 		
 		if (!shouldBeInWalkingMode && isCurrentlyInMapMode) {
 			console.log('Already in map mode, skipping initialization');
+			setDefaultModeSet(true);
 			return;
 		}
 		
@@ -87,7 +91,8 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 			console.log('default to walking mode');
 			enterWalkingMode();
 		}
-	}, [isMobile, map, geoListenMode, availableListenModesArray, welcomeAudioCompleted]);
+		setDefaultModeSet(true);
+	}, [isMobile, map, availableListenModesArray, welcomeAudioCompleted]);
 
 	const enterMapMode = () => {
 		if (!map) return;
