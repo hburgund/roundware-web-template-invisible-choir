@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Fade, Slide, useMediaQuery } from "@mui/material";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { isAndroid, isIOS } from 'react-device-detect';
 import { Help } from "@mui/icons-material";
 import JoinChoirBackground from "./JoinChoirBackground";
@@ -18,7 +18,7 @@ import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissi
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
 import HelpPopup from "@/components/HelpPopup";
-import { getCleanAudioConstraints, createMinimalAudioProcessingChain, validateAudioConstraints } from "@/utils";
+import { getCleanAudioConstraints } from "@/utils";
 import { useRoundware } from "@/hooks";
 
 interface JoinChoirProps {
@@ -45,6 +45,15 @@ const JoinChoir = ({
   const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   
   const legalAgreementText = roundware?.project?.legalAgreement || 
@@ -54,49 +63,31 @@ const JoinChoir = ({
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
     if (!isConsentChecked) return;
     
-    // Check if audio devices are available first
-    try {
-      // Use enhanced audio processing minimization if available
-      const audioConfig = (window as any).__roundwareConfig?.speak?.audioProcessingMinimization;
-      
-      if (audioConfig?.enabled) {
-        console.log('Using enhanced audio processing minimization for device check');
-        const audioChain = await createMinimalAudioProcessingChain({
-          enableLevelMonitoring: audioConfig.enableLevelMonitoring,
-          enableAdaptiveGain: audioConfig.enableAdaptiveGain,
-          targetLevel: audioConfig.targetLevel,
-        });
-        audioChain.cleanup();
-      } else {
-        const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
-        stream.getTracks().forEach(track => track.stop());
-      }
-    } catch (error) {
-      const errorName = (error as any)?.name;
-      if (errorName === 'NotFoundError') {
-        onAudioDeviceMissing?.();
-        return;
-      }
-    }
-    
     // Check if permission already granted
     if (navigator.permissions && navigator.permissions.query) {
       try {
         const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+        if (!isMountedRef.current) return;
+        
         if (permissionStatus.state === 'granted') {
           onContinue();
           return;
         }
       } catch (error) {
         // Fallback for unsupported browsers
+        if (!isMountedRef.current) return; 
       }
     }
     
     // Show the permission dialog first
-    setShowMicrophonePermissionDialog(true);
+    if (isMountedRef.current) {
+      setShowMicrophonePermissionDialog(true);
+    }
   };
 
   const handlePermissionAllow = async () => {
+    if (!isMountedRef.current) return;
+    
     setShowMicrophonePermissionDialog(false);
     
     // Check if we're on HTTPS (required for getUserMedia in most browsers)
@@ -107,7 +98,9 @@ const JoinChoir = ({
     }
     
     console.log('[JoinChoir] Starting permission request...');
-    setIsRequestingPermission(true);
+    if (isMountedRef.current) {
+      setIsRequestingPermission(true);
+    }
     
     try {
       // Request microphone permission early to avoid timing issues during countdown
@@ -116,8 +109,12 @@ const JoinChoir = ({
       // Check if permissions API is supported
       if (navigator.permissions && navigator.permissions.query) {
         try {
-          setIsCheckingPermission(true);
+          if (isMountedRef.current) {
+            setIsCheckingPermission(true);
+          }
           const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+          
+          if (!isMountedRef.current) return;
           
           if (permissionStatus.state === 'granted') {
             console.log('[JoinChoir] Microphone permission already granted');
@@ -134,7 +131,9 @@ const JoinChoir = ({
           console.warn('[JoinChoir] Permissions API not supported or failed, falling back to getUserMedia:', permissionError);
           // Continue to getUserMedia fallback
         } finally {
-          setIsCheckingPermission(false);
+          if (isMountedRef.current) {
+            setIsCheckingPermission(false);
+          }
         }
       } else {
         console.log('[JoinChoir] Permissions API not supported, using getUserMedia directly');
@@ -144,12 +143,20 @@ const JoinChoir = ({
       console.log('[JoinChoir] Requesting microphone permission from user...');
       const stream = await navigator.mediaDevices.getUserMedia(getCleanAudioConstraints());
       
+      if (!isMountedRef.current) {
+        // Component unmounted, clean up stream and return
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      
       // Stop the stream immediately since we just need permission
       stream.getTracks().forEach(track => track.stop());
       console.log('[JoinChoir] Microphone permission granted');
       onContinue();
       
     } catch (error) {
+      if (!isMountedRef.current) return;
+      
       console.error('[JoinChoir] Error requesting microphone permission:', error);
       console.error('[JoinChoir] Error details:', {
         name: (error as any)?.name,
@@ -173,8 +180,10 @@ const JoinChoir = ({
         onPermissionDenied?.();
       }
     } finally {
-      console.log('[JoinChoir] Permission request completed, setting isRequestingPermission to false');
-      setIsRequestingPermission(false);
+      if (isMountedRef.current) {
+        console.log('[JoinChoir] Permission request completed, setting isRequestingPermission to false');
+        setIsRequestingPermission(false);
+      }
     }
   };
 
