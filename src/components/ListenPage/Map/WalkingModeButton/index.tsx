@@ -49,7 +49,7 @@ const walkingModeButton = ({ welcomeAudioCompleted = true }: WalkingModeButtonPr
 
 	const availableListenModesArray = config.listen.availableListenModes;
 
-	const displayListenModeButton = availableListenModesArray == 'device' || availableListenModesArray.length == 2 ? true : false;
+	const displayListenModeButton = !isMobile;
 
 	const [defaultModeSet, setDefaultModeSet] = useState(false);
 
