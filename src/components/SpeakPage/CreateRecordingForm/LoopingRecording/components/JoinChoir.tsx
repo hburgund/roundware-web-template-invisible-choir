@@ -17,6 +17,7 @@ import JoinChoirSteps from "./JoinChoirSteps";
 import MicrophonePermissionDialog from "@/components/elements/MicrophonePermissionDialog";
 import MicrophoneBlockedDialog from "@/components/elements/MicrophoneBlockedDialog";
 import MicrophoneInstructionsDialog from "@/components/elements/MicrophoneInstructionsDialog";
+import AudioRequiredDialog from "@/components/elements/AudioRequiredDialog";
 import HelpPopup from "@/components/HelpPopup";
 import { getCleanAudioConstraints } from "@/utils";
 import { useRoundware } from "@/hooks";
@@ -45,10 +46,43 @@ const JoinChoir = ({
   const [showMicrophoneBlockedDialog, setShowMicrophoneBlockedDialog] = useState(false);
   const [showMicrophoneHelp, setShowMicrophoneHelp] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAudioRequiredDialog, setShowAudioRequiredDialog] = useState(false);
   const isMountedRef = useRef(true);
   
   useEffect(() => {
     isMountedRef.current = true;
+    
+    // Check audio device availability on mount
+    const checkAudioDevices = async () => {
+      try {
+        // Check if mediaDevices API is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          if (isMountedRef.current) {
+            setShowAudioRequiredDialog(true);
+          }
+          return;
+        }
+
+        // Enumerate devices to check for microphone and speakers
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+        const hasSpeakers = devices.some(device => device.kind === 'audiooutput');
+        
+        if (!hasMicrophone || !hasSpeakers) {
+          if (isMountedRef.current) {
+            setShowAudioRequiredDialog(true);
+          }
+        }
+      } catch (error) {
+        console.error('[JoinChoir] Error checking audio devices:', error);
+        // If we can't check devices, show the dialog to be safe
+        if (isMountedRef.current) {
+          setShowAudioRequiredDialog(true);
+        }
+      }
+    };
+
+    checkAudioDevices();
     
     return () => {
       isMountedRef.current = false;
@@ -345,6 +379,14 @@ const JoinChoir = ({
             </Box>
           </Box>
         </Slide>
+
+        <AudioRequiredDialog
+          open={showAudioRequiredDialog}
+          onClose={() => {
+            setShowAudioRequiredDialog(false);
+            onCancel();
+          }}
+        />
       </Box>
     );
   }
@@ -490,6 +532,14 @@ const JoinChoir = ({
           open={showHelp}
           onClose={() => setShowHelp(false)}
           currentScreen="add choir"
+        />
+
+        <AudioRequiredDialog
+          open={showAudioRequiredDialog}
+          onClose={() => {
+            setShowAudioRequiredDialog(false);
+            onCancel();
+          }}
         />
       </Box>
   );
