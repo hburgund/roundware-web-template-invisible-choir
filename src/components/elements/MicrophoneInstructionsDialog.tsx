@@ -1,9 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton, Typography, Box } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import HelpCenterIcon from '@mui/icons-material/HelpCenter';
+import MicOffOutlinedIcon from '@mui/icons-material/MicOffOutlined';
 import LockIcon from '@mui/icons-material/Lock';
 import { isChrome, isFirefox, isSafari, isEdge, isAndroid, isIOS, isMobile } from 'react-device-detect';
+import aAFontIcon from '../../assets/icons/aAFont.svg';
+import pageMenuIOSIcon from '../../assets/icons/page-menu-ios.svg';
+
+function getIOSVersion() {
+	const ua = navigator.userAgent;
+
+	// Detect Safari version
+	const safariMatch = ua.match(/Version\/(\d+)\.(\d+)/);
+	const safariMajor = safariMatch ? parseInt(safariMatch[1], 10) : 0;
+
+	// Detect OS version from UA (will be frozen on iOS 26+)
+	const osMatch = ua.match(/OS (\d+)_(\d+)_?(\d+)?/);
+	let osMajor = osMatch ? parseInt(osMatch[1], 10) : 0;
+	let osMinor = osMatch ? parseInt(osMatch[2], 10) : 0;
+	let osPatch = osMatch && osMatch[3] ? parseInt(osMatch[3], 10) : 0;
+
+	// Apple froze OS version at 18.6 in iOS 26+
+	// So detect iOS 26+ via Safari version (Version/26+)
+	if (osMajor === 18 && safariMajor >= 26) {
+		osMajor = safariMajor; // Safari 26 => iOS 26
+		osMinor = 0;
+		osPatch = 0;
+	}
+
+	// Detect iPad with desktop UA
+	const isIOS =
+		/iPad|iPhone|iPod/.test(ua) ||
+		(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+	return isIOS ? `${osMajor}.${osMinor}.${osPatch}` : null;
+}
 
 type Props = {
 	open: boolean;
@@ -11,7 +43,35 @@ type Props = {
 };
 
 const MicrophoneInstructionsDialog = (props: Props) => {
+	const [iosVersion, setIosVersion] = useState<string | null>(null);
 
+	useEffect(() => {
+		const version = getIOSVersion();
+		setIosVersion(version);
+		console.log("IOS", version);
+	}, []);
+
+	const shouldUseAAButtonInstructions = (version: string | null): boolean => {
+		if (!version) return false;
+		
+		const parts = version.split('.').map(Number);
+		const major = parts[0];
+		const minor = parts[1] || 0;
+		
+		// iOS 15.5, 16.2, 17.2 (matches any patch version)
+		return (major === 15 && minor === 5) || (major === 16 && minor === 2) || (major === 17 && minor === 2);
+	};
+
+	const shouldUsePageMenuInstructions = (version: string | null): boolean => {
+		if (!version) return false;
+		
+		const parts = version.split('.').map(Number);
+		const major = parts[0];
+		const minor = parts[1] || 0;
+		
+		// iOS 18.2, 26.0 (matches any patch version)
+		return (major === 18 && minor === 2) || (major === 26 && minor === 0);
+	};
 
 	return (
 		<Dialog
@@ -37,7 +97,7 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 					<HelpCenterIcon sx={{ fontSize: 40,}} />
 				</Box>
 				<Typography variant="h5" component="div">
-					Microphone Help
+					Microphone Access Help
 				</Typography>
 			</DialogTitle>
 
@@ -66,23 +126,67 @@ const MicrophoneInstructionsDialog = (props: Props) => {
 								</Typography>
 							</>
 						) : isMobile && isIOS ? (
-							<>
-								<Typography variant="body1" sx={{ mb: 2 }}>
-									1. Tap the "AA" button in the address bar (top left)
-								</Typography>
-								<Typography variant="body1" sx={{ mb: 2 }}>
-									2. Select "Website Settings" or "Site Settings"
-								</Typography>
-								<Typography variant="body1" sx={{ mb: 2 }}>
-									3. Tap on "Microphone"
-								</Typography>
-								<Typography variant="body1" sx={{ mb: 2 }}>
-									4. Change it from "Deny" to "Allow"
-								</Typography>
-								<Typography variant="body1" sx={{ mb: 3 }}>
-									5. Go back and refresh the page
-								</Typography>
-							</>
+							shouldUseAAButtonInstructions(iosVersion) ? (
+								<>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										1. Tap the <img src={aAFontIcon} alt="aA" width="20" height="19" style={{ verticalAlign: 'middle', margin: '0 2px' }} /> button on the bottom
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										2. Select "Website Settings"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										3. Tap on "Microphone"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										4. Change it to "Allow"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										5. Tap "Done" & refresh the page
+									</Typography>
+								</>
+							) : shouldUsePageMenuInstructions(iosVersion) ? (
+								<>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										1. Click on the <img src={pageMenuIOSIcon} alt="left bottom icon" width="24" height="24" style={{ verticalAlign: 'middle', margin: '0 2px' }} /> icon at bottom left
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										2. Click on the Three dots (⋮) menu
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										3. Scroll to the bottom
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										4. Under "Website Settings", find "Microphone"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										5. Change it to "Allow"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										6. Click on "Done" at the top & refresh the page
+									</Typography>
+								</>
+							) : (
+								<>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										1. Open the Settings app on your iPhone/iPad
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										2. Scroll down and tap "Safari"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										3. Scroll to the bottom and find the "Settings for Websites" section
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										4. Tap on "Microphone"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										5. Change it from "Deny" to "Allow"
+									</Typography>
+									<Typography variant="body1" sx={{ mb: 2 }}>
+										6. Return to your browser and refresh the page
+									</Typography>
+								</>
+							)
 						) : isChrome ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
