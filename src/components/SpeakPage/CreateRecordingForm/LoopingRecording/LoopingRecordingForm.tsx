@@ -150,6 +150,10 @@ const LoopingRecordingForm = () => {
           onNeedHelp={() => {
             setShowMicrophoneHelp(true);
           }}
+          onTryAgain={() => {
+            recorder.setIsPermissionDenied(false);
+            setShowJoinChoirPage(true);
+          }}
         />
       )}
       {showJoinChoirPage ? (

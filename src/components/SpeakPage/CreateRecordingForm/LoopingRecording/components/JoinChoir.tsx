@@ -521,6 +521,10 @@ const JoinChoir = ({
           onNeedHelp={() => {
             setShowMicrophoneHelp(true);
           }}
+          onTryAgain={() => {
+            setShowMicrophoneBlockedDialog(false);
+            handlePermissionAllow();
+          }}
         />
 
         <MicrophoneInstructionsDialog

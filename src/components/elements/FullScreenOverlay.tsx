@@ -42,6 +42,10 @@ interface FullScreenOverlayProps {
     text: string;
     onClick: () => void;
   };
+  tertiaryButton?: {
+    text: string;
+    onClick: () => void;
+  };
   showCloseButton?: boolean;
   useLeafBackground?: boolean;
   transition?: 'slide' | 'none';
@@ -56,6 +60,7 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
   children,
   primaryButton,
   secondaryButton,
+  tertiaryButton,
   showCloseButton = true,
   useLeafBackground = false,
   transition = 'slide'
@@ -136,7 +141,7 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
 
               {children}
 
-              {(primaryButton || secondaryButton) && (
+              {(primaryButton || secondaryButton || tertiaryButton) && (
                 <Stack spacing={2} width="100%">
                   {primaryButton && (
                     <Button
@@ -174,6 +179,25 @@ const FullScreenOverlay: React.FC<FullScreenOverlayProps> = ({
                       }}
                     >
                       {secondaryButton.text}
+                    </Button>
+                  )}
+
+                  {tertiaryButton && (
+                    <Button
+                      variant="outlined"
+                      onClick={tertiaryButton.onClick}
+                      fullWidth
+                      size="large"
+                      className="MuiButton-dialog"
+                      sx={{
+                        position: 'relative',
+                        zIndex: 10,
+                        touchAction: 'manipulation',
+                        WebkitTapHighlightColor: 'transparent',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tertiaryButton.text}
                     </Button>
                   )}
                 </Stack>

@@ -5,6 +5,7 @@ type Props = {
 	open: boolean;
 	onClose: () => void;
 	onNeedHelp?: () => void;
+	onTryAgain?: () => void;
 };
 
 const MicrophoneBlockedDialog = (props: Props) => {
@@ -14,7 +15,7 @@ const MicrophoneBlockedDialog = (props: Props) => {
 			onClose={props.onClose}
 			icon={<MicOffOutlinedIcon sx={{ fontSize: 40 }} />}
 			title="MICROPHONE BLOCKED"
-			description="To participate fully in the artwork we need access to your microphone. In the meantime, you can still listen to our choirs in your current location."
+			description="To join a choir by recording your voice, we need access to your microphone. If you do not wish to record, feel free to wander and listen to the choir!"
 			primaryButton={{
 				text: "LISTEN MORE",
 				onClick: props.onClose
@@ -22,6 +23,10 @@ const MicrophoneBlockedDialog = (props: Props) => {
 			secondaryButton={props.onNeedHelp ? {
 				text: "MIC ACCESS HELP",
 				onClick: props.onNeedHelp
+			} : undefined}
+			tertiaryButton={props.onTryAgain ? {
+				text: "TRY AGAIN",
+				onClick: props.onTryAgain
 			} : undefined}
 			useLeafBackground={true}
 			showCloseButton={false}
