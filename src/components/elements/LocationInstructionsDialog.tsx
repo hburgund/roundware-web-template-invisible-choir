@@ -97,11 +97,6 @@ const LocationInstructionsDialog = (props: Props) => {
 				</Box>
 				<Typography variant="h5" component="div">
 					Location Access Help
-					{iosVersion && (
-						<Typography variant="body2" component="span">
-							(iOS {iosVersion})
-						</Typography>
-					)}
 				</Typography>
 			</DialogTitle>
 
