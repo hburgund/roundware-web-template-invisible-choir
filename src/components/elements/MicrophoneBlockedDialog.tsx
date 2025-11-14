@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import MicOffOutlinedIcon from '@mui/icons-material/MicOffOutlined';
 import FullScreenOverlay from './FullScreenOverlay';
 
@@ -9,6 +10,48 @@ type Props = {
 };
 
 const MicrophoneBlockedDialog = (props: Props) => {
+	const [isMicrophonePermanentlyDenied, setIsMicrophonePermanentlyDenied] = useState(false);
+	const permissionStatusRef = useRef<PermissionStatus | null>(null);
+
+	// Check permission status
+	useEffect(() => {
+		if (!props.open) {
+			setIsMicrophonePermanentlyDenied(false);
+			return;
+		}
+
+		const checkPermission = async () => {
+			try {
+				if (navigator.permissions && navigator.permissions.query) {
+					const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+					permissionStatusRef.current = permissionStatus;
+					
+					if (permissionStatus.state === 'denied') {
+						setIsMicrophonePermanentlyDenied(true);
+					}
+
+					permissionStatus.onchange = () => {
+						if (permissionStatus.state === 'denied') {
+							setIsMicrophonePermanentlyDenied(true);
+						}
+					};
+				}
+			} catch (error) {
+
+			}
+		};
+
+		checkPermission();
+
+		// Cleanup when component unmounts
+		return () => {
+			if (permissionStatusRef.current) {
+				permissionStatusRef.current.onchange = null;
+				permissionStatusRef.current = null;
+			}
+		};
+	}, [props.open]);
+
 	return (
 		<FullScreenOverlay
 			open={props.open}
@@ -24,7 +67,7 @@ const MicrophoneBlockedDialog = (props: Props) => {
 				text: "MIC ACCESS HELP",
 				onClick: props.onNeedHelp
 			} : undefined}
-			tertiaryButton={props.onTryAgain ? {
+			tertiaryButton={(props.onTryAgain && !isMicrophonePermanentlyDenied) ? {
 				text: "TRY AGAIN",
 				onClick: props.onTryAgain
 			} : undefined}
