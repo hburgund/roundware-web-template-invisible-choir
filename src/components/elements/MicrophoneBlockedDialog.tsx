@@ -59,18 +59,18 @@ const MicrophoneBlockedDialog = (props: Props) => {
 			icon={<MicOffOutlinedIcon sx={{ fontSize: 40 }} />}
 			title="MICROPHONE BLOCKED"
 			description="To join a choir by recording your voice, we need access to your microphone. If you do not wish to record, feel free to wander and listen to the choir!"
-			primaryButton={{
-				text: "LISTEN MORE",
-				onClick: props.onClose
-			}}
+			primaryButton={(props.onTryAgain && !isMicrophonePermanentlyDenied) ? {
+				text: "TRY AGAIN",
+				onClick: props.onTryAgain
+			} : undefined}
 			secondaryButton={props.onNeedHelp ? {
 				text: "MIC ACCESS HELP",
 				onClick: props.onNeedHelp
 			} : undefined}
-			tertiaryButton={(props.onTryAgain && !isMicrophonePermanentlyDenied) ? {
-				text: "TRY AGAIN",
-				onClick: props.onTryAgain
-			} : undefined}
+			tertiaryButton={{
+				text: "LISTEN MORE",
+				onClick: props.onClose
+			}}
 			useLeafBackground={true}
 			showCloseButton={false}
 		/>
