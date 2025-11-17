@@ -55,10 +55,9 @@ const LocationInstructionsDialog = (props: Props) => {
 		
 		const parts = version.split('.').map(Number);
 		const major = parts[0];
-		const minor = parts[1] || 0;
 		
-		// iOS 15.5, 16.2, 17.2 (matches any patch version)
-		return (major === 15 && minor === 5) || (major === 16 && minor === 2) || (major === 17 && minor === 2);
+		// iOS 15.x, 16.x, 17.x (matches any minor/patch version)
+		return major === 15 || major === 16 || major === 17;
 	};
 
 	const shouldUsePageMenuInstructions = (version: string | null): boolean => {
@@ -66,10 +65,9 @@ const LocationInstructionsDialog = (props: Props) => {
 		
 		const parts = version.split('.').map(Number);
 		const major = parts[0];
-		const minor = parts[1] || 0;
 		
-		// iOS 18.2, 26.0 (matches any patch version)
-		return (major === 18 && minor === 2) || (major === 26 && minor === 0);
+		// iOS 18.x, 26.x (matches any minor/patch version)
+		return major === 18 || major === 26;
 	};
 
 	return (
@@ -103,6 +101,11 @@ const LocationInstructionsDialog = (props: Props) => {
 			<DialogContent sx={{ px: 3, pb: 2 }}>
 				<Box sx={{ textAlign: 'center' }}>
 					<Box sx={{ textAlign: 'left', maxWidth: 400, mx: 'auto', mt: 3 }}>
+						{isMobile && isIOS && iosVersion && (
+							<Typography variant="body1" sx={{ mb: 2, fontWeight: 'bold' }}>
+								IOS - {iosVersion}
+							</Typography>
+						)}
 						{isMobile && isAndroid ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
@@ -164,28 +167,7 @@ const LocationInstructionsDialog = (props: Props) => {
 										6. Click on "Done" at the top & refresh the page
 									</Typography>
 								</>
-							) : (
-								<>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										1. Open the Settings app on your iPhone/iPad
-									</Typography>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										2. Scroll down and tap "Safari"
-									</Typography>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										3. Scroll to the bottom and find the "Settings for Websites" section
-									</Typography>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										4. Tap on "Location"
-									</Typography>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										5. Change it from "Deny" to "Allow"
-									</Typography>
-									<Typography variant="body1" sx={{ mb: 2 }}>
-										6. Return to your browser and refresh the page
-									</Typography>
-								</>
-							)
+							) : null
 						) : isChrome ? (
 							<>
 								<Typography variant="body1" sx={{ mb: 2 }}>
