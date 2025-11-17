@@ -49,6 +49,8 @@ const RoundwareProvider = (props: PropTypes) => {
 	
 	// time machine slider state
 	const [timeMachineFilterDate, setTimeMachineFilterDate] = useState<Date | null>(null);
+	const [timeMachineMode, setTimeMachineMode] = useState<'time-based' | 'order-based'>('time-based');
+	const [timeMachineOrderIndex, setTimeMachineOrderIndex] = useState<number>(0);
 
 	const [, forceUpdate] = useReducer((x) => !x, false);
 
@@ -840,6 +842,10 @@ const RoundwareProvider = (props: PropTypes) => {
 				speakerVariantUris,
 				timeMachineFilterDate,
 				setTimeMachineFilterDate,
+				timeMachineMode,
+				setTimeMachineMode,
+				timeMachineOrderIndex,
+				setTimeMachineOrderIndex,
 			}}
 		>
 			{props.children}

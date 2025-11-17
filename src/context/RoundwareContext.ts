@@ -69,6 +69,10 @@ export interface IRoundwareContext {
 	// time machine slider state
 	timeMachineFilterDate: Date | null;
 	setTimeMachineFilterDate: React.Dispatch<React.SetStateAction<Date | null>>;
+	timeMachineMode: 'time-based' | 'order-based';
+	setTimeMachineMode: React.Dispatch<React.SetStateAction<'time-based' | 'order-based'>>;
+	timeMachineOrderIndex: number; // Index of the last speaker to show in order-based mode
+	setTimeMachineOrderIndex: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const RoundwareContext = React.createContext<IRoundwareContext>(undefined!);

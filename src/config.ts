@@ -227,15 +227,15 @@ let config: IConfig = {
       markers: {
         size: 2,
         borderColor: "#ffffff",
-        borderWeight: 1,
+        borderWeight: 2,
         fill: "auto",
-        opacity: 0.5,
+        opacity: 1.0,
         zIndex: 2000,
       },
 
       // === LINE STYLING ===
       lines: {
-        weight: 1,
+        weight: 0.5,
         color: "#ffffff",
         opacity: 0.3,
         zIndex: 1000,

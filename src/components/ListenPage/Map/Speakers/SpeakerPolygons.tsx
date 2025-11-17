@@ -1,5 +1,5 @@
 import { Polygon, PolygonProps, Marker, Polyline } from '@react-google-maps/api';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useRoundware } from '@/hooks';
 import { speakerPolygonColors as colors, speakerPolygonOptions } from '@/styles/speaker';
 import { polygonToGoogleMapPaths } from '@/utils';
@@ -343,7 +343,7 @@ const calculateArcCurve = (
 };
 
 const SpeakerPolygons = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers, playingSpeakerIds, timeMachineFilterDate } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, clearSessionCreatedSpeakers, playingSpeakerIds, timeMachineFilterDate, timeMachineMode, timeMachineOrderIndex } = useRoundware();
 	const [options, setOptions] = useState<PolygonProps[`options`]>(speakerPolygonOptions);
 	const [googleMapElements, setGoogleMapElements] = useState<React.ReactElement[]>([]);
 	const [debugTestSpeakerId, setDebugTestSpeakerId] = useState<number | null>(null);
@@ -356,6 +356,72 @@ const SpeakerPolygons = (props: Props) => {
 	
 	// Track which speakers are recent (based on creation time)
 	const [recentSpeakerIds, setRecentSpeakerIds] = useState<Set<number>>(new Set());
+	
+	// Cache marker icons by speaker ID to prevent re-renders
+	const markerIconCache = useRef<Map<number, google.maps.Symbol>>(new Map());
+	
+	// Cache center positions to ensure stability
+	const centerCache = useRef<Map<number, google.maps.LatLngLiteral>>(new Map());
+	
+	// Track last visible speaker IDs to prevent unnecessary marker recreation
+	const lastVisibleSpeakerIdsRef = useRef<string>('');
+	const markersCacheRef = useRef<React.ReactElement[]>([]);
+	const lastMarkerOpacityRef = useRef<number>(config.map.speakerConnectorStyles.markers.opacity);
+	
+	// Track last update state to prevent duplicate updates
+	const lastUpdateStateRef = useRef<{
+		visibleSpeakerIds: string;
+		recentSpeakerIds: string;
+		playingSpeakerIds: string;
+	}>({ visibleSpeakerIds: '', recentSpeakerIds: '', playingSpeakerIds: '' });
+	
+	// Calculate sorted speakers list for order-based mode (only when feature is enabled)
+	const sortedSpeakersForOrder = useMemo(() => {
+		// Skip computation when time machine is disabled
+		if (!config.map.displayTimeMachineSlider) {
+			return [];
+		}
+		
+		if (!roundware.speakers || !Array.isArray(roundware.speakers())) {
+			return [];
+		}
+
+		const speakers = roundware.speakers();
+		const minDate = new Date(config.map.timeMachineSliderMin);
+		
+		// Get max date from speakers
+		const validTimestamps = speakers
+			.filter(speaker => speaker.created && !isNaN(new Date(speaker.created).getTime()))
+			.map(speaker => new Date(speaker.created).getTime());
+		
+		if (validTimestamps.length === 0) return [];
+		
+		const maxDate = new Date(Math.max(...validTimestamps));
+
+		// Filter speakers within the time range and sort by creation time (oldest first)
+		return speakers
+			.filter(speaker => {
+				const speakerCreated = speaker.created;
+				if (!speakerCreated) return false;
+				const speakerDate = new Date(speakerCreated);
+				if (isNaN(speakerDate.getTime())) return false;
+				return speakerDate >= minDate && speakerDate <= maxDate;
+			})
+			.sort((a, b) => {
+				const aTime = new Date(a.created!).getTime();
+				const bTime = new Date(b.created!).getTime();
+				return aTime - bTime; // Oldest first
+			});
+	}, [roundware.speakers]);
+	
+	// Create a map of speaker ID to index in sorted list for order-based mode
+	const speakerIdToOrderIndex = useMemo(() => {
+		const map = new Map<number, number>();
+		sortedSpeakersForOrder.forEach((speaker, index) => {
+			map.set(speaker.id, index);
+		});
+		return map;
+	}, [sortedSpeakersForOrder]);
 	
 	/**
 	 * Gets the fill color for a speaker, with fallback to random config color for invalid data
@@ -390,16 +456,28 @@ const SpeakerPolygons = (props: Props) => {
 		
 		// Apply time machine filter to get currently visible speakers
 		const visibleSpeakers = speakers.filter(speaker => {
-			// Time machine filter: only show speakers created before the selected date
-			if (!timeMachineFilterDate) return true;
+			// Only apply time machine filtering if the feature is enabled
+			if (!config.map.displayTimeMachineSlider) {
+				return true; // Show all speakers when time machine is disabled
+			}
 			
-			const speakerCreated = speaker.created;
-			if (!speakerCreated) return true; // Show speakers without timestamps
-			
-			const speakerDate = new Date(speakerCreated);
-			if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
-			
-			return speakerDate <= timeMachineFilterDate;
+			if (timeMachineMode === 'order-based') {
+				// Order-based mode: check if speaker index is within the order index
+				const speakerIndex = speakerIdToOrderIndex.get(speaker.id);
+				if (speakerIndex === undefined) return false;
+				return speakerIndex < timeMachineOrderIndex;
+			} else {
+				// Time-based mode: only show speakers created before the selected date
+				if (!timeMachineFilterDate) return true;
+				
+				const speakerCreated = speaker.created;
+				if (!speakerCreated) return true; // Show speakers without timestamps
+				
+				const speakerDate = new Date(speakerCreated);
+				if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+				
+				return speakerDate <= timeMachineFilterDate;
+			}
 		});
 		
 		// Filter visible speakers with valid created timestamps and sort by creation time (newest first)
@@ -410,6 +488,17 @@ const SpeakerPolygons = (props: Props) => {
 		// Take the most recent speakers from visible ones
 		const recentSpeakers = speakersWithValidCreated.slice(0, recentCount);
 		const recentIds = new Set(recentSpeakers.map(speaker => speaker.id));
+
+		// Check if recent speaker IDs actually changed before updating state
+		const currentRecentIdsStr = Array.from(recentSpeakerIds).sort().join(',');
+		const newRecentIdsStr = Array.from(recentIds).sort().join(',');
+		
+		if (currentRecentIdsStr === newRecentIdsStr) {
+			if (config.debugMode) {
+				console.log('⏭️ Skipping updateRecentSpeakers - recent IDs unchanged');
+			}
+			return; // No change, skip state update
+		}
 
 		// Debug logging for recent speakers
 		console.log('=== RECENT SPEAKERS DEBUG ===');
@@ -429,29 +518,114 @@ const SpeakerPolygons = (props: Props) => {
 		console.log('=== END RECENT SPEAKERS DEBUG ===');
 
 		setRecentSpeakerIds(recentIds);
-	}, [roundware.speakers, timeMachineFilterDate]);
+	}, [roundware.speakers, timeMachineFilterDate, timeMachineMode, timeMachineOrderIndex, speakerIdToOrderIndex, recentSpeakerIds]);
 
 	// Update recent speakers whenever time machine filter changes
 	useEffect(() => {
 		updateRecentSpeakers();
 	}, [updateRecentSpeakers]);
 
+	// Helper function to check if a speaker is visible according to time machine filter
+	const isSpeakerVisible = useCallback((speakerData: any): boolean => {
+		// Check if speaker is hidden
+		if (hideSpeakerPolygons.includes(speakerData.id)) return false;
+		
+		// Only apply time machine filtering if the feature is enabled
+		if (!config.map.displayTimeMachineSlider) {
+			return true; // Show all speakers when time machine is disabled
+		}
+		
+		if (timeMachineMode === 'order-based') {
+			// Order-based mode: check if speaker index is within the order index
+			const speakerIndex = speakerIdToOrderIndex.get(speakerData.id);
+			if (speakerIndex === undefined) return false;
+			return speakerIndex < timeMachineOrderIndex;
+		} else {
+			// Time-based mode: only show speakers created before the selected date
+			if (!timeMachineFilterDate) return true;
+			
+			const speakerCreated = speakerData.created;
+			if (!speakerCreated) return true; // Show speakers without timestamps
+			
+			const speakerDate = new Date(speakerCreated);
+			if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+			
+			return speakerDate <= timeMachineFilterDate;
+		}
+	}, [hideSpeakerPolygons, timeMachineMode, timeMachineOrderIndex, timeMachineFilterDate, speakerIdToOrderIndex]);
+
 	const updatePolygons = useCallback(() => {
-		const speakers = roundware.mixer.speakerEngine?.speakers
+		// Calculate visible speaker IDs first to check if we need to update
+		const visibleSpeakers = roundware.mixer.speakerEngine?.speakers
 			?.filter(({ data: speaker }: any) => !!speaker.shape)
 			?.filter((s: any) => !hideSpeakerPolygons.includes(s.data.id))
 			?.filter((s: any) => {
-				// Time machine filter: only show speakers created before the selected date
-				if (!timeMachineFilterDate) return true;
+				// Only apply time machine filtering if the feature is enabled
+				if (!config.map.displayTimeMachineSlider) {
+					return true; // Show all speakers when time machine is disabled
+				}
 				
-				const speakerCreated = s.data.created;
-				if (!speakerCreated) return true; // Show speakers without timestamps
-				
-				const speakerDate = new Date(speakerCreated);
-				if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
-				
-				return speakerDate <= timeMachineFilterDate;
-			})
+				if (timeMachineMode === 'order-based') {
+					// Order-based mode: check if speaker index is within the order index
+					const speakerIndex = speakerIdToOrderIndex.get(s.data.id);
+					if (speakerIndex === undefined) return false;
+					return speakerIndex < timeMachineOrderIndex;
+				} else {
+					// Time-based mode: only show speakers created before the selected date
+					if (!timeMachineFilterDate) return true;
+					
+					const speakerCreated = s.data.created;
+					if (!speakerCreated) return true; // Show speakers without timestamps
+					
+					const speakerDate = new Date(speakerCreated);
+					if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+					
+					return speakerDate <= timeMachineFilterDate;
+				}
+			});
+		
+		if (!visibleSpeakers) {
+			setGoogleMapElements([]);
+			return;
+		}
+		
+		// Create state signature to detect duplicate calls
+		const visibleSpeakerIds = visibleSpeakers.map((s: any) => s.data.id).sort().join(',');
+		const recentSpeakerIdsStr = Array.from(recentSpeakerIds).sort().join(',');
+		const playingSpeakerIdsStr = Array.from(playingSpeakerIds).sort().join(',');
+		
+		const currentState = {
+			visibleSpeakerIds,
+			recentSpeakerIds: recentSpeakerIdsStr,
+			playingSpeakerIds: playingSpeakerIdsStr,
+		};
+		
+		// Skip update if visible speakers haven't changed AND styling hasn't changed
+		// This prevents unnecessary re-renders when only internal state updates occur
+		const visibleSpeakersChanged = lastUpdateStateRef.current.visibleSpeakerIds !== currentState.visibleSpeakerIds;
+		const stylingChanged = 
+			lastUpdateStateRef.current.recentSpeakerIds !== currentState.recentSpeakerIds ||
+			lastUpdateStateRef.current.playingSpeakerIds !== currentState.playingSpeakerIds;
+		
+		if (!visibleSpeakersChanged && !stylingChanged) {
+			if (config.debugMode) {
+				console.log('⏭️ Skipping duplicate updatePolygons call - no changes detected');
+			}
+			return;
+		}
+		
+		// Only log when we're actually updating
+		if (config.debugMode && visibleSpeakersChanged) {
+			console.log('🔄 updatePolygons: visible speakers changed');
+		}
+		if (config.debugMode && stylingChanged && !visibleSpeakersChanged) {
+			console.log('🎨 updatePolygons: styling changed (recent/playing)');
+		}
+		
+		// Update ref with current state
+		lastUpdateStateRef.current = currentState;
+		
+		const speakers = visibleSpeakers
 			?.sort((a: any, b: any) => {
 				// Sort by created timestamp (most recent first), fallback to ID for speakers without timestamps
 				const aCreated = a?.data?.created ? new Date(a.data.created).getTime() : 0;
@@ -487,13 +661,22 @@ const SpeakerPolygons = (props: Props) => {
 		}
 
 		// Create a map of speaker IDs to their center positions for easy lookup
+		// Calculate centers for ALL speakers (not just visible ones) so we can check parent visibility
+		const allSpeakersForCenters = roundware.mixer.speakerEngine?.speakers || [];
 		const speakerCenters: { [key: number]: google.maps.LatLngLiteral } = {};
-		speakers.forEach((s: any) => {
-			speakerCenters[s.data.id] = calculatePolygonCenter(s.data.shape);
+		allSpeakersForCenters.forEach((s: any) => {
+			if (s.data && s.data.shape) {
+				let center = centerCache.current.get(s.data.id);
+				if (!center) {
+					center = calculatePolygonCenter(s.data.shape);
+					centerCache.current.set(s.data.id, center);
+				}
+				speakerCenters[s.data.id] = center;
+			}
 		});
 
-		// First pass: create polygons and center markers
-		const polygonsAndMarkers = speakers.flatMap((s: any, index: number) => {
+		// First pass: create polygons (markers will be created separately and memoized)
+		const polygons = speakers.flatMap((s: any, index: number) => {
 			// Calculate z-index based on sort order (most recent = highest z-index)
 			// Newest speakers (index 0, 1, 2...) get highest z-index values
 			// Oldest speakers get lower z-index values
@@ -717,53 +900,131 @@ const SpeakerPolygons = (props: Props) => {
 				additionalStrokes = [innerStroke, outerGlow];
 			}
 
-			// Skip creating markers with invalid centers
-			if (center.lat === 0 && center.lng === 0) {
-				return [polygon, ...additionalStrokes];
-			}
-
-			// Create center marker
-			const marker = (
-				<Marker
-					key={`center-${s.data.id}`}
-					position={center}
-					icon={{
-						path: google.maps.SymbolPath.CIRCLE,
-						fillColor: config.map.speakerConnectorStyles.markers.fill === "auto" 
-							? (baseFillColor || getColorForIndex(index))
-							: config.map.speakerConnectorStyles.markers.fill,
-						fillOpacity: config.map.speakerConnectorStyles.markers.opacity,
-						strokeColor: config.map.speakerConnectorStyles.markers.borderColor,
-						strokeWeight: config.map.speakerConnectorStyles.markers.borderWeight,
-						scale: config.map.speakerConnectorStyles.markers.size,
-					}}
-					zIndex={config.map.speakerConnectorStyles.markers.zIndex}
-					title={config.debugMode ? `Speaker ${s.data.id} Center: ${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}` : undefined}
-				/>
-			);
-
-			return [polygon, marker, ...additionalStrokes];
+			return [polygon, ...additionalStrokes];
 		});
 
-		// Second pass: create lines connecting child speakers to their parents
-		const connectionLines = speakers.flatMap((s: any) => {
-			const childCenter = speakerCenters[s.data.id];
+		// Create markers separately - only recreate when visible speakers actually change
+		// Reuse visibleSpeakerIds calculated earlier (line 561)
+		let markers: React.ReactElement[];
+		
+		// Skip markers if opacity is 0
+		const markerOpacity = config.map.speakerConnectorStyles.markers.opacity;
+		const opacityChanged = markerOpacity !== lastMarkerOpacityRef.current;
+		
+		if (markerOpacity === 0 || markerOpacity === 0.0) {
+			// Skip marker creation when opacity is 0
+			markers = [];
+			markersCacheRef.current = [];
+			markerIconCache.current.clear(); // Clear cache when hiding
+			lastMarkerOpacityRef.current = markerOpacity;
+		} else if (visibleSpeakerIds !== lastVisibleSpeakerIdsRef.current || opacityChanged) {
+			// Visible speakers changed - recreate markers
+			lastVisibleSpeakerIdsRef.current = visibleSpeakerIds;
+			markers = speakers
+				.filter((s: any) => {
+					const center = speakerCenters[s.data.id];
+					return center && !(center.lat === 0 && center.lng === 0);
+				})
+				.map((s: any) => {
+					const center = speakerCenters[s.data.id];
+					const fillColor = getSpeakerFillColor(s.data, 0);
+					const baseFillColor = getBaseColor(fillColor);
 
-			// Skip speakers with invalid centers or no parents
-			if (childCenter.lat === 0 && childCenter.lng === 0 || !s.data.parents || s.data.parents.length === 0) {
+					// Get or create cached icon base (colors, size) to prevent re-renders
+					// But always use current opacity from config so it can be changed dynamically
+					let cachedIconBase = markerIconCache.current.get(s.data.id);
+					if (!cachedIconBase) {
+						// Use speaker ID for stable color (not index, which changes as speakers are added/removed)
+						const markerFillColor = config.map.speakerConnectorStyles.markers.fill === "auto" 
+							? (baseFillColor || getColorForIndex(s.data.id % 10)) // Use speaker ID mod 10 for stable color
+							: config.map.speakerConnectorStyles.markers.fill;
+
+						// Cache the base icon properties (everything except opacity which can change)
+						cachedIconBase = {
+							path: google.maps.SymbolPath.CIRCLE,
+							fillColor: markerFillColor,
+							strokeColor: config.map.speakerConnectorStyles.markers.borderColor,
+							strokeWeight: config.map.speakerConnectorStyles.markers.borderWeight,
+							scale: config.map.speakerConnectorStyles.markers.size,
+						};
+						markerIconCache.current.set(s.data.id, cachedIconBase);
+					}
+					
+					// Always use current opacity from config (not cached) so it can be changed dynamically
+					const markerIcon = {
+						...cachedIconBase,
+						fillOpacity: config.map.speakerConnectorStyles.markers.opacity,
+						strokeOpacity: config.map.speakerConnectorStyles.markers.opacity, // Make border also respect opacity
+					};
+
+					// Use cached center to ensure stable position reference
+					const markerCenter = centerCache.current.get(s.data.id) || center;
+
+					// Create center marker with stable props
+					return (
+						<Marker
+							key={`center-${s.data.id}`}
+							position={markerCenter}
+							icon={markerIcon}
+							zIndex={config.map.speakerConnectorStyles.markers.zIndex}
+							title={config.debugMode ? `Speaker ${s.data.id} Center: ${markerCenter.lat.toFixed(6)}, ${markerCenter.lng.toFixed(6)}` : undefined}
+						/>
+					);
+				});
+			markersCacheRef.current = markers;
+			lastMarkerOpacityRef.current = markerOpacity; // Track current opacity
+		} else if (markerOpacity > 0) {
+			// Visible speakers unchanged and opacity > 0 - reuse cached markers
+			// (opacity changes are handled in the previous branch)
+			markers = markersCacheRef.current;
+		} else {
+			// Markers should be hidden (opacity 0)
+			markers = [];
+		}
+
+		// Get all speakers (not just filtered) to check connectors for all potential connections
+		const allSpeakers = roundware.mixer.speakerEngine?.speakers || [];
+		
+		// Second pass: create lines connecting child speakers to their parents
+		// Only create connectors when BOTH child and parent are visible
+		// We iterate over ALL speakers to check all potential connections
+		const connectionLines = allSpeakers.flatMap((s: any) => {
+			// Skip if speaker has no data or no shape
+			if (!s.data || !s.data.shape) {
+				return [];
+			}
+
+			// Child must be visible
+			if (!isSpeakerVisible(s.data)) {
+				return [];
+			}
+
+			// Skip if no parents
+			if (!s.data.parents || s.data.parents.length === 0) {
+				return [];
+			}
+
+			// Get child center (must exist since child is visible)
+			const childCenter = speakerCenters[s.data.id];
+			if (!childCenter || (childCenter.lat === 0 && childCenter.lng === 0)) {
 				return [];
 			}
 
 			return s.data.parents.map((parentId: number) => {
-				// Skip if parent is hidden or doesn't exist in our center map
-				if (hideSpeakerPolygons.includes(parentId) || !speakerCenters[parentId]) {
+				// Find parent speaker in all speakers
+				const parentSpeaker = allSpeakers.find((sp: any) => sp.data && sp.data.id === parentId);
+				if (!parentSpeaker || !parentSpeaker.data) {
 					return null;
 				}
 
-				const parentCenter = speakerCenters[parentId];
+				// Parent must also be visible
+				if (!isSpeakerVisible(parentSpeaker.data)) {
+					return null;
+				}
 
-				// Skip if parent has invalid center
-				if (parentCenter.lat === 0 && parentCenter.lng === 0) {
+				// Get parent center (must exist since parent is visible)
+				const parentCenter = speakerCenters[parentId];
+				if (!parentCenter || (parentCenter.lat === 0 && parentCenter.lng === 0)) {
 					return null;
 				}
 
@@ -787,8 +1048,8 @@ const SpeakerPolygons = (props: Props) => {
 		});
 
 		// Combine all elements and set state
-		setGoogleMapElements([...polygonsAndMarkers, ...connectionLines]);
-	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds, recentSpeakerIds, timeMachineFilterDate]);
+		setGoogleMapElements([...polygons, ...markers, ...connectionLines]);
+	}, [roundware.mixer.speakerEngine?.speakers, hideSpeakerPolygons, options, getSpeakerFillColor, sessionCreatedSpeakerIds, debugTestSpeakerId, debugColors.strokeColor, playingSpeakerIds, recentSpeakerIds, timeMachineFilterDate, timeMachineMode, timeMachineOrderIndex, speakerIdToOrderIndex, isSpeakerVisible]);
 
 	/**
 	 * Debug function to randomly select a nearby speaker for testing

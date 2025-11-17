@@ -16,8 +16,56 @@ const getColorForIndex = (index: number): string => {
 	return colors[index % colors.length];
 };
 const SpeakerImages = (props: Props) => {
-	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate } = useRoundware();
+	const { roundware, hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate, timeMachineMode, timeMachineOrderIndex } = useRoundware();
 	const [recentSpeakerIds, setRecentSpeakerIds] = useState<Set<number>>(new Set());
+	
+	// Calculate sorted speakers list for order-based mode (only when feature is enabled)
+	const sortedSpeakersForOrder = useMemo(() => {
+		// Skip computation when time machine is disabled
+		if (!config.map.displayTimeMachineSlider) {
+			return [];
+		}
+		
+		if (!roundware.speakers || !Array.isArray(roundware.speakers())) {
+			return [];
+		}
+
+		const speakers = roundware.speakers();
+		const minDate = new Date(config.map.timeMachineSliderMin);
+		
+		// Get max date from speakers
+		const validTimestamps = speakers
+			.filter(speaker => speaker.created && !isNaN(new Date(speaker.created).getTime()))
+			.map(speaker => new Date(speaker.created).getTime());
+		
+		if (validTimestamps.length === 0) return [];
+		
+		const maxDate = new Date(Math.max(...validTimestamps));
+
+		// Filter speakers within the time range and sort by creation time (oldest first)
+		return speakers
+			.filter(speaker => {
+				const speakerCreated = speaker.created;
+				if (!speakerCreated) return false;
+				const speakerDate = new Date(speakerCreated);
+				if (isNaN(speakerDate.getTime())) return false;
+				return speakerDate >= minDate && speakerDate <= maxDate;
+			})
+			.sort((a, b) => {
+				const aTime = new Date(a.created!).getTime();
+				const bTime = new Date(b.created!).getTime();
+				return aTime - bTime; // Oldest first
+			});
+	}, [roundware.speakers]);
+	
+	// Create a map of speaker ID to index in sorted list for order-based mode
+	const speakerIdToOrderIndex = useMemo(() => {
+		const map = new Map<number, number>();
+		sortedSpeakersForOrder.forEach((speaker, index) => {
+			map.set(speaker.id, index);
+		});
+		return map;
+	}, [sortedSpeakersForOrder]);
 
 	// Calculate recent speakers from currently visible speakers
 	const updateRecentSpeakers = useMemo(() => {
@@ -30,15 +78,28 @@ const SpeakerImages = (props: Props) => {
 		
 		// Apply time machine filter to get currently visible speakers
 		const visibleSpeakers = speakers.filter(speaker => {
-			if (!timeMachineFilterDate) return true;
+			// Only apply time machine filtering if the feature is enabled
+			if (!config.map.displayTimeMachineSlider) {
+				return true; // Show all speakers when time machine is disabled
+			}
 			
-			const speakerCreated = speaker.created;
-			if (!speakerCreated) return true;
-			
-			const speakerDate = new Date(speakerCreated);
-			if (isNaN(speakerDate.getTime())) return true;
-			
-			return speakerDate <= timeMachineFilterDate;
+			if (timeMachineMode === 'order-based') {
+				// Order-based mode: check if speaker index is within the order index
+				const speakerIndex = speakerIdToOrderIndex.get(speaker.id);
+				if (speakerIndex === undefined) return false;
+				return speakerIndex < timeMachineOrderIndex;
+			} else {
+				// Time-based mode: only show speakers created before the selected date
+				if (!timeMachineFilterDate) return true;
+				
+				const speakerCreated = speaker.created;
+				if (!speakerCreated) return true;
+				
+				const speakerDate = new Date(speakerCreated);
+				if (isNaN(speakerDate.getTime())) return true;
+				
+				return speakerDate <= timeMachineFilterDate;
+			}
 		});
 		
 		// Filter visible speakers with valid created timestamps and sort by creation time (newest first)
@@ -49,7 +110,7 @@ const SpeakerImages = (props: Props) => {
 		// Take the most recent speakers from visible ones
 		const recentSpeakers = speakersWithValidCreated.slice(0, recentCount);
 		return new Set(recentSpeakers.map(speaker => speaker.id));
-	}, [roundware.speakers, timeMachineFilterDate]);
+	}, [roundware.speakers, timeMachineFilterDate, timeMachineMode, timeMachineOrderIndex, speakerIdToOrderIndex]);
 
 	// Update recent speaker IDs when calculation changes
 	useEffect(() => {
@@ -67,16 +128,28 @@ const SpeakerImages = (props: Props) => {
 			?.filter((speaker): speaker is ISpeakerData & Required<Pick<ISpeakerData, 'shape'>> => !!speaker.shape)
 			?.filter((s) => !hideSpeakerPolygons.includes(s.id))
 			?.filter((s) => {
-				// Time machine filter: only show speakers created before the selected date
-				if (!timeMachineFilterDate) return true;
+				// Only apply time machine filtering if the feature is enabled
+				if (!config.map.displayTimeMachineSlider) {
+					return true; // Show all speakers when time machine is disabled
+				}
 				
-				const speakerCreated = s.created;
-				if (!speakerCreated) return true; // Show speakers without timestamps
-				
-				const speakerDate = new Date(speakerCreated);
-				if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
-				
-				return speakerDate <= timeMachineFilterDate;
+				if (timeMachineMode === 'order-based') {
+					// Order-based mode: check if speaker index is within the order index
+					const speakerIndex = speakerIdToOrderIndex.get(s.id);
+					if (speakerIndex === undefined) return false;
+					return speakerIndex < timeMachineOrderIndex;
+				} else {
+					// Time-based mode: only show speakers created before the selected date
+					if (!timeMachineFilterDate) return true;
+					
+					const speakerCreated = s.created;
+					if (!speakerCreated) return true; // Show speakers without timestamps
+					
+					const speakerDate = new Date(speakerCreated);
+					if (isNaN(speakerDate.getTime())) return true; // Show speakers with invalid timestamps
+					
+					return speakerDate <= timeMachineFilterDate;
+				}
 			})
 			.flatMap((s, index) => {
 				const shape = polygon(s.shape.coordinates[0]);
@@ -141,7 +214,7 @@ const SpeakerImages = (props: Props) => {
 			});
 
 		return p;
-	}, [hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate, recentSpeakerIds]);
+	}, [hideSpeakerPolygons, lastSpeakerUpdateTime, sessionCreatedSpeakerIds, timeMachineFilterDate, recentSpeakerIds, timeMachineMode, timeMachineOrderIndex, speakerIdToOrderIndex]);
 
 	return (
 		<>
