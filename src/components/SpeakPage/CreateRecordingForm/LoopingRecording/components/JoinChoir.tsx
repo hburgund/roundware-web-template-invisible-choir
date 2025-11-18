@@ -97,14 +97,20 @@ const JoinChoir = ({
     console.log('[JoinChoir] handleContinue called, isConsentChecked:', isConsentChecked);
     if (!isConsentChecked) return;
     
-    // Check if permission already granted
-    if (navigator.permissions && navigator.permissions.query) {
+    // Check if permission already granted or denied
+    if (navigator.permissions && navigator.permissions.query && !isIOS) {
       try {
         const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
         if (!isMountedRef.current) return;
         
         if (permissionStatus.state === 'granted') {
           onContinue();
+          return;
+        } else if (permissionStatus.state === 'denied') {
+          // Skip the in-app dialog
+          if (isMountedRef.current) {
+            setShowMicrophoneBlockedDialog(true);
+          }
           return;
         }
       } catch (error) {
@@ -203,6 +209,10 @@ const JoinChoir = ({
       if (errorName === 'NotAllowedError') {
         setPermissionError('Microphone permission was denied. Please allow microphone access in your browser settings and try again.');
         onPermissionDenied?.();
+        // Show the blocked dialog as a fallback
+        if (isMountedRef.current) {
+          setShowMicrophoneBlockedDialog(true);
+        }
       } else if (errorName === 'NotFoundError') {
         setPermissionError('No microphone found. Please connect a microphone and try again.');
         onAudioDeviceMissing?.();
@@ -212,6 +222,10 @@ const JoinChoir = ({
       } else {
         setPermissionError('Failed to access microphone. Please check your browser settings and try again.');
         onPermissionDenied?.();
+        // Show the blocked dialog as a fallback
+        if (isMountedRef.current) {
+          setShowMicrophoneBlockedDialog(true);
+        }
       }
     } finally {
       if (isMountedRef.current) {
