@@ -63,16 +63,6 @@ const JoinChoir = ({
           return;
         }
 
-        // Enumerate devices to check for microphone and speakers
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasMicrophone = devices.some(device => device.kind === 'audioinput');
-        const hasSpeakers = devices.some(device => device.kind === 'audiooutput');
-        
-        if (!hasMicrophone || !hasSpeakers) {
-          if (isMountedRef.current) {
-            setShowAudioRequiredDialog(true);
-          }
-        }
       } catch (error) {
         console.error('[JoinChoir] Error checking audio devices:', error);
         // If we can't check devices, show the dialog to be safe
